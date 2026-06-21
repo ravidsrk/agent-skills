@@ -1,0 +1,55 @@
+A vertical infographic poster, portrait 2:3 aspect ratio. Modern Linear-app docs aesthetic — clean, restrained, slightly editorial.
+
+BACKGROUND: warm dark charcoal #0E0E0E. Subtle 12-column grid hinted at 3% opacity.
+
+FOREGROUND: bone off-white #EAEAEA. Body text in lowercase Inter or Geist sans-serif (NOT monospace, NOT pixel-bitmap). ALL CAPS section labels in letter-spaced Inter.
+
+Per-level semantic palette — use distinct colors per level, NOT all-orange:
+  L1 amber #FFC857
+  L2 teal #00D9D9
+  L3 magenta #B57FFF
+  L4 muted rust #B8541F (NOT vivid Hermes orange #F26B1F — use the desaturated rust)
+
+TITLE at top in lowercase Inter (NOT pixel-bitmap):
+  "the engineering maturity ladder"
+Below it, a smaller subtitle in italic muted tan:
+  "where is your team?"
+
+Below the title, a VERTICAL SPINE of 4 level cards stacked top-to-bottom. Each level card has:
+  - A LEFT-side colored badge in its accent color: L1 / L2 / L3 / L4 in ALL CAPS letter-spaced
+  - The level name in ALL CAPS Inter letter-spaced, accent color
+  - A short ONE-LINER in lowercase Inter italic, muted tan
+  - A 3-5 bullet list using `→` arrow bullets in the level's accent color
+  - 1px solid border in the level's accent color, with 8px rounded corners (Cluster B is the only cluster with rounded corners)
+  - Subtle accent-tinted background fill at ~5% opacity inside the card
+
+Levels (top to bottom):
+
+HEROIC null
+  one-liner: null
+  bullets:
+
+TRIBAL null
+  one-liner: null
+  bullets:
+
+DOCUMENTED null
+  one-liner: null
+  bullets:
+
+AGENT-LEGIBLE null
+  one-liner: null
+  bullets:
+
+
+Bottom: a single LOWERCASE manifesto tagline centered, with phrases separated by `·` middle-dots (NOT periods, NOT ALL CAPS):
+  "most teams are stuck on L1. L4 is rare."
+with "@yourhandle" right-aligned below in muted tan.
+
+⚠️ CRITICAL TEXT RULES — read carefully before rendering letters:
+• Spell every word completely. Do NOT abbreviate. Do NOT drop letters.
+• Punctuation marks (. , : ; · |) must render as actual punctuation glyphs, NEVER as the spelled-out word (PERIOD, COMMA, COLON, SEMICOLON, MIDDLE-DOT, PIPE). Render every `·` as the actual middle-dot character.
+• Symbol characters (→ ◆) must render as the actual unicode glyph, NEVER as the spelled-out word (ARROW, DIAMOND).
+• Avoid any duplicate or stuttered words.
+
+Aesthetic references: Linear docs, Stripe Press, Vercel marketing. Restrained, editorial, clear hierarchy. NOT terminal/cyberpunk. NOT pixel-bitmap. NOT painterly.

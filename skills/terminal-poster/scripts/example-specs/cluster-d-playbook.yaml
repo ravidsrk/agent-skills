@@ -1,0 +1,35 @@
+# Cluster D — Blueprint (step-by-step playbook)
+# Topic: generic 5-step deploy playbook
+# Render: bash make-poster.sh cluster-d-playbook.yaml output.png
+
+cluster: d
+
+title: the five-step deploy playbook
+bottom_tagline: "code to prod in five steps. or you don't ship."
+handle: "@yourhandle"
+
+steps:
+  - number: "01"
+    label: AUDIT
+    tagline: 5 min
+    body: "scan dependencies for CVEs, secrets in tracked files, and lint errors. block on any critical hit."
+
+  - number: "02"
+    label: BUILD
+    tagline: 8 min
+    body: "compile, run unit tests, build container image. tag with git sha + semver."
+
+  - number: "03"
+    label: STAGE
+    tagline: 12 min
+    body: "deploy to staging environment. run smoke tests + load shape. promote only if green."
+
+  - number: "04"
+    label: SHIP
+    tagline: 4 min
+    body: "rolling deploy to production. watch error rate + latency p99 for 5 min before declaring done."
+
+  - number: "05"
+    label: VERIFY
+    tagline: 1 min
+    body: "synthetic health check from 3 regions. open changelog entry. notify channel."

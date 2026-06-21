@@ -1,0 +1,51 @@
+# Cluster B — Color-Coded Levels (maturity ladder)
+# Topic: generic team-process maturity model — 4 levels with semantic colors
+# Render: bash make-poster.sh cluster-b-maturity.yaml output.png
+
+cluster: b
+
+title: the engineering maturity ladder
+subtitle: where is your team?
+bottom_tagline: "most teams are stuck on L1. L4 is rare."
+handle: "@yourhandle"
+
+levels:
+  - rank: L1
+    color: red
+    label: HEROIC
+    tagline: "one senior carries the team"
+    points:
+      - "knowledge in one person's head"
+      - "breaks when they're on vacation"
+      - "onboarding takes 3+ months"
+      - "no shared standards"
+
+  - rank: L2
+    color: orange
+    label: TRIBAL
+    tagline: "small group shares context"
+    points:
+      - "team chat as documentation"
+      - "patterns by oral tradition"
+      - "onboarding takes 1 month"
+      - "review-based knowledge transfer"
+
+  - rank: L3
+    color: yellow
+    label: DOCUMENTED
+    tagline: "wiki exists. mostly stale."
+    points:
+      - "ADRs for big decisions"
+      - "runbooks for known incidents"
+      - "onboarding takes 1 week"
+      - "20% docs always out of date"
+
+  - rank: L4
+    color: green
+    label: AGENT-LEGIBLE
+    tagline: "code + docs are AI-navigable"
+    points:
+      - "every module has a SKILL.md"
+      - "agents can answer 'how do I X?'"
+      - "onboarding takes 1 day"
+      - "docs regenerate from source"

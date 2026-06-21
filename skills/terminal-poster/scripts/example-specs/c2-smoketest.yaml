@@ -1,0 +1,51 @@
+# Cluster C Mode C2 — Flat Pixel Hero (whimsical topic)
+# Validates the C2 sub-mode which until now was only inferred.
+# Topic: "The bot that schedules my dog's walks" — playful, mascot-driven.
+# Render with: bash make-poster.sh c2-smoketest.yaml c2-smoketest.png
+
+cluster: c
+mode: c2  # flat pixel hero
+
+topic: walkbot
+status: tail-wagging
+status_2: 47 walks logged
+handle: "@ravidsrk"
+
+eyebrow: GOOD-BOY APPROVED
+brand: WALKBOT
+subtitle: AGENT FOR YOUR DOG
+
+# Flat pixel hero — must be visible square pixels, NO painterly
+hero_subject: >
+  a flat 8-bit pixel-art scene of a chunky golden retriever sitting beside
+  three small vintage CRT monitors. The monitors show: a weather forecast,
+  a calendar grid with X marks, and a route map with paw prints. Behind the
+  dog: a stepped pixel-art bone-shape outlined in orange. Pure pixel-art
+  game-asset style with clearly visible square pixels and 1-bit shading.
+  NO painterly. NO smooth gradients. NO radial glow.
+
+cards:
+  - header: WEATHER WATCHER
+    icon: cloud-with-sun
+    body: "checks hourly forecast · skips walks under 5°C · alerts on rain"
+  - header: SCHEDULE BRAIN
+    icon: calendar-with-bone
+    body: "morning · midday · evening slots · auto-adjusts to your meetings"
+  - header: ROUTE PICKER
+    icon: map-with-pawprint
+    body: "rotates 4 routes · avoids construction · favorite tree variety"
+  - header: ENERGY METER
+    icon: lightning-bolt
+    body: "tracks recent activity · suggests longer walks after lazy days"
+  - header: TREAT TRACKER
+    icon: cookie-jar
+    body: "remembers training rewards · daily limit · special-occasion mode"
+  - header: SOCIAL RADAR
+    icon: two-dog-silhouettes
+    body: "knows neighbor dog schedules · plans encounters · or avoids them"
+
+tagline_separator: star
+tagline_phrases:
+  - GOOD WALKS ON AUTOPILOT
+  - YOUR DOG HAS A SCHEDULE
+  - YOU JUST SHOW UP

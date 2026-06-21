@@ -1,0 +1,43 @@
+# Cluster A — ASCII Terminal (engineer-poet zine)
+# Topic: a generic agent runtime stack — 3 panels in classic monospace style
+# Render: bash make-poster.sh cluster-a-stack.yaml output.png
+
+cluster: a
+
+title: a typical agent stack
+bottom_tagline: "spec in. action out. ship it."
+handle: "@yourhandle"
+
+panels:
+  - label: PERCEPTION
+    subject: input layer
+    tagline: structured intent in
+    flow: "user prompt ──▶ parser ──▶ structured spec"
+    prose: "turns ambient natural-language input into a machine-readable plan. the only layer humans actually touch."
+    items:
+      - "yaml or natural-language spec"
+      - "schema validation"
+      - "intent classification"
+      - "skill routing"
+
+  - label: REASONING
+    subject: planner
+    tagline: ~500 lines of cluster-aware logic
+    flow: "spec ──▶ planner ──▶ tool calls"
+    prose: "the part everyone calls 'the brain'. composes tool calls, manages context budget, handles retries."
+    items:
+      - "tool selection + argument synthesis"
+      - "context window management"
+      - "deterministic retries with backoff"
+      - "audit log of every decision"
+
+  - label: ACTION
+    subject: executor
+    tagline: shell · http · file io
+    flow: "tool call ──▶ executor ──▶ result"
+    prose: "where intent meets reality. sandboxed by default. every call returns a structured result the planner can reason over."
+    items:
+      - "bash with timeout + capture"
+      - "http with auth + retry"
+      - "file io with diff preview"
+      - "structured error envelopes"

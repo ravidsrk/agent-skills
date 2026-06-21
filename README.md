@@ -1,0 +1,91 @@
+# agent-skills
+
+Public Agent Skills by [@ravidsrk](https://github.com/ravidsrk), built to the [agentskills.io](https://agentskills.io/specification) specification.
+
+These skills are open-source, MIT-licensed, and work in any agent runtime that supports the Agent Skills spec — Claude Code, Cursor, OpenClaw, Codex, Augment, and others.
+
+# Skills in this repo
+
+| Skill | Description | Cost / use |
+|---|---|---|
+| [`terminal-poster`](skills/terminal-poster/) | Generate dense, retro-cyberpunk infographic posters in a terminal-aesthetic style. Five reusable templates (Cluster A–E). Uses Nano Banana Pro via OpenRouter. | ~$0.002 + ~30s per image |
+
+# Quick start
+
+# 1. Clone the repo
+
+```bash
+git clone https://github.com/ravidsrk/agent-skills.git
+cd agent-skills
+```
+
+# 2. Install a skill into your agent runtime
+
+Most runtimes look for skills in a configured directory. Symlink (or copy) the skill there:
+
+**Claude Code / VS Code / generic:**
+
+```bash
+# Adjust the destination path to your runtime's skill directory
+ln -s "$(pwd)/skills/terminal-poster" ~/.claude/skills/terminal-poster
+```
+
+**Mogra:**
+
+```bash
+ln -s "$(pwd)/skills/terminal-poster" /workspace/.mogra/skills/terminal-poster
+```
+
+The next time your agent starts, it'll discover the skill.
+
+# 3. Use it
+
+Each skill's `SKILL.md` has its own activation triggers (in the `description` field) and instructions. The agent will pick up the skill automatically when you ask for what it does — e.g. for `terminal-poster`:
+
+> "Make this look like a viral X post"
+> "Generate a Shann-style infographic for my product"
+> "Create a terminal-aesthetic poster for our agent stack"
+
+# Repo layout
+
+```
+agent-skills/
+├── README.md
+├── LICENSE
+├── CONTRIBUTING.md
+├── scripts/
+│   └── validate-skills.py    ← Validates every SKILL.md against agentskills.io spec
+└── skills/
+    └── terminal-poster/
+        ├── SKILL.md
+        ├── scripts/
+        ├── references/
+        └── assets/
+```
+
+Every skill is a directory under `skills/` containing at minimum a `SKILL.md` with frontmatter. See the [Agent Skills specification](https://agentskills.io/specification) for the format.
+
+# Validation
+
+Run the validator to check every skill is spec-compliant before committing:
+
+```bash
+python3 scripts/validate-skills.py
+```
+
+The validator enforces:
+- `name`: 1–64 chars, lowercase letters/digits/hyphens, matches folder name
+- `description`: 1–1024 chars
+- `compatibility`: 1–500 chars (if present)
+
+# Contributing
+
+PRs welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for the rules.
+
+# License
+
+MIT. See [LICENSE](LICENSE).
+
+# Credits
+
+The `terminal-poster` skill's visual pattern was reverse-engineered from public posts by [@shannholmberg](https://x.com/shannholmberg) on X. The skill makes the look reproducible across topics — Shann designed the look itself.

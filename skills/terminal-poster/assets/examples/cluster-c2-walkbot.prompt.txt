@@ -1,0 +1,43 @@
+A vertical dense infographic poster, portrait 2:3 aspect ratio, retro-cyberpunk dev-tools aesthetic.
+
+BACKGROUND: warm dark charcoal #0E0E0E with subtle ambient orange glow seeping in from the top corners. Faint horizontal CRT scanline overlay at low opacity.
+
+PRIMARY ACCENT: vivid Hermes orange #F26B1F.
+Secondary accents: phosphor green #A8E060, cyan #00D9D9, magenta #B57FFF, gold #E8C547.
+Cream body text #F0E6D2. Muted tan secondary #A89680.
+
+TOP-LEFT CORNER: terminal prompt "> walkbot$ tail-wagging" in green #A8E060 monospace.
+TOP-RIGHT CORNER (MIRRORED — second prompt, not a version stamp): "> sys$ 47 walks logged  @ravidsrk" in muted tan monospace.
+
+HERO ZONE (top ~22%, keep small): A FLAT PIXEL-ART scene of a flat 8-bit pixel-art scene of a chunky golden retriever sitting beside three small vintage CRT monitors. The monitors show: a weather forecast, a calendar grid with X marks, and a route map with paw prints. Behind the dog: a stepped pixel-art bone-shape outlined in orange. Pure pixel-art game-asset style with clearly visible square pixels and 1-bit shading. NO painterly. NO smooth gradients. NO radial glow.. Must look bitmap with visible square pixels, not smooth curves. Pure pixel-art game-asset style. NO painterly. NO smooth gradients. NO radial glow.
+
+TITLE (just below hero): stacked 3-line pixel-bitmap headline in chunky Press Start 2P / VT323 style with clearly visible square pixels:
+  Line 1 (small, cream #F0E6D2): "GOOD-BOY APPROVED"
+  Line 2 (XL, orange #F26B1F): "WALKBOT"
+  Line 3 (medium, green #A8E060): "AGENT FOR YOUR DOG"
+
+BODY GRID (middle 45-50%): EXACTLY a 3 columns × 2 rows = 6 cards. Identical width and height. Each card has a 1px sharp-cornered border in its accent color, a small all-caps mono header in the same accent color, and 3 lines of monospace body text. Each card has a line-art OR chunky pixel-art icon in the accent color (~2px stroke). CARDS ARE FLAT — no painterly, no shadows, no gradients inside cards.
+
+Top-left of each card: a filled orange square badge with white numeral inside square brackets:
+  Card 1: [1] orange border — "WEATHER WATCHER" — icon: cloud-with-sun — "checks hourly forecast · skips walks under 5°C · alerts on rain"
+  Card 2: [2] green border — "SCHEDULE BRAIN" — icon: calendar-with-bone — "morning · midday · evening slots · auto-adjusts to your meetings"
+  Card 3: [3] cyan border — "ROUTE PICKER" — icon: map-with-pawprint — "rotates 4 routes · avoids construction · favorite tree variety"
+  Card 4: [4] magenta border — "ENERGY METER" — icon: lightning-bolt — "tracks recent activity · suggests longer walks after lazy days"
+  Card 5: [5] gold border — "TREAT TRACKER" — icon: cookie-jar — "remembers training rewards · daily limit · special-occasion mode"
+  Card 6: [6] orange border — "SOCIAL RADAR" — icon: two-dog-silhouettes — "knows neighbor dog schedules · plans encounters · or avoids them"
+
+Between rows: a thin orange arrow chain `→ → →` showing flow.
+
+BOTTOM TAGLINE BAR (full width, last ~8%): A solid orange #F26B1F band. Inside it, ALL CAPS letter-spaced cream-colored text.
+Tagline: "★ GOOD WALKS ON AUTOPILOT   ★ YOUR DOG HAS A SCHEDULE   ★ YOU JUST SHOW UP"
+
+⚠️ CRITICAL TEXT RULES — read carefully before rendering letters:
+• Spell every word completely. Do NOT abbreviate. Do NOT drop letters.
+• Punctuation marks (. , : ; · |) must render as actual punctuation glyphs, NEVER as the spelled-out word (PERIOD, COMMA, COLON, MIDDLE-DOT, PIPE).
+• Symbol characters (★ → ◆ › ▼) must render as the actual unicode glyph, NEVER as the spelled-out word (STAR, ARROW, DIAMOND, QUOTE, TRIANGLE).
+• Render every dot as a small square pixel or punctuation glyph, not as letters.
+• Avoid any duplicate or stuttered words.
+
+[MASCOT] is a LARGE prominent pixel-art robot icon, CENTERED on the tagline bar — square head, two glowing rectangular orange eyes, two tiny antenna nubs on top, no body. Sized at ~14% of the tagline bar height. CLEAN, BOLD, and ICONIC with crisp 8-bit pixel edges. Do NOT attempt damage details.
+
+Overall style references: hacker zine, Bloomberg Terminal, Pip-Boy interface, 1990s computer manual diagrams. Hero painterly (Mode C1) or flat-pixel (Mode C2) + body cards flat + chrome ENGINEERED.

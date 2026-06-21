@@ -1,0 +1,66 @@
+A vertical Twitter/X infographic poster, portrait 2:3 aspect ratio.
+Two-tone monochrome: warm near-black background #0E0E0E, bone off-white foreground #EAEAEA. Zero accent colors. No gradients, no shadows, no rounded corners.
+
+Render the entire image in a single monospace font (Berkeley Mono / JetBrains Mono / IBM Plex Mono style), regular weight, fixed character grid. Lowercase body text, ALL CAPS section labels inline within panel borders.
+
+Title at top:
+  "a typical agent stack"
+underlined by a single thin horizontal rule of dashes spanning the page width.
+
+Below, 3 stacked rectangular panels drawn with thin Unicode box-drawing characters (┌ ─ ┐ │ └ ┘). Each panel has its label inset into the top border with the canonical Cluster A signature pattern:
+
+┌─ [LABEL]: [SUBJECT] ◆ [PANEL_TAGLINE] ──────────────┐
+
+The ◆ DIAMOND SEPARATOR between subject and panel-tagline is REQUIRED — it is THE Cluster A signature. Always include it.
+
+DO NOT use [1] or [2] bracketed numerals — those are Cluster C convention. Cluster A uses inline LAYER N: / LEVEL N: / STAGE N: labels in the top border.
+
+Inside each panel:
+  1. A small ASCII flow diagram with filled triangular arrowheads (X ──▶ Y style)
+  2. A 2-line lowercase prose description
+  3. The RITUAL line in lowercase: "what runs here:" (this exact phrase, always present)
+  4. A 4-item example list, each prefixed with the › right-angle quote character — NOT → arrows, NOT • bullets. The › is the canonical Cluster A list bullet.
+
+Panel contents (in order, top to bottom):
+
+┌─ PERCEPTION: input layer ◆ structured intent in ──────────────────┐
+ASCII flow: user prompt ──▶ parser ──▶ structured spec
+prose: turns ambient natural-language input into a machine-readable plan. the only layer humans actually touch.
+what runs here:
+  › yaml or natural-language spec
+  › schema validation
+  › intent classification
+  › skill routing
+
+┌─ REASONING: planner ◆ ~500 lines of cluster-aware logic ──────────────────┐
+ASCII flow: spec ──▶ planner ──▶ tool calls
+prose: the part everyone calls 'the brain'. composes tool calls, manages context budget, handles retries.
+what runs here:
+  › tool selection + argument synthesis
+  › context window management
+  › deterministic retries with backoff
+  › audit log of every decision
+
+┌─ ACTION: executor ◆ shell · http · file io ──────────────────┐
+ASCII flow: tool call ──▶ executor ──▶ result
+prose: where intent meets reality. sandboxed by default. every call returns a structured result the planner can reason over.
+what runs here:
+  › bash with timeout + capture
+  › http with auth + retry
+  › file io with diff preview
+  › structured error envelopes
+
+
+Between panels: a single │ followed by ▼ as flow connector (vertical pipe with downward triangle).
+
+Bottom: a single LOWERCASE manifesto tagline centered:
+  "spec in. action out. ship it."
+with "@yourhandle" right-aligned below.
+
+⚠️ CRITICAL TEXT RULES — read carefully before rendering letters:
+• Spell every word completely. Do NOT abbreviate. Do NOT drop letters.
+• Punctuation marks (. , : ; ·) must render as actual punctuation glyphs, NEVER as the spelled-out word (PERIOD, COMMA, COLON, MIDDLE-DOT).
+• Symbol characters (◆ › ▼ → ─ ┌ ┐ │ └ ┘) must render as the actual unicode glyph, NEVER as the spelled-out word. The ◆ must be a literal diamond, not "DIAMOND".
+• Avoid any duplicate or stuttered words.
+
+The aesthetic is a `man` page rendered as wall art — engineer-poet zine, terminal-core, brutalist minimalism. No icons, no illustrations, no emoji, no colors other than off-white on near-black.

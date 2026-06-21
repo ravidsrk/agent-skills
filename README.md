@@ -8,7 +8,17 @@ These skills are open-source, MIT-licensed, and work in any agent runtime that s
 
 | Skill | Description | Cost / use |
 |---|---|---|
-| [`terminal-poster`](skills/terminal-poster/) | Generate dense, retro-cyberpunk infographic posters in a terminal-aesthetic style. Five reusable templates (Cluster A–E). Uses Nano Banana Pro via OpenRouter. | ~$0.002 + ~30s per image |
+| [`terminal-poster`](skills/terminal-poster/) | Generate dense, retro-cyberpunk infographic posters in a terminal-aesthetic style. Five reusable templates (Cluster A–E). [See live examples](skills/terminal-poster/README.md#live-examples). Uses Nano Banana Pro via OpenRouter. | ~$0.002 + ~30s per image |
+
+# Preview
+
+<a href="skills/terminal-poster/README.md#live-examples">
+  <img src="skills/terminal-poster/assets/examples/cluster-c2-walkbot.jpg" alt="Cluster C2 example — WalkBot" width="280">
+  <img src="skills/terminal-poster/assets/examples/cluster-a-stack.png" alt="Cluster A example — agent stack" width="280">
+  <img src="skills/terminal-poster/assets/examples/cluster-b-maturity.png" alt="Cluster B example — maturity ladder" width="280">
+</a>
+
+Three real first-generation outputs from `terminal-poster`. [Audit scores + how-to-reproduce →](skills/terminal-poster/README.md#live-examples)
 
 # Quick start
 

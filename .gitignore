@@ -23,3 +23,6 @@ __pycache__/
 output/
 generated/
 *.tmp.png
+
+# Local audit artifacts — not for publishing
+.audit/

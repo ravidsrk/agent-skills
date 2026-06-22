@@ -9,6 +9,7 @@ These skills are open-source, MIT-licensed, and work in any agent runtime that s
 | Skill | Description | Cost / use |
 |---|---|---|
 | [`terminal-poster`](skills/terminal-poster/) | Generate dense, retro-cyberpunk infographic posters in a terminal-aesthetic style. Five reusable templates (Cluster A–E). [See live examples](skills/terminal-poster/README.md#live-examples). Uses Nano Banana Pro via OpenRouter. | ~$0.002 + ~30s per image |
+| [`deep-research`](skills/deep-research/) | Parallel multi-source research orchestrator. Fans out across 8 sources (X, Reddit, HN, GitHub repos + issues, Polymarket, YouTube w/ transcripts, Exa) via [monid](https://monid.dev) and dumps structured + human-readable evidence. One auth, one balance. | ~$0.10–0.20 + ~60–90s per run |
 
 # Preview
 
@@ -66,11 +67,17 @@ agent-skills/
 ├── scripts/
 │   └── validate-skills.py    ← Validates every SKILL.md against agentskills.io spec
 └── skills/
-    └── terminal-poster/
+    ├── terminal-poster/
+    │   ├── SKILL.md
+    │   ├── scripts/
+    │   ├── references/
+    │   └── assets/
+    └── deep-research/
         ├── SKILL.md
-        ├── scripts/
-        ├── references/
-        └── assets/
+        ├── README.md
+        └── scripts/
+            ├── research.py
+            └── sources/
 ```
 
 Every skill is a directory under `skills/` containing at minimum a `SKILL.md` with frontmatter. See the [Agent Skills specification](https://agentskills.io/specification) for the format.
@@ -98,4 +105,5 @@ MIT. See [LICENSE](LICENSE).
 
 # Credits
 
-The `terminal-poster` skill's visual pattern was reverse-engineered from public posts by [@shannholmberg](https://x.com/shannholmberg) on X. The skill makes the look reproducible across topics — Shann designed the look itself.
+- `terminal-poster` — visual pattern reverse-engineered from public posts by [@shannholmberg](https://x.com/shannholmberg) on X. The skill makes the look reproducible across topics; Shann designed the look itself.
+- `deep-research` — originally inspired by [`mvanhorn/last30days-skill`](https://github.com/mvanhorn/last30days-skill). The 30-day default window came from that upstream; the 8-source fan-out and monid routing were rebuilt from scratch.

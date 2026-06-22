@@ -1,28 +1,12 @@
-# OS
 .DS_Store
-Thumbs.db
-
-# Editor
-.vscode/
-.idea/
-*.swp
-*~
-
-# Python
-__pycache__/
-*.pyc
-.venv/
-
-# Local secrets — never commit
+node_modules/
 .env
-.env.local
-*.key
-*.pem
-
-# Generated outputs (don't commit user-generated posters)
-output/
-generated/
-*.tmp.png
-
-# Local audit artifacts — not for publishing
+.env.*
+*.log
+*.pyc
+__pycache__/
+.dns-state/
+.migration/
 .audit/
+/tmp-render/
+assets/*.prompt.txt

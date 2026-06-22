@@ -158,10 +158,11 @@ Bug fixes, schema updates, new examples, and clarifications are always welcome. 
 If you're looking for a starting point, these gaps would help the most:
 
 - 🔐 Security & hardening (recon, OWASP code audit, cloud misconfig, prompt-injection audit)
-- 🌐 DNS + infra (Cloudflare DNS, Namecheap DNS, AWS migration playbooks)
+- 🌐 DNS + infra (Route53 migration, Vercel DNS, additional registrar wrappers)
 - 🛠️ Dev workflow (TDD red-green-refactor, structured debug protocols, codebase cleanup)
 - 📈 Marketing (SEO audit, schema markup, copywriting, page CRO)
 - 🤖 Agent infra (Composio triggers, MCP servers, browser automation harnesses)
+- 🚀 More platform migrations (Heroku → AWS, Vercel → Cloudflare, Render → Fly)
 
 Open an issue first if you want to claim one — avoids duplicate work.
 

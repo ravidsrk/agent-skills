@@ -1,0 +1,161 @@
+# Deploy static sites (web + docs) to S3 + CloudFront.
+# Detects which site changed → only rebuilds that one.
+
+name: Deploy Static Sites
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/web/**'
+      - 'apps/docs/**'
+      - '.github/workflows/deploy-static-sites.yml'
+  workflow_dispatch:
+    inputs:
+      site:
+        description: 'Which site to deploy'
+        required: true
+        type: choice
+        options: [both, web, docs]
+        default: both
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
+  WEB_BUCKET: ${{ vars.WEB_BUCKET }}
+  DOCS_BUCKET: ${{ vars.DOCS_BUCKET }}
+  WEB_CLOUDFRONT_ID: ${{ vars.WEB_CLOUDFRONT_ID }}
+  DOCS_CLOUDFRONT_ID: ${{ vars.DOCS_CLOUDFRONT_ID }}
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      web: ${{ steps.changes.outputs.web }}
+      docs: ${{ steps.changes.outputs.docs }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Detect changes
+        id: changes
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            SITE="${{ inputs.site }}"
+            [ "$SITE" = "both" ] || [ "$SITE" = "web" ] && echo "web=true" >> $GITHUB_OUTPUT || echo "web=false" >> $GITHUB_OUTPUT
+            [ "$SITE" = "both" ] || [ "$SITE" = "docs" ] && echo "docs=true" >> $GITHUB_OUTPUT || echo "docs=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          BASE="${{ github.event.before }}"
+          HEAD="${{ github.sha }}"
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+            echo "web=true" >> $GITHUB_OUTPUT
+            echo "docs=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          CHANGED=$(git diff --name-only "$BASE" "$HEAD")
+          echo "$CHANGED" | grep -q "^apps/web/" && echo "web=true" >> $GITHUB_OUTPUT || echo "web=false" >> $GITHUB_OUTPUT
+          echo "$CHANGED" | grep -q "^apps/docs/" && echo "docs=true" >> $GITHUB_OUTPUT || echo "docs=false" >> $GITHUB_OUTPUT
+
+  web:
+    needs: detect
+    if: needs.detect.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        working-directory: apps/web
+        run: npm install --ignore-scripts  # 🔴 NOT bun (Gotcha #1)
+
+      - name: Build static export
+        working-directory: apps/web
+        env:
+          NEXT_PUBLIC_API_URL: https://api.${{ vars.DOMAIN }}
+          NEXT_PUBLIC_SENTRY_ENV: production
+        run: npm run build
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Upload to S3
+        working-directory: apps/web/out
+        run: |
+          aws s3 sync . s3://${{ env.WEB_BUCKET }}/ \
+            --delete --exclude "*" --include "*.html" \
+            --content-type "text/html; charset=utf-8" \
+            --cache-control "public, max-age=300, s-maxage=300"
+
+          aws s3 sync . s3://${{ env.WEB_BUCKET }}/ \
+            --delete --exclude "*.html" \
+            --cache-control "public, max-age=31536000, immutable"
+
+      - name: Invalidate CloudFront
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ env.WEB_CLOUDFRONT_ID }} \
+            --paths "/*" > /dev/null
+
+  docs:
+    needs: detect
+    if: needs.detect.outputs.docs == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        working-directory: apps/docs
+        run: npm install --ignore-scripts
+
+      - name: Generate Fumadocs MDX (if using Fumadocs)
+        working-directory: apps/docs
+        run: npx fumadocs-mdx || echo "Skipping — not using Fumadocs"
+
+      - name: Build static export
+        working-directory: apps/docs
+        env:
+          # 🔴 Fumadocs + Shiki needs ≥4 GB heap (Gotcha #2)
+          NODE_OPTIONS: '--max-old-space-size=4096'
+        run: npm run build
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Upload to S3
+        working-directory: apps/docs/out
+        run: |
+          aws s3 sync . s3://${{ env.DOCS_BUCKET }}/ \
+            --delete --exclude "*" --include "*.html" \
+            --content-type "text/html; charset=utf-8" \
+            --cache-control "public, max-age=300, s-maxage=300"
+
+          aws s3 sync . s3://${{ env.DOCS_BUCKET }}/ \
+            --delete --exclude "*.html" \
+            --cache-control "public, max-age=31536000, immutable"
+
+      - name: Invalidate CloudFront
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ env.DOCS_CLOUDFRONT_ID }} \
+            --paths "/*" > /dev/null

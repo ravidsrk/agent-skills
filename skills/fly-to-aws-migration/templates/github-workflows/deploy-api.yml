@@ -1,0 +1,106 @@
+# Deploy API to ECS Fargate via OIDC.
+# Triggered on push to main when apps/api/** changes.
+#
+# Required GitHub Actions secrets/vars:
+#   - vars.AWS_ROLE_ARN: arn:aws:iam::ACCOUNT:role/PROJECT-prod-github-deploy
+#   - vars.AWS_REGION: ap-southeast-1
+#   - vars.ECR_REPO: PROJECT-prod-api
+#   - vars.ECS_CLUSTER: PROJECT-prod-cluster
+#   - vars.ECS_SERVICE: PROJECT-prod-api
+
+name: Deploy API to AWS
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/api/**'
+      - '.github/workflows/deploy-api.yml'
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Login to ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build + push image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apps/api
+          file: ./apps/api/Dockerfile
+          # ARM64 = 20% cheaper Fargate. Match task definition runtime_platform.
+          platforms: linux/arm64
+          push: true
+          tags: |
+            ${{ steps.ecr.outputs.registry }}/${{ vars.ECR_REPO }}:latest
+            ${{ steps.ecr.outputs.registry }}/${{ vars.ECR_REPO }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Force ECS service to pull new image
+        # 🟡 :latest tag alone doesn't trigger redeploy — need --force-new-deployment
+        run: |
+          aws ecs update-service \
+            --cluster ${{ vars.ECS_CLUSTER }} \
+            --service ${{ vars.ECS_SERVICE }} \
+            --force-new-deployment \
+            --no-cli-pager > /dev/null
+
+      - name: Wait for deployment to stabilize
+        run: |
+          aws ecs wait services-stable \
+            --cluster ${{ vars.ECS_CLUSTER }} \
+            --services ${{ vars.ECS_SERVICE }}
+
+      - name: Verify health
+        run: |
+          # Get target group health
+          TG_ARN=$(aws elbv2 describe-target-groups \
+            --names ${{ vars.ECS_SERVICE }} \
+            --query 'TargetGroups[0].TargetGroupArn' \
+            --output text)
+
+          HEALTHY=$(aws elbv2 describe-target-health \
+            --target-group-arn $TG_ARN \
+            --query 'TargetHealthDescriptions[?TargetHealth.State==`healthy`] | length(@)')
+
+          echo "Healthy targets: $HEALTHY"
+          [ "$HEALTHY" -gt "0" ] || exit 1
+
+      - name: 🔴 Post-deploy DB write check (Bun + Prisma WASM detection)
+        # Detects the silent outage gotcha (#4 in gotchas.md).
+        # If your stack uses Bun + Prisma, this is mandatory.
+        # Adjust the table name and time window for your app.
+        continue-on-error: true
+        run: |
+          sleep 60  # let scheduler restart and do at least one cycle
+
+          # Run the check via ECS Exec into a task
+          TASK_ARN=$(aws ecs list-tasks \
+            --cluster ${{ vars.ECS_CLUSTER }} \
+            --service-name ${{ vars.ECS_SERVICE }} \
+            --query 'taskArns[0]' --output text)
+
+          # Skip if not applicable to your stack
+          # aws ecs execute-command --cluster ${{ vars.ECS_CLUSTER }} \
+          #   --task $TASK_ARN --container app --command "..." --interactive

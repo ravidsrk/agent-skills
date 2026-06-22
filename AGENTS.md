@@ -59,6 +59,58 @@ For every request:
 - **Validate all skills:** `python3 scripts/validate-skills.py`
 - **Test locally before committing:** Read your `SKILL.md` as if you were a fresh agent — would you know what to do?
 
+# Imagery & Banners
+
+Every skill ships with a **per-skill banner** at `skills/<name>/assets/banner.{jpg,png}`, plus a matching `banner-prompt.txt` reproducer next to it. The main `assets/banner.jpg` is the repo hero (clean typography on warm cream paper).
+
+**Design language (keep new skills consistent):**
+
+- **Style:** Clean minimalist isometric illustration, Stripe documentation aesthetic. NOT photorealistic, NOT cyberpunk, NOT dense text.
+- **Aspect ratio:** 2:1 (~1200×600) for skill banners; 16:9 for the repo hero.
+- **Background:** Soft warm cream `#F8F4EE` (optionally with a faint horizontal gradient).
+- **Ink:** Dark slate `#1F2937`. **Card faces:** White `#FFFFFF` with subtle drop shadows.
+- **Accent:** ONE skill-specific brand color (e.g. Cloudflare orange, Fly purple, etc.).
+- **Composition:** Tell the skill's story at a glance — a left→right journey, a radial fan-out, a central object with outputs around it.
+- **Required labels:** Top-left `skills/<name>` in small monospace; bottom-center thin line + one-sentence caption.
+
+**Generation:**
+
+```bash
+# Requires $OPENROUTER_API_KEY
+bash skills/terminal-poster/scripts/generate.sh \
+  skills/<name>/assets/banner-prompt.txt \
+  skills/<name>/assets/banner.jpg
+```
+
+- **Model:** Nano Banana Pro (`google/gemini-3-pro-image-preview`) via OpenRouter
+- **Cost:** ~$0.002 per image
+- **Latency:** ~30 seconds — generate candidates in parallel via background bash when iterating
+
+**Known gotchas (DO NOT REPEAT):**
+
+🔴 **Nano Banana Pro often returns JPEG even when you write to `.png`.** Sniff magic bytes after generation (`\xff\xd8\xff` = JPEG, `\x89PNG` = PNG) and rename. The generator script warns but doesn't auto-rename.
+
+🔴 **The model drops, duplicates, or garbles text labels.** Past failures:
+- "HACKER NUDS" instead of "HACKER NEWS"
+- GITHUB rendered twice while EXA was dropped entirely
+- Fake domain "example.com" rendered as "onomplo.com" / "ouomplo.com"
+
+Fixes:
+- Add explicit constraints in the prompt: "the word X must appear exactly once", "do not duplicate any label", "do not render fake domain names"
+- Render labels OUTSIDE cards (below them), not inside
+- Use abstract dot patterns where you'd otherwise show placeholder text
+
+🔴 **Always vision-audit before shipping.** After generation, run `read(path, prompt="check spelling and label correctness")` — it catches problems that are invisible at thumbnail size. If text is wrong, regenerate with a tighter prompt; don't try to upscale-fix.
+
+**Adding a banner to a new skill:**
+
+1. Write `skills/<name>/assets/banner-prompt.txt` following the design language above
+2. Generate with the command above
+3. Sniff format and rename if needed
+4. Vision-audit for spelling/legibility
+5. Reference in the skill's README: `<img src="assets/banner.{jpg,png}" alt="<name> — <one-line description>" width="100%">` above the H1 description
+6. Commit both the image AND the prompt — reproducers are first-class artifacts in this repo
+
 # See Also
 
 - [docs/skill-anatomy.md](docs/skill-anatomy.md) — Skill structure specification

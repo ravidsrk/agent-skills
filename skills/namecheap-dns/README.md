@@ -1,5 +1,9 @@
 # namecheap-dns
 
+<p align="center">
+  <img src="assets/banner.jpg" alt="namecheap-dns — DNS records via Namecheap XML API" width="100%">
+</p>
+
 **Manage DNS records at Namecheap via the XML API** — list, add, update, delete A / AAAA / CNAME / TXT / MX records without going through the Namecheap dashboard.
 
 🟢 **Auth:** `NAMECHEAP_API_KEY` + `NAMECHEAP_API_USER` + IP allowlisting

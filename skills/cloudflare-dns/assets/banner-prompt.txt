@@ -1,0 +1,26 @@
+A horizontal banner image for a README, 2:1 aspect ratio (wider than tall, about 1200×600 feel).
+
+STYLE: Clean minimalist isometric illustration. Soft warm cream background, single orange accent color. Modern technical illustration — like a Stripe documentation header or a Linear changelog illustration. NOT photorealistic. NO dense text. NO cyberpunk. NO terminal aesthetic.
+
+PALETTE:
+  - Background: very soft warm cream #F8F4EE with a faint horizontal gradient (left slightly peach, right slightly cooler)
+  - Primary accent: Cloudflare-inspired warm orange #F6821F used on the cloud and on highlighted arrows
+  - Ink: dark slate #1F2937 for line work
+  - White (#FFFFFF) for card faces and accents
+
+COMPOSITION (left-to-right migration story):
+
+  LEFT HALF: A small cluster of isometric "registrar" boxes — three or four small generic-looking server cards stacked together, all in muted gray/cream tones. They look like the OLD provider — a bit boring, all the same color. A small label below in monospace caps reads "REGISTRAR".
+
+  CENTER: Several thin horizontal arrows arcing from the left cluster toward the right element. The arrows are warm orange #F6821F, each one slightly delayed (animated-feeling motion lines). 3-5 arrows.
+
+  RIGHT HALF: A LARGE friendly isometric cloud — confident rounded shape, warm orange #F6821F, with subtle gradient. Floating just below the cloud are 3-4 small "DNS record" cards (each card shows a tiny "A", "CNAME", "MX" or "TXT" label in monospace). The cards are cream with thin orange accent stripes. A small label below reads "CLOUDFLARE".
+
+  TOP-LEFT corner: small monospace text "skills/cloudflare-dns"
+  BOTTOM-CENTER: a thin horizontal line with small ink text "DNS migration + zone hardening"
+
+LIGHTING: soft, almost flat. Slight drop shadows under the cloud and the cards. The cloud looks like a benevolent destination, the registrar looks like the boring past.
+
+FEEL: confident, premium, calm. The viewer should immediately understand "this skill moves DNS from somewhere boring to Cloudflare, and manages records there". The composition reads left-to-right as a journey.
+
+NO photorealism. NO emoji. NO 3D rendering with reflections. NO cyberpunk. NO neon. NO dense text blocks. NO terminal aesthetic. Just clean modern isometric illustration on warm cream.

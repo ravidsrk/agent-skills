@@ -1,0 +1,35 @@
+A horizontal banner image for a README, 2:1 aspect ratio (about 1200×600 feel).
+
+STYLE: Clean minimalist isometric illustration. Soft warm cream background, single warm-red/orange accent. Modern technical illustration — Stripe documentation aesthetic. NOT photorealistic. NO dense text.
+
+PALETTE:
+  - Background: soft warm cream #F8F4EE
+  - Primary accent: Namecheap-inspired warm red-orange #DE4815
+  - Ink: dark slate #1F2937
+  - White #FFFFFF for card faces
+
+COMPOSITION:
+
+  CENTER-LEFT: A large isometric ENVELOPE with a warm red-orange wax seal on it (the seal is round, embossed, sitting on top of the envelope). The envelope is white/cream, sitting at a gentle isometric angle. NO text on the envelope itself — leave it blank/clean. Just a small monogram-style mark of two stylized "DNS" letters embossed into the seal.
+
+  EMANATING FROM the envelope: four thin curved lines flowing to the right and slightly upward, each terminating in a small isometric DNS-record CARD. Each card has a SHORT colored label tag at the top showing the record type. KEEP THESE LABELS SHORT AND SPELLED EXACTLY:
+    - Card 1: green tag with white letter "A"
+    - Card 2: blue tag with white letters "CNAME"
+    - Card 3: purple tag with white letters "MX"
+    - Card 4: gray tag with white letters "TXT"
+
+  IMPORTANT: Each card MUST be blank below the tag — do NOT render any fake domain names or fake hostnames on the card body. The card body should be empty/clean, just plain cream with subtle dot pattern suggesting data, but no actual text/letters/words.
+
+  CENTER-RIGHT: a small floating panel with three thin horizontal lines suggesting abstract code. NO actual readable code, just abstract horizontal slate-gray bars of varying length, like a stylized representation of API output.
+
+  TOP-LEFT corner: small monospace text exactly: "skills/namecheap-dns"
+  BOTTOM-CENTER: a thin horizontal line with ink text exactly: "DNS records via Namecheap XML API"
+
+FEEL: Clean utility-focused illustration. Stripe documentation aesthetic. Calm, premium, NOT busy.
+
+CRITICAL RULES — DO NOT VIOLATE:
+  - DO NOT render any example domain names (no example.com, no fake hostnames, NO any TLDs visible)
+  - DO NOT render any garbled or made-up text
+  - The ONLY text in the image should be: the 4 record-type labels (A, CNAME, MX, TXT), "skills/namecheap-dns" top-left, and the bottom-center caption
+  - Every text element must be clean, sharp, and spelled exactly as specified
+  - NO photorealism, NO emoji, NO neon, NO cyberpunk

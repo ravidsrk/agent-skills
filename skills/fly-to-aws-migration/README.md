@@ -1,5 +1,9 @@
 # fly-to-aws-migration
 
+<p align="center">
+  <img src="assets/banner.png" alt="fly-to-aws-migration — Fly.io → AWS in 7 phases" width="100%">
+</p>
+
 **End-to-end playbook for migrating a Fly.io project to AWS.** Seven phases, five PRs, ~6 hours of work, full rollback preserved at every step.
 
 🟢 **Coverage:** Fly Postgres → Aurora Serverless v2, Fly Machines → ECS Fargate, Fly static sites → S3+CloudFront, secrets → AWS Secrets Manager, DNS cutover → Cloudflare

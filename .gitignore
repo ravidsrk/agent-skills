@@ -9,4 +9,4 @@ __pycache__/
 .migration/
 .audit/
 /tmp-render/
-assets/*.prompt.txt
+.tmp-images/

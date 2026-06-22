@@ -1,0 +1,44 @@
+Wide announcement banner introducing two sibling open-source repos as a coordinated launch.
+Aspect ratio EXACTLY 16:9 (1920×1080). This is a single composition split into two equal vertical halves separated by a thin vertical seam.
+
+LEFT HALF — "agent-skills"
+- Background: warm cream gradient, color #F8F4EE at center fading to #F5EBDE at edges. Subtle paper-texture grain.
+- Centered abstract illustration: an isometric workbench / toolboard with 5 distinct hand-crafted tools laid out neatly (a compass, a small hammer, a calipers, a ruler, a small paintbrush). Tools rendered in matte coral #E45D40 with thin charcoal #2D2A26 line work. Soft amber side-lighting.
+- Below the illustration, sans-serif label in dark charcoal #2D2A26: "agent-skills"
+- Smaller monospace caption underneath: "5 capability skills"
+- Tiny URL caption at the very bottom in light charcoal: "github.com/ravidsrk/agent-skills"
+
+RIGHT HALF — "autonomous-fleet"
+- Background: deep midnight gradient, color #0B1220 at center fading to #0F172A at edges. Subtle faint network-mesh dot grid in cool slate #94A3B8 at very low opacity.
+- Centered abstract illustration: a cockpit / mission-control schematic showing a warm-amber #F59E0B matte cube on the left with 4 thin amber bus lines fanning right into 4 dark navy adapter cards arranged in a 2×2 grid. Each card has a single tiny monospace label inside (GROK, CLAUDE-CODE, CODEX, ORCA). Lines glow softly amber. Engineering-serious feel.
+- Below the illustration, sans-serif label in warm off-white #F8FAFC: "autonomous-fleet"
+- Smaller monospace caption underneath in cool slate #94A3B8: "24 skills · 4 runtimes"
+- Tiny URL caption at the very bottom in dim slate: "github.com/ravidsrk/autonomous-fleet"
+
+CENTER SEAM
+- A single thin vertical line down the exact middle, 2px wide, color #F59E0B (warm amber) — the shared accent color uniting both repos.
+- Tiny circular badge in the dead center of the seam: a small amber-outlined circle, ~80px diameter, containing the monospace text "+" rendered in amber #F59E0B. This signifies the two repos as siblings that compose together.
+
+TOP STRIP (10% of total height)
+- A thin horizontal band spanning the full width, color #1A1410 (very dark warm brown — bridges the two palettes).
+- Centered text in warm off-white serif: "Two sibling open-source repos by @ravidsrk"
+- Subtle small-caps monospace tagline beneath in dim amber: "MULTI-AGENT TOOLING · ONE AUTHOR · TWO IDENTITIES"
+
+BOTTOM STRIP (10% of total height)
+- Same dark warm brown #1A1410 band.
+- Centered text in cool slate #94A3B8 monospace, all uppercase: "INSTALL ONE OR BOTH"
+- Below it in warm off-white monospace, slightly larger: "npx skills add <repo-url>"
+
+TEXT RULES
+- The visible text labels in this image, in their EXACT spelling, are ONLY: "Two sibling open-source repos by @ravidsrk", "MULTI-AGENT TOOLING · ONE AUTHOR · TWO IDENTITIES", "agent-skills", "5 capability skills", "github.com/ravidsrk/agent-skills", "autonomous-fleet", "24 skills · 4 runtimes", "github.com/ravidsrk/autonomous-fleet", "INSTALL ONE OR BOTH", "npx skills add <repo-url>", "GROK", "CLAUDE-CODE", "CODEX", "ORCA", and the single character "+" in the center seam badge.
+- Every label must appear EXACTLY ONCE.
+- Do not add any other text, captions, labels, decorative words, or fake URLs.
+- Do not duplicate any label.
+- Do not garble any spelling — render every label with the exact characters listed above, including the hyphens, dots, and "at" symbol.
+
+OVERALL FEEL
+- Editorial dual-portrait composition. The left side feels like a craft workbook from a paper-design studio (warm, hand-crafted, editorial). The right side feels like a mission-control terminal from a top engineering org (cool, schematic, precise). The shared amber accent line + center "+" badge make them feel intentionally paired, not arbitrarily juxtaposed.
+- High legibility at 1200px display width. Type contrast strong against both halves.
+- Both illustrations matte (not glossy), no neon glow, no photorealism, no harsh shadows.
+- Avoid the terminal-poster / cyberpunk aesthetic.
+- Avoid filling empty space with random text or noise — negative space is intentional.

@@ -1,0 +1,39 @@
+A wide horizontal banner image, 16:9 landscape aspect ratio, for the top of a GitHub README.
+
+STYLE: Bold typographic poster. Almost no illustration. Editorial magazine-cover feel. Inspired by Stripe Press book covers and the Vercel changelog aesthetic. Modern, confident, distinctive — built around typography itself as the hero element.
+
+PALETTE:
+  - Background: a single solid warm-but-deep cream/off-white (#F5F1EA), slightly textured (very subtle paper grain, almost imperceptible)
+  - A single bold accent shape in warm coral/orange #F26B4A
+  - Type: dark ink #1A1814
+
+LAYOUT (you have ONE giant typographic moment in the center):
+
+  Dead center, occupying about 60% of the canvas width and 40% of the height:
+  The word "skills" set GIANT in Instrument Serif (or similar high-contrast modern serif), lowercase, dark ink, with the dot of the "i" replaced by a small SOLID CIRCLE in warm coral #F26B4A. The letterforms are calibrated, elegant, generous.
+
+  ABOVE "skills", centered and small (about 1/12 of the canvas height), in clean monospace caps with wide letterspacing: "AGENT"
+
+  So the composition reads:
+                       AGENT
+                       ╔═════════════╗
+                       ║   skills    ║   ← giant serif word with orange "i" dot
+                       ╚═════════════╝
+
+  BELOW "skills", a horizontal divider — not a line, but FIVE small precisely-spaced dots in coral #F26B4A (representing the 5 skills). Each dot has a tiny label beneath it in small monospace caps (legible but small):
+    "DNS · MIGRATION · RESEARCH · POSTERS · UTILITIES"
+  (or similar — keep these short, one tag per dot).
+
+  Way below, near the bottom of the canvas, a single thin horizontal rule, and beneath it in centered small ink type:
+    "production-grade skills for AI agents · github.com/ravidsrk/agent-skills"
+
+  Top-right corner: small monospace handle "@ravidsrk"
+  Top-left corner: a tiny stacked text block (3 lines, small caps, monospace, ink): "VOL. 01 / 2026 / MIT"
+
+  Generous margins. Vast negative space on all sides. The serif word "skills" should feel like the cover of a Stripe Press book.
+
+FEEL: Editorial. Premium. Distinctive at thumbnail size (the giant word reads instantly). Almost no visual noise. The viewer sees confident typography first, then the small labels confirm what's inside. Designed for a sophisticated developer audience.
+
+NO illustrations of clouds, servers, etc. NO emoji. NO 3D. NO icons. NO terminal aesthetic. NO cyberpunk. Just exquisite type on warm paper.
+
+Important: the giant word MUST be legible and beautifully kerned. The orange "i" dot is the ONLY non-typographic element on the canvas other than the 5 small dots beneath.

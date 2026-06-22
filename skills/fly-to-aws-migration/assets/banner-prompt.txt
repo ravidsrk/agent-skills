@@ -1,0 +1,29 @@
+A horizontal banner image for a README, 2:1 aspect ratio (about 1200×600 feel).
+
+STYLE: Clean minimalist isometric illustration with a clear "before → after" migration story. Soft warm cream background, two-color accent palette (Fly purple + AWS orange). Modern technical illustration — Stripe documentation aesthetic. NOT photorealistic. NO dense text. NO cyberpunk. NO terminal.
+
+PALETTE:
+  - Background: soft warm cream #F8F4EE with a faint horizontal gradient from soft violet on the left to soft peach on the right
+  - LEFT accent: Fly.io-inspired purple #5046E5 (used on the hot-air balloon)
+  - RIGHT accent: AWS-inspired warm orange #FF9900 (used on the server cubes)
+  - Ink: dark slate #1F2937
+  - White #FFFFFF for card and panel faces
+
+COMPOSITION (a clear left-to-right migration journey):
+
+  FAR LEFT: An isometric hot-air balloon (representing Fly.io) — confident rounded shape in purple #5046E5, with a small isometric basket beneath it. The balloon is gently floating, with a faint shadow on the cream ground. Small label below: "FLY.IO". Around the balloon: three or four small thin lines suggesting it's drifting (motion).
+
+  CENTER: A wide arching curved arrow flowing from the balloon toward the right side of the canvas. The arrow is dark slate ink, thin but confident. ALONG the arrow's path, seven small numbered milestone dots (1 through 7) — these represent the 7 phases of the migration. Each dot is small, with a tiny number inside. The 7th dot at the end of the arrow is filled in warm orange to show "destination".
+
+  FAR RIGHT: A small cluster of 3-4 isometric server cubes (representing AWS / ECS Fargate) — orange-accent cubes stacked in a tidy grid, looking solid, permanent, industrial. A small label below: "AWS". Below the cubes, three tiny icons in a row: a small database (Aurora), a small server cube (ECS), and a small cloud (CloudFront / S3) — each with a tiny label.
+
+  BELOW the arrow's center: a small horizontal callout "~9 MIN DOWNTIME" in tiny monospace caps, slate ink.
+
+  TOP-LEFT corner: small monospace text "skills/fly-to-aws-migration"
+  BOTTOM-CENTER: a thin horizontal line with ink text "Fly.io → AWS · 7 phases · full rollback preserved"
+
+LIGHTING: soft, flat-ish. Subtle drop shadows under the balloon and cubes. The balloon is the past (light, drifty, ephemeral), the AWS cubes are the future (solid, anchored, industrial).
+
+FEEL: Confident, calm, premium. The viewer immediately understands the story: "this skill moves you from Fly to AWS in 7 steps". The composition reads as a single continuous journey.
+
+NO photorealism. NO emoji. NO neon. NO cyberpunk. NO terminal aesthetic. NO dense text. Just clean modern isometric illustration on warm cream.

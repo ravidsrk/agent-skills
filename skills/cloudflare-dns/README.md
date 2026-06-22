@@ -1,5 +1,9 @@
 # cloudflare-dns
 
+<p align="center">
+  <img src="assets/banner.jpg" alt="cloudflare-dns — DNS migration + zone hardening" width="100%">
+</p>
+
 **End-to-end DNS migration and management for Cloudflare.** Move domains from any registrar to Cloudflare, manage records via API, harden zones with DNSSEC + CAA + Origin CA, and roll back cleanly if anything goes wrong.
 
 🟢 **Auth:** account-scoped API token (`CLOUDFLARE_API_KEY`) + global key (`CLOUDFLARE_GLOBAL_API_KEY` + `CLOUDFLARE_EMAIL`, only for new-zone creation)

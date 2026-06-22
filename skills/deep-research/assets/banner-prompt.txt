@@ -1,0 +1,45 @@
+A horizontal banner image for a README, 2:1 aspect ratio (about 1200×600 feel).
+
+STYLE: Clean minimalist isometric illustration with a radial composition. Soft warm cream background, single warm accent color. Stripe documentation aesthetic.
+
+PALETTE:
+  - Background: soft warm cream #F8F4EE
+  - Primary accent: deep warm coral #E45D40
+  - Secondary muted: teal #4A8B85
+  - Ink: dark slate #1F2937
+  - White #FFFFFF for cards
+
+COMPOSITION:
+
+  CENTER: a small isometric cube floating in space, painted coral #E45D40, with a thin glow ring around it. Beside the cube in clean monospace caps: "DEEP-RESEARCH".
+
+  RADIATING out from the cube: EIGHT thin lines fanning to EIGHT small floating cards. Each card is positioned at a clean radial angle (think of a clock face — cards at 12, 1:30, 3, 4:30, 6, 7:30, 9, 10:30 positions). All 8 cards same size.
+
+  EACH CARD CONTAINS ONLY a small abstract iconic glyph (a circle, dot, triangle, square, etc.) — NO TEXT INSIDE THE CARD. 
+
+  BELOW EACH CARD: one clean monospace label in dark slate. The 8 labels, ONE per card, ALL UNIQUE, spelled exactly:
+    LABEL 1: X
+    LABEL 2: REDDIT
+    LABEL 3: HACKER NEWS
+    LABEL 4: GITHUB
+    LABEL 5: POLYMARKET
+    LABEL 6: YOUTUBE
+    LABEL 7: EXA
+    LABEL 8: MONID
+
+  CRITICAL: All 8 labels must appear EXACTLY ONCE. Do not duplicate any label. Do not skip any label. The word "EXA" must appear in the image. The word "GITHUB" must appear in the image only one time. The word "MONID" must appear in the image only one time.
+
+  Two cards are teal-tinted, the other six are cream/white. Each card has subtle drop shadow.
+
+  TOP-LEFT corner: small monospace exactly "skills/deep-research"
+  BOTTOM-CENTER: a thin horizontal line with ink text exactly: "8-source parallel research orchestrator"
+
+ABSOLUTELY DO NOT:
+  - Duplicate any of the 8 labels
+  - Omit any of the 8 labels (especially "EXA" and "MONID" — these are essential)
+  - Render text inside the cards (only icons inside; labels are below)
+  - Render any brand logos
+  - Render any garbled letters or made-up words
+  - Use photorealism, emoji, neon, cyberpunk, or terminal aesthetics
+
+The 8 labels are non-negotiable: X, REDDIT, HACKER NEWS, GITHUB, POLYMARKET, YOUTUBE, EXA, MONID.

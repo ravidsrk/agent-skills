@@ -33,6 +33,9 @@ This repo collects skills I've built and battle-tested in production. Every skil
 |---|---|---|---|
 | 🎨 **[`terminal-poster`](skills/terminal-poster/)** | Generates dense, retro-cyberpunk infographic posters in a terminal aesthetic — pixel-bitmap headlines, ASCII box-drawing, monospace fonts. Five reusable templates (Cluster A–E). | *"Make this look like a viral X post"*, *"Shann-style infographic"*, *"terminal poster"* | ~$0.002 + ~30s per image |
 | 🔍 **[`deep-research`](skills/deep-research/)** | Parallel multi-source research orchestrator. Fans out across **8 sources** (X, Reddit, HN, GitHub repos + issues, Polymarket, YouTube w/ transcripts, Exa) via [monid](https://monid.dev). One auth, one balance, structured + human-readable evidence dumps. | *"do a deep dive on X"*, *"what's the discourse on Y"*, *"research this topic"* | ~$0.10–0.20 + ~60–90s per run |
+| ☁️ **[`cloudflare-dns`](skills/cloudflare-dns/)** | End-to-end Cloudflare DNS migration and management. Move domains from any registrar, manage records via API, harden with DNSSEC + CAA + Origin CA, roll back cleanly. State persists in `./.dns-state/<domain>/` for reuse + rollback. | *"move DNS to Cloudflare"*, *"add this domain to Cloudflare"*, *"harden my Cloudflare zone"* | Free Cloudflare tier + ~5 min per domain |
+| 🧾 **[`namecheap-dns`](skills/namecheap-dns/)** | Manage DNS records at Namecheap via the XML API — list, add, update, delete A/AAAA/CNAME/TXT/MX without the dashboard. Handles the two API quirks (IP allowlist, wholesale-replace `setHosts`) transparently. | *"link my domain to my Fly/Vercel/S3 app"*, *"add a CNAME"*, *"rotate the MX records"* | Free + ~30s per change |
+| 🚀 **[`fly-to-aws-migration`](skills/fly-to-aws-migration/)** | End-to-end playbook for migrating a Fly.io project to AWS. 7 phases, 5 PRs, full rollback preserved. Postgres → Aurora, Machines → ECS Fargate, static sites → S3+CloudFront, DNS cutover via Cloudflare. Battle-tested with ≤9 min total downtime. | *"migrate from Fly to AWS"*, *"move my Fly app to AWS"*, *"AWS migration"*, *"leave Fly"* | ~6 hours, ~$330–640/mo target spend |
 
 # Preview
 
@@ -74,10 +77,10 @@ Most runtimes look for skills in a configured directory. Symlink (or copy) the s
 ln -s "$(pwd)/skills/terminal-poster" ~/.claude/skills/terminal-poster
 ```
 
-**Example (Mogra, `deep-research`):**
+**Example (Claude Code, `fly-to-aws-migration`):**
 
 ```bash
-ln -s "$(pwd)/skills/deep-research" /workspace/.mogra/skills/deep-research
+ln -s "$(pwd)/skills/fly-to-aws-migration" ~/.claude/skills/fly-to-aws-migration
 ```
 
 Symlinking is recommended over copying — `git pull` will keep the skill up to date automatically.
@@ -92,6 +95,19 @@ export OPENROUTER_API_KEY=...
 
 # deep-research — multi-source research
 export MONID_API_KEY=...
+
+# cloudflare-dns — Cloudflare REST API
+export CLOUDFLARE_API_KEY=...
+export CLOUDFLARE_GLOBAL_API_KEY=...    # only for new-zone creation
+export CLOUDFLARE_EMAIL=...
+
+# namecheap-dns — Namecheap XML API
+export NAMECHEAP_API_KEY=...
+export NAMECHEAP_API_USER=...
+
+# fly-to-aws-migration — uses AWS_PROFILE + FLY_API_TOKEN + CLOUDFLARE_API_KEY
+export AWS_PROFILE=migration
+export FLY_API_TOKEN=...
 ```
 
 # 4. Use it
@@ -101,6 +117,12 @@ Skills auto-activate based on the `description` field in their `SKILL.md`. Just 
 > 💬 *"Generate a terminal-style poster for our agent stack"* → activates `terminal-poster`
 >
 > 💬 *"Do a deep dive on agent harness engineering"* → activates `deep-research`
+>
+> 💬 *"Move example.com to Cloudflare"* → activates `cloudflare-dns`
+>
+> 💬 *"Add a CNAME for docs.example.com pointing at my Fly app"* → activates `namecheap-dns`
+>
+> 💬 *"Migrate my Fly project to AWS"* → activates `fly-to-aws-migration`
 
 ---
 
@@ -114,18 +136,20 @@ agent-skills/
 ├── scripts/
 │   └── validate-skills.py       ← Validates SKILL.md against agentskills.io spec
 └── skills/
-    ├── terminal-poster/
-    │   ├── SKILL.md             ← Manifest (frontmatter + instructions)
-    │   ├── README.md            ← Human docs, examples, prompt library
-    │   ├── scripts/             ← Generation pipeline
-    │   ├── references/          ← Template cluster definitions
-    │   └── assets/              ← Example outputs
-    └── deep-research/
-        ├── SKILL.md             ← Manifest
-        ├── README.md            ← Install, usage, cost breakdown
-        └── scripts/
-            ├── research.py      ← CLI entry point
-            └── sources/         ← One module per data source
+    ├── terminal-poster/         ← 🎨 Retro-cyberpunk infographics
+    ├── deep-research/           ← 🔍 8-source parallel research
+    ├── cloudflare-dns/          ← ☁️ Cloudflare DNS migration + management
+    ├── namecheap-dns/           ← 🧾 Namecheap DNS records via XML API
+    └── fly-to-aws-migration/    ← 🚀 Fly.io → AWS playbook (7 phases)
+
+Each skill folder contains:
+
+- `SKILL.md`   — Manifest (frontmatter + instructions the agent reads)
+- `README.md`  — Human docs (install, usage, examples, cost)
+- `scripts/`   — Executable helpers (optional)
+- `references/`— Progressive-disclosure docs the agent loads on demand (optional)
+- `assets/`    — Templates, examples, fixtures (optional)
+- `templates/` — Boilerplate to copy into user projects (optional)
 ```
 
 Every skill is a directory under `skills/` containing at minimum a `SKILL.md` with frontmatter. See the [Agent Skills specification](https://agentskills.io/specification) for the format.

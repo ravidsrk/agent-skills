@@ -1,0 +1,26 @@
+{
+  "name": "agent-skills",
+  "description": "Production-grade capability skills for AI coding agents (Claude Code, Cursor, Codex). Five battle-tested skills covering cloud infrastructure (DNS migration with cloudflare-dns, full Fly-to-AWS migration), research and intelligence (deep-research across 8 sources in parallel), and viral content creation (terminal-poster infographics, ai-image-generation). MIT licensed.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Ravindra Kumar",
+    "email": "ravindrakumar8088@gmail.com",
+    "url": "https://github.com/ravidsrk"
+  },
+  "homepage": "https://github.com/ravidsrk/agent-skills",
+  "repository": "https://github.com/ravidsrk/agent-skills",
+  "license": "MIT",
+  "keywords": [
+    "agent-skills",
+    "claude-code",
+    "claude-skills",
+    "skills-md",
+    "cloudflare-dns",
+    "aws-migration",
+    "fly-to-aws",
+    "deep-research",
+    "terminal-poster",
+    "ai-image-generation",
+    "nano-banana-pro"
+  ]
+}

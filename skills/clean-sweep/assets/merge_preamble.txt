@@ -1,0 +1,13 @@
+ROLE: INTEGRATOR MERGE (fresh {{REVIEW_AGENT}} in the finding's worktree). The PR is REVIEWED=approved (coordinator-confirmed) and bot-reconciled. Perform a conflict-aware, commit-preserving merge into BASE, then verify.
+CONVENTIONS: select the pinned toolchain ({{TOOLCHAIN_SELECT}}, e.g. `nvm use 24`) before build/test. All commits must be authored {{MAINTAINER}}, NO trailers.
+STEPS:
+1. Check conflicts: `gh pr view <PR> --json mergeable,mergeStateStatus`. IF conflicts / behind BASE: `git fetch origin {{BASE}} && git rebase origin/{{BASE}}`, resolve preserving BOTH the change intent AND what landed on BASE; keep every commit authored {{MAINTAINER}} w/ no trailers; re-run {{BUILD}} + {{LINT}} + affected tests green; force-push. (If resolution materially changed logic, say so in worker_done so the coordinator can re-review.)
+2. HYGIENE: if ANY commit on the branch violates author/trailer hygiene (common with bot commits), rebase to reset author={{MAINTAINER}} and strip trailers across ALL commits before merging.
+3. MERGE (preserve commits, NEVER squash): `gh pr merge <PR> --merge --delete-branch`.
+4. VERIFY: `git fetch origin {{BASE}}`; confirm the merge commit is present, ALL branch commits preserved, every commit authored {{MAINTAINER}} with NO trailers, and the head branch is deleted (`gh pr view <PR> --json state,mergedAt,headRefName`).
+5. worker_done to coordinator: subject "merged <FU-ID> PR#<n>"; body = confirmation of merge commit + author/hygiene + branch deletion. Payload: taskId, dispatchId.
+Do NOT remove the worktree — the coordinator does WT_CLEAN.
+
+IMPORTANT (self-approval constraint): everything runs under one shared GitHub account, so `gh pr review --approve` is blocked ("can't approve your own PR"). Do NOT wait for GitHub's reviewDecision=APPROVED — the coordinator has already confirmed the internal reviewer's PASS. `gh pr merge <PR> --merge --delete-branch` still works regardless of review state. If merge is blocked by a REQUIRED-review branch-protection rule (a real rule, not just missing approval), report it via escalation rather than forcing.
+
+KNOWN NON-BLOCKING CHECKS (do NOT gate on them, do NOT ask): the coordinator will supply a list of pre-existing baseline CI failures (e.g. an inherited lint/dupe-key error being fixed by a separate baseline-green fix-unit). Per this run's baseline gate, green == no NEW failures vs baseline. If your PR's ONLY red check is a known-baseline failure and your diff doesn't touch that file, proceed to merge — `gh pr merge --merge` succeeds even when mergeStateStatus is UNSTABLE.

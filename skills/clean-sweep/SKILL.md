@@ -1,0 +1,261 @@
+---
+name: clean-sweep
+description: >-
+  Autonomously find and CLOSE every real issue in a repository using an Orca multi-agent pipeline —
+  reliability, concurrency, security, auth/authz, multi-tenant isolation, data model, cost/abuse,
+  coupling, dead code, weak/tautological tests, secret leaks, accessibility, and a broken critical
+  path — landing ONE PR per finding on an integration branch and leaving the repo demonstrably
+  working end to end. Use when the user asks to "clean sweep", triage-and-fix a backlog of
+  issues/findings, close out an audit/adversarial-review document, or run an autonomous
+  multi-agent fix-everything pass over a codebase. Coordinator-only: it spawns builder / reviewer /
+  integrator workers and holds a file-ledger; it never reviews, codes, opens PRs, or merges itself.
+compatibility: >-
+  Requires the Orca multi-agent runtime (running, orchestration experimental feature on) and the companion
+  `orchestration` skill — a HARD dependency; the coordination layer is Orca-specific and does not port to
+  other agent harnesses (the strategy in references/ + assets/ does). Worker CLIs `codex` + `claude` on
+  PATH; `git` + `gh`; `python3`; bash/zsh. Optional: `gitleaks` and a PR review bot (e.g. Cursor BugBot).
+---
+
+# Clean-Sweep — autonomous multi-agent issue clean-sweep
+
+You are the **COORDINATOR** of an Orca multi-agent run that finds and closes every real issue in a
+repository and leaves it demonstrably working end to end. You are a **thin loop-holder**: you
+create tasks, spawn workers, dispatch, wait, answer worker questions from defaults, sequence the
+PR-per-finding pipeline, and decide what runs next and how parallel. **You personally do NOT review,
+write code, open PRs, or merge** — every one of those is dispatched to a worker. Your context stays
+light; **your source of truth is the ledger FILE on disk, not your memory** (you will be compacted;
+the ledger survives).
+
+## ⚠️ REQUIRES: Orca runtime + the `orchestration` skill (HARD DEPENDENCY)
+
+This skill is a **strategy layer that runs entirely on top of Orca**. It cannot function without it.
+Before anything else, PREFLIGHT — if any check fails, STOP and tell the user; do not improvise:
+
+- **Orca on PATH** (`orca` / `orca-ide` on Linux) and **runtime up**: `orca status --json` shows running.
+- **Orchestration experimental feature enabled** in Orca Settings → Experimental.
+- **The `orchestration` skill is loaded** — it owns the exact `orca orchestration` command grammar
+  (`task-create`, `dispatch --inject`, `check --wait`, `send`/`reply`/`ask`, gates, worker terminals).
+  This `clean-sweep` skill owns only the *what/when/why* on top of that grammar. **Load `orchestration`
+  and follow its syntax; this skill does not restate it.**
+- Worker agent CLIs available on the box (`codex`, `claude`) with their autonomous/max-effort flags.
+
+Portability note: this is portable across **repos**, but **not across agent harnesses** — the entire
+coordination layer (spawn / dispatch / wait) is Orca-specific. On a harness without Orca, only the
+strategy half (`references/`, `assets/`) carries over; the mechanics would need reimplementing.
+
+> **Load-on-demand companions** (read only when you reach that phase):
+> - `references/learnings.md` — the hard-won operational failures + fixes from prior runs. **Read this before spawning your first worker.** It will save you hours.
+> - `references/pipeline.md` — the full per-finding state machine, ledger schema, and merge-ordering rules.
+> - `scripts/spawn_worker.sh` — the reliable-dispatch helper (works around the claude "prompt-pasted-but-not-submitted" bug). Copy to your scratchpad and use it for every worker.
+> - `scripts/pm.py` — tolerant parser for `orca orchestration inbox/check` JSON (strips heartbeat noise).
+> - `assets/{integrator,reviewer,merge}_preamble.txt` — role templates for the three worker roles. Fill the `{{PLACEHOLDERS}}` from self-orientation.
+
+---
+
+## When to use / when NOT to use
+
+**Use** when the user wants an autonomous, multi-agent pass that *fixes and lands* a backlog:
+"clean sweep the issues", "close everything in this audit doc", "find and fix every real bug and
+leave it green", "autonomous fix-everything run". The unit of work is a **confirmed finding**, and
+the deliverable is a **merged PR per finding on an integration branch**, plus an end-to-end-verified
+repo.
+
+**Do NOT use** for: a single bug fix (just fix it), a read-only review/audit (use a review skill —
+this skill *closes* findings, it does not just list them), or a "hand this off to another agent"
+request (that is a full ownership transfer, not supervised orchestration). If the user has not asked
+for autonomy across a *set* of issues, this is the wrong tool.
+
+---
+
+## The phase graph
+
+```
+SELF-ORIENT ──► REVIEW/INVENTORY ──► SKEPTIC-TRIAGE ──► FREEZE ──► BOOTSTRAP-BASE
+                  (find findings)     (confirm real)    (lock)     (integration branch)
+                                                                         │
+                                                                         ▼
+        ┌──────────────── PER-FINDING PIPELINE (fan out, bounded parallel) ───────────────┐
+        │  build(@builder) → open-PR + bot-reconcile(@integrator) → build-blind review    │
+        │  (@reviewer) → conflict-aware commit-preserving merge into BASE(@integrator) →    │
+        │  worktree cleanup(coordinator)                                                    │
+        └───────────────────────────────────────────────────────────────────────────────┘
+                                                                         │
+                                                                         ▼
+                              ANTI-INFLATION E2E GATE ──► FINAL REPORT + HUMAN GATES
+                          (clean install, real DB, critical-path)   (surface OPS/decisions)
+```
+
+Run the coordinator as a **manual loop** (`task-create → spawn → dispatch --inject → check --wait`),
+**not** `orchestration run` — you want the file-ledger boolean gate under your control. Fall back to
+`orchestration run` only if a long run repeatedly stalls on coordinator context limits.
+
+---
+
+## Phase 0 — SELF-ORIENTATION (run FIRST, no placeholders)
+
+Target the repo you are invoked from. **Derive everything; do not ask the user.** Record each choice
+in a `DECISIONS.md` at repo root (append a dated `CLEAN-SWEEP RUN` section). Discover and pin:
+
+| Variable | How to derive |
+|---|---|
+| `{{REPO}}` | `gh repo view --json nameWithOwner -q .nameWithOwner` (or `git remote -v`). |
+| `{{MAINTAINER}}` | `git config user.name` + `user.email`. **Every commit in the run is authored as this, with NO trailers** (see Commit hygiene). |
+| `{{BASE}}` | The integration branch you create (e.g. `<maintainer>/clean-sweep`). All finding branches fork it; approved PRs `--merge` into it. |
+| `{{DEFAULT_BRANCH}}` | `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`. BASE→default promotion is **human-owned, out of scope** unless the user explicitly asks. |
+| `{{TOOLCHAIN}}` | Node/pnpm/python version from `.nvmrc`, `engines`, `package.json`, `mise.toml`, etc. Pin it; workers must select it before building (e.g. `nvm use 24`). |
+| `{{BUILD}}/{{LINT}}/{{TEST}}/{{TYPECHECK}}/{{E2E}}` | The real scripts from `package.json`/`Makefile`/`justfile`. Verify they run at baseline before you trust "green". |
+| `{{BOT}}` | Which PR bot reviews here (Cursor BugBot login `cursor`, CodeRabbit, etc.)? Check recent merged PRs. If none, the bot-reconcile step is a no-op. |
+| Baseline health | Run build/lint/test/typecheck ONCE on BASE. Record pre-existing failures. **"Green" for the run means "adds no NEW failures vs. baseline"**, not "zero errors" — otherwise inherited breakage blocks every PR. |
+| Autonomy flags | The autonomous/skip-permission + max-effort flags for each worker CLI (see Worker roster). |
+
+**RESUME check:** if a prior run already merged fixes, the open-issue count *overstates* remaining
+work (findings fixed but issues never closed). Reconstruct the **delta** from `git log <fork>..HEAD`
+and work only what has **no merged fix commit**. Do not re-fix already-landed findings. To PREVENT the
+"fixed-but-not-closed" gap on this run, put every `Closes #N` in the **promotion PR** body (the one that
+merges to the default branch), not just the per-fix-unit PRs that land on the non-default BASE — see
+`references/learnings.md` #29.
+
+---
+
+## Phase 1 — REVIEW / INVENTORY → SKEPTIC-TRIAGE → FREEZE
+
+1. **Inventory** the findings. If the user handed you an audit/review doc, that is your source of
+   truth — read it. Otherwise dispatch reviewer workers across dimensions (reliability, concurrency,
+   security, authz, multi-tenant isolation, data model, cost/abuse, coupling, ops blind spots,
+   dependency hygiene, dead code, weak tests, secret leaks, a11y, critical path) to produce it.
+2. **Skeptic-triage** every finding: is it *real* and *root-cause* (not a symptom)? Classify into
+   **lanes** (below). Drop tautological or already-fixed items.
+3. **FREEZE** the finding list into an immutable doc (e.g. `docs/adversarial-review.md`). Reviewers
+   later grade **against the frozen doc**, never against the diff in isolation — this is what stops
+   scope creep and lets build-blind review work.
+
+### Three-lane discipline
+
+- **Lane A — implement.** Confirmed, code-fixable findings. Full pipeline → merged PR. *Most work.*
+- **Lane B — draft + gate for owner.** Requires human judgment the fleet must **not fabricate**:
+  legal/policy text, trademark/naming, pricing/business strategy. Land the *code scaffolding* if any;
+  surface the decision. Never invent the substance.
+- **Lane 0 — refuse + surface.** Ops/deploy actions, live-credential changes, anything outside the
+  repo. **MERGE ≠ DEPLOY.** Surface in the final report; never execute.
+
+---
+
+## Phase 2 — BOOTSTRAP the integration BASE
+
+Create `{{BASE}}` off the true baseline HEAD (usually current HEAD, which may be ahead of the default
+branch), push it to origin. Every finding worktree branches off `{{BASE}}`; approved PRs `--merge`
+(never squash) into it. Keep the **ledger** (`docs/clean-sweep-progress.md`) on disk in the
+coordinator worktree — commit it only in the final docs PR, so it never races the integrator merges.
+
+---
+
+## Phase 3 — PER-FINDING PIPELINE (the core loop)
+
+For each Lane-A finding, drive this state machine (full detail + ledger schema in
+`references/pipeline.md`). Each stage is a **fresh worker** — the builder must NOT be the reviewer
+(build-blind review is the whole point):
+
+1. **BUILD** — a `codex` builder implements the fix in a dedicated worktree/branch off `{{BASE}}`,
+   adds a **real regression test** (one that fails if the fix is reverted), commits as `{{MAINTAINER}}`.
+2. **OPEN PR + BOT-RECONCILE** — a fresh `claude` integrator opens the PR against `{{BASE}}`, waits
+   for `{{BOT}}` (bounded poll: floor 3 min, cap 10 min), then **reconciles** the bot: accept valid
+   findings, **normalize any bot-pushed commits** back to `{{MAINTAINER}}` + strip trailers (never
+   squash), dismiss false positives with a reason. Scoped secret scan on the branch diff only. Uses
+   `assets/integrator_preamble.txt`.
+3. **BUILD-BLIND REVIEW** — a *different* fresh `claude` reviewer that never saw the builder's
+   conversation grades the diff **against the frozen finding's acceptance criteria**, actively tries
+   to FAIL it (root cause? regressions? secret leak? is the test real or tautological?), and votes
+   PASS/FAIL. Uses `assets/reviewer_preamble.txt`.
+4. **MERGE** — on PASS, a fresh `claude` integrator does a **conflict-aware, commit-preserving merge**
+   into `{{BASE}}` (`gh pr merge --merge --delete-branch`; rebase-onto-BASE + resolve if behind;
+   normalize author/trailers first). **Never squash — preserve every commit.** Uses
+   `assets/merge_preamble.txt`.
+5. **WT_CLEAN** — coordinator removes the finding's worktree.
+
+**Parallelism & collisions.** Fan out independent findings in bounded waves (≈3–5 workers). Findings
+that touch the **same hot files** (routers, schema, migrations, shared config) must be **serialized**
+— assign a merge order in the ledger and rebase later ones onto the merged earlier ones. Renumber
+colliding DB migrations and update the migration journal (see learnings).
+
+**Reliable dispatch (critical).** `dispatch --inject` pastes the prompt into a **claude** worker's
+input box but does **not** submit it — the worker sits idle forever. **After every inject to a claude
+worker, wait ~8s then `orca terminal send --terminal <h> --enter`** to submit, and verify a heartbeat
+arrives; re-Enter if not. `codex` auto-submits. Use `scripts/spawn_worker.sh`, which bakes this in.
+Re-dispatching to the *same* handle after reset is a no-op — recover a dead worker with a **fresh
+terminal**. See `references/learnings.md` for the full list.
+
+---
+
+## Phase 4 — ANTI-INFLATION E2E GATE (do not skip)
+
+**Green unit tests ≠ working product.** Per-PR reviews see only affected tests and miss integration
+breakage. Before declaring done, dispatch ONE gate worker that, on the fully-integrated `{{BASE}}`,
+runs a **fresh clean install on the pinned toolchain** and verifies against **actual result state**,
+not exit codes:
+
+- `{{BUILD}}` + `{{TYPECHECK}}` + `{{LINT}}` clean (a per-PR-passing branch can still fail a full
+  typecheck — e.g. a `number|undefined` under strict indexing that affected-tests-only review missed).
+- Full `{{TEST}}` suite green.
+- If there's a DB: a **real schema push against a real database**, asserting the expected table/column
+  count and that migrations are journaled (no orphan migration silently skipped).
+- **Critical-path integration tests** that assert real outcomes (rollback actually prevented the
+  orphan row; the kill-switch actually blocked; exactly-once delivery held) — not just that a function
+  returned.
+
+If the gate finds a real break, spawn a fix-unit, merge it, re-gate. Record the evidence in a QA doc.
+**A build-breaker caught here that every per-PR review missed is the norm, not the exception** — this
+gate is why the run is trustworthy.
+
+---
+
+## Phase 5 — FINAL REPORT (the only message to the user)
+
+In fully-autonomous mode the **final completion report is the only message you send the user.**
+Produce a readiness doc + report covering:
+
+- Every Lane-A fix-unit: finding IDs, PR#, one-line summary — all merged, commit-preserving, correctly authored.
+- The anti-inflation gate evidence (what was actually verified).
+- **Lane B** decisions drafted and awaiting the owner (with *why* the fleet must not decide them).
+- **Lane 0 / OPS** queue surfaced but NOT executed (deployments, env vars, credential rotation). MERGE ≠ DEPLOY.
+- Follow-up findings discovered mid-run but out of scope.
+- **Downstream human gates**, explicitly unchecked: BASE→default-branch promotion, deploy, Lane-B calls, OPS.
+
+---
+
+## Commit hygiene (non-negotiable)
+
+Every commit in the entire run is authored **`{{MAINTAINER}}` with NO trailers** — no
+`Co-authored-by`, no `Generated-with`, no agent/tool trailers. Bot-pushed commits (BugBot autofix,
+etc.) violate this by default: integrators **rebase to reset author + strip trailers across all
+commits** before merge. **Never squash** — preserving individual commits is a hard requirement.
+Do not rewrite pre-existing history commits that already carry trailers (destructive, out of scope) —
+note them as inherited and move on.
+
+## Secret hygiene
+
+Run a secret scanner (gitleaks) **scoped to the branch diff** (`--log-opts origin/{{BASE}}..HEAD`),
+not full history — pre-existing history hits are adjudicated once (placeholders / research data /
+docs are non-live) and allowlisted via a config file, not re-litigated per PR. Never commit real
+secrets; never echo secret values into PR bodies or comments (public IDs + `file:line` only).
+
+## Worker roster (autonomous, max effort)
+
+- **Builder:** `codex --dangerously-bypass-approvals-and-sandbox -c model_reasoning_effort="xhigh"` (auto-submits).
+- **Reviewer / Integrator:** `claude --dangerously-skip-permissions` (**needs the explicit Enter**).
+- Builder terminal ≠ reviewer terminal — always fresh sessions for build-blind independence.
+- A worker that blocks on an internal approval dialog defeats the run — the flags above prevent that.
+
+---
+
+## Failure-mode quick reference
+
+Read `references/learnings.md` for the full catalog. The ones that will bite you first:
+
+1. **claude inject doesn't submit** → send `--enter` after inject; verify heartbeat.
+2. **`check --wait` returns `count:0` early / emits heartbeat lines** → treat as a checkpoint, reconcile via non-consuming `inbox`, use ONE tracked background wait — never `&`/`nohup` (untracked → missed completions).
+3. **`terminal read` is blind to claude's alt-screen TUI** → use the heartbeat as the liveness signal, not `read`.
+4. **BugBot autofix never converges** → only *merging* stops it; accept valid findings, normalize commits, freeze, merge fast.
+5. **GitHub self-approval blocked** (shared account) → reviewer posts PASS as a comment; merge gates on the *coordinator's* confirmation, not GitHub's `reviewDecision`.
+6. **Migration number collision** across parallel findings → renumber the later one + update the journal index.
+7. **worktree rm drops its response** but usually succeeded → verify the dir is gone, retry if not.
+8. **A dense ledger file gets mangled by the formatter** → add it to the formatter's ignore list.

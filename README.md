@@ -44,6 +44,12 @@
 |---|---|---|
 | 🎨 **[terminal-poster](skills/terminal-poster/)** | Generates dense, retro-cyberpunk infographic posters in a terminal aesthetic — pixel-bitmap headlines, ASCII box-drawing, monospace fonts. Five reusable templates (Cluster A–E). Cluster A audited at 99% fidelity. | ~$0.002 + ~30s/image |
 
+# 🛠️ Dev workflow
+
+| Skill | What it does | Cost / latency |
+|---|---|---|
+| 🧹 **[clean-sweep](skills/clean-sweep/)** | Autonomous **multi-agent issue clean-sweep**. Drives a one-PR-per-finding pipeline — build → open-PR + bot-reconcile → **build-blind review** → conflict-aware commit-preserving merge → cleanup — then an anti-inflation E2E gate (fresh install, real DB push, critical-path assertions). Three-lane discipline; ledger as external brain. Triggers: "clean sweep the issues", "fix everything in this audit doc", "autonomous fix-everything pass". **Requires the Orca multi-agent runtime + the `orchestration` skill.** | agent-time + LLM tokens (scales with backlog) |
+
 ---
 
 # Quick Start

@@ -1,0 +1,57 @@
+A vertical infographic poster, portrait 3:4 aspect ratio. Premium "content-in-a-terminal-window" treatment.
+
+OUTER CANVAS: a painterly, low-saturation textured field — like a moss-covered stone wall, or a vintage parchment, or a dark forest floor. Painterly is OK and intended for the canvas only. Muted earthy palette — sage green, charcoal, ochre. This canvas frames the entire image and bleeds to the edges.
+
+FLOATING TERMINAL WINDOW (centered, ~80% width, ~85% height): A fake terminal/editor window with these elements:
+  - Window chrome at top: gray titlebar #2A2A2A with three macOS traffic-light circles top-left (red #FF5F57, yellow #FFBD2E, green #28C840). Center of titlebar: small monospace text "html-vs-markdown.md" in muted tan.
+  - Inner background: warm charcoal #0E0E0E.
+  - Inside the window: strict monochrome ASCII content. Bone #EAEAEA on charcoal. Single monospace font (Berkeley Mono / JetBrains Mono / IBM Plex Mono style).
+
+INNER CONTENT (inside the floating window):
+Title line at top: lowercase, underlined with a thin dashed rule.
+
+Below, 3 stacked rectangular panels drawn with thin Unicode box-drawing characters (┌ ─ ┐ │ └ ┘). Each panel has its label inset into the top border in the form "label ◆ subject". Render the panel headers EXACTLY as listed under "Panel contents" below — never render placeholder tokens or square brackets in headers.
+
+Inside each panel: lowercase prose + the `›` quote-bullet list pattern + the "what runs here:" ritual line.
+
+Panel contents (in order):
+
+┌─ THE PROBLEM ◆ markdown-only pipelines ──────────────────┐
+markdown collapses semantics into presentation. agents can't tell a call-to-action from a footnote.
+what runs here:
+  › no structural roles
+  › styling and meaning collapsed
+  › brittle when parsed
+  › hard to audit
+
+┌─ THE INSIGHT ◆ html was already the answer ──────────────────┐
+html is a structural contract. every element carries a role an agent can query.
+what runs here:
+  › semantic tags carry intent
+  › attributes are typed
+  › css is separable
+  › trivially parseable
+
+┌─ THE RULE ◆ html for machines, markdown for humans ──────────────────┐
+authors write markdown. the gate converts to html and enriches. agents read the html.
+what runs here:
+  › one input, two views
+  › gate lives at build time
+  › voice + tone preserved
+  › no runtime cost
+
+
+At the very bottom of the inner window: a faux terminal prompt line:
+  ~/content-system $ ./gate.sh
+
+Bottom of the OUTER canvas (below the floating window): a single lowercase manifesto tagline centered in monospace cream:
+  "structure over syntax. structure wins."
+with "@yourhandle" right-aligned in muted tan below it.
+
+⚠️ CRITICAL TEXT RULES — read carefully before rendering letters:
+• Spell every word completely. Do NOT abbreviate. Do NOT drop letters.
+• Punctuation marks (. , : ; · $) must render as actual punctuation glyphs, NEVER as the spelled-out word (PERIOD, COMMA, COLON, DOLLAR-SIGN). The $ in the zsh prompt must render as the literal $ character.
+• Symbol characters (◆ › ▼ →) must render as the actual unicode glyph, NEVER as the spelled-out word (DIAMOND, QUOTE, TRIANGLE, ARROW).
+• Avoid any duplicate or stuttered words.
+
+Aesthetic: a screenshot of a terminal window pinned over a painterly Studio Ghibli forest scene. The contrast between the FLAT monochrome inside and the PAINTERLY canvas outside is the whole point.

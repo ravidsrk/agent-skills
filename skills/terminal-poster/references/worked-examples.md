@@ -63,19 +63,19 @@ v1 = 95.6%  →  v2 = 94.8%  →  v3 = 80%  →  v4 = 90.7%
 
 Real measured first-generation scores for the specs in `scripts/example-specs/`. The rendered PNGs live in `assets/examples/`.
 
-> ⚠️ **Pre-fix scores were suppressed by the Cluster-B/D "null-corruption" bug** in `make-poster.sh` (the CLI read spec keys that the example YAML didn't provide, and mikefarah yq returned the literal string `"null"` — the model then rendered "HEROIC null / one-liner: null" in the prompt). That bug is now fixed; scores below should be **re-measured after regeneration** and this table updated.
+> ⚠️ **Pre-fix scores were suppressed by the Cluster-B/D "null-corruption" bug** in `make-poster.sh` (the CLI read spec keys that the example YAML didn't provide, and mikefarah yq returned the literal string `"null"` — the model then rendered "HEROIC null / one-liner: null" in the prompt). The bug was fixed and all affected artifacts regenerated on 2026-07-07 (Nano Banana Pro via OpenRouter); scores below reflect the regenerated renders.
 
-| Cluster | Measured first-gen score (as-shipped) | Notes |
+| Cluster | Assessed score (shipped render) | Notes |
 |---|---|---|
-| **A** ASCII Terminal | 🟡 **68%** (`assets/examples/cluster-a-stack.png`) | On-spec structure; model bled in yellow accents. A second pass would correct it. |
-| **B** Color-Coded | 🟡 **78%** (`assets/examples/cluster-b-maturity.png`) | Score depressed by the null-corruption bug and by palette drift (model substituted its own). Re-measure after fix. |
-| **C1** Painterly Hero | ⚪ not yet rendered | New spec `cluster-c1-hero.yaml` added. |
+| **A** ASCII Terminal | 🟡 **68%** (`assets/examples/cluster-a-stack.png`) | Pre-fix render, kept as-is (Cluster A was unaffected by the bug). On-spec structure; model bled in yellow accents. |
+| **B** Color-Coded | 🟢 **~95%** (`assets/examples/cluster-b-maturity.png`) | Regenerated post-fix: labels, one-liners, and bullets all correct; per-level palette held. First generation. |
+| **C1** Painterly Hero | 🟢 **~90%** (`assets/examples/cluster-c1-hero.png`) | Hero + 6 cards clean. The tagline bar took 4 iterations — the model kept transcribing template tokens/instructions until the `[MASCOT]` token was removed from the tagline string. Template now hardened; still budget 2-4 rolls for the bar. |
 | **C2** Pixel Hero | 🟢 **92%** (`assets/examples/cluster-c2-walkbot.jpg`) | Held palette, held 3×2 grid, one typo in card 6 ("en-ounters"). |
-| **D1** Step Pipeline | ⚪ not yet rendered | Spec `cluster-d-playbook.yaml` re-keyed to match CLI. |
-| **D2** Terminal-Window | ⚪ not yet rendered | New spec `cluster-d2-thought-piece.yaml` added. |
-| **E** Editorial | ⚪ not yet rendered | New spec `cluster-e-brandbook.yaml` added. |
+| **D1** Step Pipeline | 🟢 **~95%** (`assets/examples/cluster-d-playbook.png`) | First generation with the re-keyed spec: all 5 steps, icons, and body copy correct. |
+| **D2** Terminal-Window | 🟢 **~90%** (`assets/examples/cluster-d2-thought-piece.png`) | Clean after 3 iterations: bracketed placeholder illustration and a `prose:` field marker in the prompt builder both leaked into early renders (both since removed from the template). |
+| **E** Editorial | 🟡 **~75%** (`assets/examples/cluster-e-brandbook.png`) | Layout, typography, and palette panels strong; micro-copy at small sizes is gibberish and one page index duplicated ("07" twice) — known model limits for dense editorial spreads. |
 
-**Interpretation:** Cluster A and C2 are demonstrated-reliable at ≥68-92% on first generation. B/C1/D1/D2/E first-gen scores are unverified after the null-corruption fix. Do not trust the earlier "all clusters ≥90%" claim until each rendered PNG is scored again.
+**Interpretation:** With the fixed CLI, B/C1/C2/D1/D2 land at ~90-95%. Cluster E's dense small text remains the hard case — treat its body copy as decorative. Text-heavy zones (taglines, panel headers) are the main iteration driver: keep exact strings in ONE contiguous quote in prompts, and never put placeholder tokens inside quoted text.
 
 # Why the CLI matters
 

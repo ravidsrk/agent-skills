@@ -1,0 +1,57 @@
+A vertical dense infographic poster, portrait 2:3 aspect ratio, retro-cyberpunk dev-tools aesthetic.
+
+BACKGROUND: warm dark charcoal #0E0E0E with subtle ambient orange glow seeping in from the top corners. Faint horizontal CRT scanline overlay at low opacity.
+
+PRIMARY ACCENT: vivid Hermes orange #F26B1F.
+Secondary accents: phosphor green #A8E060, cyan #00D9D9, magenta #B57FFF, gold #E8C547.
+Cream body text #F0E6D2. Muted tan secondary #A89680.
+
+TOP-LEFT CORNER: terminal prompt "> marketintell$ analyst online" in green #A8E060 monospace.
+TOP-RIGHT CORNER (MIRRORED — second prompt, not a version stamp): "> sys$ uptime 47h  @yourhandle" in muted tan monospace.
+
+HERO ZONE (top ~30%): a cyborg AI analyst seen from three-quarter rear over the LEFT shoulder, chest-up, at a cluttered 3am trading desk. Multiple scuffed CRT monitors glow orange with candlestick charts and node graphs. The analyst's head and one shoulder occupy the LEFT THIRD of the frame; the right two-thirds are filled with instruments, sticky notes peeling off a bezel, a half-empty coffee cup with steam, frayed cables snaking across the desk. Half-human, half-cyborg detailing at the neck: faint glowing filaments, scuffed armor edges. Do NOT show the face.
+
+Follow these 5 composition rules for the hero zone:
+
+🔴 RULE 1 — CAMERA POSITION: Tight CHEST-UP shot, camera positioned BEHIND the subject's LEFT shoulder, slightly above. Over-the-shoulder framing. NEVER frontal. NEVER wide.
+
+🔴 RULE 2 — RULE OF THIRDS: Subject's head/shoulder at the LEFT THIRD. Scene context fills right two-thirds. NEVER center the subject.
+
+🔴 RULE 3 — NO RADIAL HALO: NO symmetrical halo behind the head. Orange light spills FROM the scene context onto the subject's profile from the RIGHT side — asymmetric side-light only.
+
+🔴 RULE 4 — THREE-QUARTER REAR VIEW: Back of head, side of neck, one shoulder forward. Do NOT showcase the face.
+
+🔴 RULE 5 — LIVED-IN GRIT: dust motes in light beams, scratched monitor bezels, frayed cables, half-empty coffee cup with steam, sticky notes peeling, scattered papers, mug ring stains. 3am deep-work mood.
+
+Style: painted comic-book / sci-fi concept art with strong orange RIM lighting (from the side), dramatic chiaroscuro, hand-painted brush texture, atmospheric haze, painterly grit. Blade Runner 2049 night scene meets a graphic novel mid-action panel. Flat-rendered painting (no photoreal textures).
+
+TITLE (just below hero): stacked 3-line pixel-bitmap headline in chunky Press Start 2P / VT323 style with clearly visible square pixels:
+  Line 1 (small, cream #F0E6D2): "AGENT-NATIVE"
+  Line 2 (XL, orange #F26B1F): "MARKETINTELL"
+  Line 3 (medium, green #A8E060): "THE AI ANALYST DESK"
+
+BODY GRID (middle 45-50%): EXACTLY a 3 columns × 2 rows = 6 cards. Identical width and height. Each card has a 1px sharp-cornered border in its accent color, a small all-caps mono header in the same accent color, and 3 lines of monospace body text. Each card has a line-art OR chunky pixel-art icon in the accent color (~2px stroke). CARDS ARE FLAT — no painterly, no shadows, no gradients inside cards.
+
+Top-left of each card: a filled orange square badge with white numeral inside square brackets:
+  Card 1: [1] orange border — "SIGNAL PICKER" — icon: line-chart-with-marker — "watches 200 tickers · flags anomalies · ranks by conviction"
+  Card 2: [2] green border — "MEMO WRITER" — icon: scroll-with-fountain-pen — "drafts 1-page memos · cites raw sources · never invents numbers"
+  Card 3: [3] cyan border — "RISK RADAR" — icon: radar-sweep — "correlates positions · shows worst-case ladders · alerts on tail risk"
+  Card 4: [4] magenta border — "BACKTEST DECK" — icon: layered-cards — "rebuilds histories · slices by regime · reports p50 and p95"
+  Card 5: [5] gold border — "SOURCE VAULT" — icon: filing-cabinet — "keeps every filing · deduped · timestamped · queryable"
+  Card 6: [6] orange border — "DAILY BRIEF" — icon: envelope-with-clock — "shipped at 6am · one screen · yesterday closed, today open"
+
+Between rows: a thin orange arrow chain `→ → →` showing flow.
+
+BOTTOM TAGLINE BAR (full width, last ~8%): A solid orange #F26B1F band. Inside it, ALL CAPS letter-spaced cream-colored text.
+The bar's text reads exactly: "★ SIGNAL OVER NOISE   ★ PROOF OVER PROMISES   ★ SIX AGENTS. ONE BRAIN."
+
+⚠️ CRITICAL TEXT RULES — read carefully before rendering letters:
+• Spell every word completely. Do NOT abbreviate. Do NOT drop letters.
+• Punctuation marks (. , : ; · |) must render as actual punctuation glyphs, NEVER as the spelled-out word (PERIOD, COMMA, COLON, MIDDLE-DOT, PIPE).
+• Symbol characters (★ → ◆ › ▼) must render as the actual unicode glyph, NEVER as the spelled-out word (STAR, ARROW, DIAMOND, QUOTE, TRIANGLE).
+• Render every dot as a small square pixel or punctuation glyph, not as letters.
+• Avoid any duplicate or stuttered words.
+
+CENTERED on the tagline bar, between the phrases, sits a LARGE prominent pixel-art robot icon (a graphic, not text) — square head, two glowing rectangular orange eyes, two tiny antenna nubs on top, no body. Sized at ~14% of the tagline bar height. CLEAN, BOLD, and ICONIC with crisp 8-bit pixel edges. Do NOT attempt damage details. The bar must contain ONLY the three phrases and the robot icon — no labels, no bracketed tokens, no words like "Tagline" or "Mascot".
+
+Overall style references: hacker zine, Bloomberg Terminal, Pip-Boy interface, 1990s computer manual diagrams. Hero painterly (Mode C1) or flat-pixel (Mode C2) + body cards flat + chrome ENGINEERED.

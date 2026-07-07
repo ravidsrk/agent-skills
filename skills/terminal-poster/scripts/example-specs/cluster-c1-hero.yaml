@@ -4,8 +4,8 @@
 #   bash make-poster.sh cluster-c1-hero.yaml out.png             # produces image
 #   bash make-poster.sh cluster-c1-hero.yaml out.png --dry-run   # prints prompt only
 #
-# NOTE: no rendered PNG is included in assets/examples/ yet — pending an actual
-# generation. Verify the prompt with --dry-run before burning credits.
+# Rendered PNG: assets/examples/cluster-c1-hero.png (2026-07-07, Nano Banana Pro
+# via OpenRouter). Verify prompt changes with --dry-run before burning credits.
 #
 # Field notes:
 #   hero_subject       = full scene description (do NOT prefix with "a painterly

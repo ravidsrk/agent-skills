@@ -4,8 +4,8 @@
 #   bash make-poster.sh cluster-d2-thought-piece.yaml out.png
 #   bash make-poster.sh cluster-d2-thought-piece.yaml out.png --dry-run
 #
-# NOTE: no rendered PNG is included in assets/examples/ yet — pending an actual
-# generation. Verify the prompt with --dry-run before burning credits.
+# Rendered PNG: assets/examples/cluster-d2-thought-piece.png (2026-07-07, Nano
+# Banana Pro via OpenRouter). Verify prompt changes with --dry-run first.
 #
 # Field notes:
 #   content_title    = titlebar filename in the fake terminal window

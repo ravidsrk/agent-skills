@@ -148,9 +148,7 @@ Title at top:
   "$TITLE"
 underlined by a single thin horizontal rule of dashes spanning the page width.
 
-Below, $PANELS_COUNT stacked rectangular panels drawn with thin Unicode box-drawing characters (┌ ─ ┐ │ └ ┘). Each panel has its label inset into the top border with the canonical Cluster A signature pattern:
-
-┌─ [LABEL]: [SUBJECT] ◆ [PANEL_TAGLINE] ──────────────┐
+Below, $PANELS_COUNT stacked rectangular panels drawn with thin Unicode box-drawing characters (┌ ─ ┐ │ └ ┘). Each panel has its label inset into the top border in the form "label: subject ◆ panel-tagline". Render the panel headers EXACTLY as listed under "Panel contents" below — never render placeholder tokens or square brackets in headers.
 
 The ◆ DIAMOND SEPARATOR between subject and panel-tagline is REQUIRED — it is THE Cluster A signature. Always include it.
 
@@ -305,13 +303,13 @@ EOF
 
     case "$TAGLINE_SEP" in
       star)
-        echo "Tagline: \"★ $PHRASE1   [MASCOT]   ★ $PHRASE2   ★ $PHRASE3\"" >> "$PROMPT_FILE"
+        echo "The bar's text reads exactly: \"★ $PHRASE1   ★ $PHRASE2   ★ $PHRASE3\"" >> "$PROMPT_FILE"
         ;;
       pipe)
-        echo "Tagline: \"$PHRASE1  |  [MASCOT]  |  $PHRASE2  |  $PHRASE3\"" >> "$PROMPT_FILE"
+        echo "The bar's text reads exactly: \"$PHRASE1  |  $PHRASE2  |  $PHRASE3\"" >> "$PROMPT_FILE"
         ;;
       period|*)
-        echo "Tagline: \"$PHRASE1.  [MASCOT]  $PHRASE2.  $PHRASE3.\"" >> "$PROMPT_FILE"
+        echo "The bar's text reads exactly: \"$PHRASE1.  $PHRASE2.  $PHRASE3.\"" >> "$PROMPT_FILE"
         ;;
     esac
 
@@ -324,7 +322,7 @@ EOF
 • Render every dot as a small square pixel or punctuation glyph, not as letters.
 • Avoid any duplicate or stuttered words.
 
-[MASCOT] is a LARGE prominent pixel-art robot icon, CENTERED on the tagline bar — square head, two glowing rectangular orange eyes, two tiny antenna nubs on top, no body. Sized at ~14% of the tagline bar height. CLEAN, BOLD, and ICONIC with crisp 8-bit pixel edges. Do NOT attempt damage details.
+CENTERED on the tagline bar, between the phrases, sits a LARGE prominent pixel-art robot icon (a graphic, not text) — square head, two glowing rectangular orange eyes, two tiny antenna nubs on top, no body. Sized at ~14% of the tagline bar height. CLEAN, BOLD, and ICONIC with crisp 8-bit pixel edges. Do NOT attempt damage details. The bar must contain ONLY the three phrases and the robot icon — no labels, no bracketed tokens, no words like "Tagline" or "Mascot".
 
 Overall style references: hacker zine, Bloomberg Terminal, Pip-Boy interface, 1990s computer manual diagrams. Hero painterly (Mode C1) or flat-pixel (Mode C2) + body cards flat + chrome ENGINEERED.
 EOF
@@ -430,8 +428,7 @@ FLOATING TERMINAL WINDOW (centered, ~80% width, ~85% height): A fake terminal/ed
 INNER CONTENT (inside the floating window):
 Title line at top: lowercase, underlined with a thin dashed rule.
 
-Below, $PANELS_COUNT stacked rectangular panels drawn with thin Unicode box-drawing characters (┌ ─ ┐ │ └ ┘). Each panel has its label inset into the top border:
-┌─ [LABEL] ◆ [SUBJECT] ─────────────────┐
+Below, $PANELS_COUNT stacked rectangular panels drawn with thin Unicode box-drawing characters (┌ ─ ┐ │ └ ┘). Each panel has its label inset into the top border in the form "label ◆ subject". Render the panel headers EXACTLY as listed under "Panel contents" below — never render placeholder tokens or square brackets in headers.
 
 Inside each panel: lowercase prose + the \`›\` quote-bullet list pattern + the "what runs here:" ritual line.
 
@@ -445,7 +442,7 @@ EOF
         PROSE=$(yqr ".panels[$i].prose")
         cat >> "$PROMPT_FILE" <<EOF
 ┌─ $LABEL ◆ $SUBJECT ──────────────────┐
-prose: $PROSE
+$PROSE
 what runs here:
 EOF
         ITEMS_COUNT=$(yq -r ".panels[$i].items | length" "$SPEC")

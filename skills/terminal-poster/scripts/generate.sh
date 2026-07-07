@@ -35,9 +35,11 @@ fi
 
 # --- Pick model ---
 # Verify slugs at https://openrouter.ai/models?q=gemini+image
-MODEL_PRO="google/gemini-3-pro-image-preview"          # Nano Banana Pro (default)
-MODEL_2="google/gemini-3.1-flash-image-preview"        # Nano Banana 2 (draft tier)
-MODEL_LEGACY="google/gemini-2.5-flash-image-preview"   # original Nano Banana
+# (verified live against /api/v1/models on 2026-07-07; stable slugs preferred
+# over -preview variants, which OpenRouter retires)
+MODEL_PRO="google/gemini-3-pro-image"          # Nano Banana Pro (default)
+MODEL_2="google/gemini-3.1-flash-image"        # Nano Banana 2 (draft tier)
+MODEL_LEGACY="google/gemini-2.5-flash-image"   # original Nano Banana
 
 MODEL="$MODEL_PRO"
 if [ -n "$MODEL_FLAG" ]; then

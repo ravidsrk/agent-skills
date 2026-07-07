@@ -81,17 +81,31 @@ Parse the XML response — each record looks like:
 
 # Add a new record (without losing the others)
 
-Pattern: **getHosts → merge → setHosts**. The skill's `SKILL.md` includes a full bash example that handles the wholesale-replace quirk safely.
-
-Manual sketch:
+Pattern: **getHosts → merge → setHosts**. Prefer `scripts/setHosts.py` — it fetches the current record set, merges your `--add` / `--remove` on top, and posts with strictly contiguous `HostName1..HostNameN` indexing (Namecheap drops records past the first gap):
 
 ```bash
-# 1. Pull current records (parse XML → JSON)
-# 2. Append your new record
-# 3. POST setHosts with ALL records (existing + new) as HostName1, RecordType1, Address1, HostName2, ...
+export NAMECHEAP_API_KEY=... NAMECHEAP_API_USER=...
+
+# Add one CNAME (keeps everything else)
+python3 scripts/setHosts.py --sld=example --tld=com \
+  --add='name=docs&type=CNAME&address=131zmog.your-docs-app.fly.dev.&ttl=300'
+
+# Preview only; no writes
+python3 scripts/setHosts.py --sld=example --tld=com \
+  --add='name=api&type=CNAME&address=api.example.fly.dev.&ttl=300' \
+  --dry-run
+
+# Bulk add from a JSON file
+python3 scripts/setHosts.py --sld=example --tld=com \
+  --add-json=./records.json --email-type=MX
 ```
 
-Concrete `setHosts` shape:
+The helper:
+- Refuses to run if `getHosts` returned zero records (a common footgun after a silent read failure).
+- Always emits contiguous `HostName1..HostNameN`.
+- Verifies both `Status="OK"` (envelope) and `IsSuccess="true"` (`DomainDNSSetHostsResult`).
+
+Concrete `setHosts` shape if you must call it inline:
 
 ```bash
 curl -s -G "https://api.namecheap.com/xml.response" \
@@ -105,10 +119,11 @@ curl -s -G "https://api.namecheap.com/xml.response" \
   --data-urlencode "HostName1=@"        --data-urlencode "RecordType1=A"     --data-urlencode "Address1=1.2.3.4"     --data-urlencode "TTL1=300" \
   --data-urlencode "HostName2=www"      --data-urlencode "RecordType2=CNAME" --data-urlencode "Address2=example.fly.dev." --data-urlencode "TTL2=300" \
   --data-urlencode "HostName3=api"      --data-urlencode "RecordType3=CNAME" --data-urlencode "Address3=api.example.fly.dev." --data-urlencode "TTL3=300"
-  # ...keep going for every existing record
+  # ...keep going for every existing record; indices MUST be contiguous 1..N.
 ```
 
 🔴 **Forgot a record? It's gone.** Always `getHosts` first.
+🔴 **Skipped an index?** Namecheap drops every record past the first gap. Use 1, 2, 3, 4… never 1, 2, 5.
 
 # Common workflows in the SKILL.md
 
@@ -133,11 +148,21 @@ The full `SKILL.md` covers:
 
 ```
 namecheap-dns/
-├── SKILL.md     ← Manifest + full procedural docs (agent reads this)
-└── README.md    ← This file (humans installing the skill)
+├── SKILL.md              ← Manifest + full procedural docs (agent reads this)
+├── README.md             ← This file (humans installing the skill)
+└── scripts/
+    └── setHosts.py       ← Safe wholesale-replace wrapper (getHosts → merge → setHosts, contiguous 1..N)
 ```
 
-Single-file skill — the API surface is small enough that helper scripts would add more friction than they save.
+`scripts/setHosts.py` is stdlib-only Python — no dependencies to install.
+
+# Working directory & state
+
+If you use paired skills (like `cloudflare-dns`) that write to `./.dns-state/`, add that directory to your `.gitignore`:
+
+```bash
+echo '.dns-state/' >> .gitignore
+```
 
 # Pairs with
 

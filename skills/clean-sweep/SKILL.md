@@ -43,6 +43,16 @@ Portability note: this is portable across **repos**, but **not across agent harn
 coordination layer (spawn / dispatch / wait) is Orca-specific. On a harness without Orca, only the
 strategy half (`references/`, `assets/`) carries over; the mechanics would need reimplementing.
 
+## ⚙️ BEFORE THE RUN — three one-time asks to the user (these prevent hours of manual mid-run babysitting)
+
+Surface these UP FRONT, in one message, so the run doesn't stall on them later:
+
+1. **Authorize the fleet.** The workers spawn with sandbox/approvals OFF (`codex --dangerously-bypass-approvals-and-sandbox`, `claude --dangerously-skip-permissions`). In auto-permission mode the FIRST such spawn is blocked. Ask the user to authorize it (add a Bash permission rule, or run outside auto-mode) **before** you spawn — do not discover this by hitting the wall mid-wave.
+2. **Turn OFF the PR review bot's Autofix for the run.** If the repo has a bot with an *Autofix* setting (e.g. Cursor BugBot), ask the user to set it to **comment-only / off** for the duration and re-enable after. Autofix that pushes commits is *non-convergent* (see `references/learnings.md` #24, #34) — leaving it ON turns every PR into a multi-round fight and is the single biggest source of manual coordinator intervention. Comment-only findings are just as useful and the branch stays stable.
+3. **The run needs NO live secrets — decline any the user offers.** Workers operate on code, tests, and a LOCAL throwaway database only. If the user pastes API keys/tokens, do NOT store, echo, or use them — tell them the run doesn't need them and (since they've now transited the chat) advise rotating them. See Secret hygiene.
+
+Also note: the coordinator **pre-authorizes mechanical fixes** in the worker preambles (assets/) — integrators/merge-workers apply obvious behavior-preserving fixes (a bot-introduced missing test-mock, a mechanical lint error, author normalization) themselves and re-verify, **without** raising a decision_gate. Only genuine logic/design/scope decisions escalate. This keeps the human out of the loop for trivia (see #40).
+
 > **Load-on-demand companions** (read only when you reach that phase):
 > - `references/learnings.md` — the hard-won operational failures + fixes from prior runs. **Read this before spawning your first worker.** It will save you hours.
 > - `references/pipeline.md` — the full per-finding state machine, ledger schema, and merge-ordering rules.
@@ -221,6 +231,29 @@ Produce a readiness doc + report covering:
 - **Downstream human gates**, explicitly unchecked: BASE→default-branch promotion, deploy, Lane-B calls, OPS.
 
 ---
+
+## Phase 6 — POST-RUN HOUSEKEEPING (offer it; do it if the user says yes)
+
+Promotion is human-*owned* but not human-*only*: in practice users usually want the coordinator to finish
+the job once the gate is green. So **offer** these as an explicit final step (don't silently assume, don't
+refuse). When the user says go:
+
+1. **Promote BASE → default branch.** Check divergence first (`git log <default>..BASE`); if 0 commits on
+   the default branch since the fork, it's a clean fast-forward. Open a **promotion PR whose body carries a
+   `Closes #N` for EVERY finding closed this run** (Lane-A + any verify-first done-no-change) — merging it to
+   the default branch auto-closes them all in one shot (#29, #38). Merge commit-preserving.
+2. **Verify the auto-close fired**; deterministically `gh issue close` any straggler with a comment linking
+   its fix PR (idempotent). The remaining open issues should be exactly your Lane-0/OPS + Lane-B.
+3. **Reconcile stale branches** (this is real cleanup value, not just deletion): list every remote branch,
+   classify each vs the default branch — **MERGED** (ancestor → delete), **SUPERSEDED** (a different branch
+   already implements the fix → verify, then delete), or **UNMERGED** (has unique commits → do NOT delete
+   blindly). For UNMERGED, check whether the run superseded it; if it's a *real* fix the run missed,
+   **salvage it** (cherry-pick onto a fresh branch off the default, author-reset to maintainer, build-blind
+   review, merge) rather than delete. This pass routinely surfaces a genuine gap the run missed (once: a
+   residual S0). Keep a source branch until its fix is salvaged+merged, THEN delete it. Never delete a branch
+   checked out in another worktree.
+4. **Fast-forward the working branch** to the default if it's a stale pointer (stash any leftover working-tree
+   files first — they're recoverable; don't discard the user's uncommitted work).
 
 ## Commit hygiene (non-negotiable)
 

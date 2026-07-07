@@ -266,3 +266,40 @@ On promotion to the default branch, every `Closes #N` in the promotion PR body f
 verify-first (#21) can legitimately report **done-no-change** when a prior run already fixed a finding —
 include those issue numbers in the promotion `Closes` list too (they're fixed on the branch, just not by a
 new commit this run).
+
+---
+
+## Reducing MANUAL coordinator/user intervention (the meta-lessons — these are what actually make a run smooth)
+
+### 39. Ask the user to turn OFF the PR bot's Autofix UP FRONT — it's the #1 source of manual babysitting
+The single biggest time-sink in a run is a bot whose Autofix *pushes commits*: it's non-convergent (#24, #34),
+your author-normalizations re-trigger it, and one PR becomes a 4+ round fight that eventually forces the human
+to toggle the dashboard mid-run anyway. Front-load it: in the "before the run" asks, request the user set the
+bot to **comment-only / off** for the run's duration (re-enable after). Comment-only findings are exactly as
+useful (integrators still triage + fix them) and the branch stays stable, so PRs merge on the first pass. If
+you didn't ask up front and a PR is stuck looping, ask THEN — but you've already paid for the whole run.
+
+### 40. Pre-authorize MECHANICAL fixes in the worker preambles so workers stop asking
+Every `decision_gate` a worker raises is a human round-trip (made worse by #35's flaky reply channel). The
+fix: bake the answer into the preamble. Integrators/merge-workers are **pre-authorized** to apply
+behavior-preserving MECHANICAL fixes themselves — a bot autofix's missing test-mock stub, a mechanical lint
+error, author normalization — and re-verify green, WITHOUT asking. This doesn't compromise the separate
+build-blind review (mechanical ≠ logic). Reserve gates for genuine logic/design/scope calls. In one run this
+turned ~6 human round-trips (each answering "yes, apply the obvious mock fix") into zero.
+
+### 41. The run needs NO live secrets — decline any the user offers, and advise rotation
+Workers operate on code + tests + a LOCAL throwaway DB. They never need production API keys/tokens. State this
+up front. If the user pastes live secrets "to help", do NOT store/echo/use them; tell them the run doesn't need
+them and — since they've now transited the chat — that they should ROTATE them. (Reaffirms #... secret hygiene:
+never commit real secrets; never echo values.)
+
+### 42. Post-run stale-branch reconciliation is real cleanup value — and surfaces gaps the run missed
+After promotion, the repo is usually littered with stale branches (fix-unit leftovers, pre-existing feature
+branches with dead remotes). Reconcile them (Phase 6): classify each vs the default branch — MERGED (delete),
+SUPERSEDED (a *different* branch already implements it → verify, delete), or UNMERGED (unique commits). Do NOT
+blind-delete UNMERGED ones: check if the run superseded them; if one is a REAL fix the run missed, **salvage**
+it (cherry-pick onto a fresh branch off default → author-reset → build-blind review → merge). This routinely
+finds genuine value — in one run it surfaced a residual **S0 security gap** plus 3 real fixes the sweep had
+missed. Keep a source branch until its fix is salvaged+merged, then delete. Never touch a branch checked out in
+another worktree. Finally, fast-forward the stale working branch to the default (stash leftover working-tree
+files first — recoverable, don't discard). Offer all of this; don't assume — but users usually want it.

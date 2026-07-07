@@ -22,7 +22,7 @@
 
 # What's inside
 
-6 skills, organized by what they do — not by SDLC phase. These are **discrete capabilities** an agent reaches for when the task fits, not lifecycle steps that fire in sequence.
+7 skills, organized by what they do — not by SDLC phase. These are **discrete capabilities** an agent reaches for when the task fits, not lifecycle steps that fire in sequence.
 
 # 🌐 Infrastructure
 
@@ -69,7 +69,7 @@ for s in skills/*/; do
 done
 ```
 
-✅ All 6 skills are now available. Symlinks mean `git pull` keeps them up to date.
+✅ All 7 skills are now available. Symlinks mean `git pull` keeps them up to date.
 
 📖 **Full guide:** [docs/claude-code-setup.md](docs/claude-code-setup.md)
 
@@ -299,7 +299,7 @@ Output:
 ✅ spec-to-ship
 ✅ terminal-poster
 
-🟢 All 6 skills valid against agentskills.io spec.
+🟢 All 7 skills valid against agentskills.io spec.
 ```
 
 The validator enforces the spec rules — frontmatter shape, name/directory matching, `name` (1-64 chars, hyphen-lowercase), `description` (1-1024 chars, warns on missing "use when" trigger phrasing), `compatibility` (1-500 chars if present), a sibling `README.md`, and no dangling `scripts/` / `references/` / `templates/` / `assets/` references. Non-zero exit if any skill fails. CI (`.github/workflows/validate.yml`) runs the same script on every push and PR.

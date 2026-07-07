@@ -11,7 +11,7 @@ allowed-tools: Bash Read Write Edit
 
 # Fly.io → AWS Migration Playbook
 
-This skill turns "I want to leave Fly for AWS" into a 7-phase, ~6-hour migration that ships in 5 PRs with every state-bearing component verified for parity and full rollback preserved.
+This skill turns "I want to leave Fly for AWS" into a 7-phase, ~6-hour migration that ships in **5 required PRs** (+ 1 optional cache-layer PR) with every state-bearing component verified for parity and full rollback preserved.
 
 # When to use
 
@@ -46,7 +46,7 @@ User says any of:
 | 3 | Secrets + **schema-only** DB migration | PR #3 | 30-60 min |
 | 4+5 | API production cutover — data delta + DNS flip | PR #4 | 30 min wall, ≤9 min user-facing downtime |
 | 6 | Static sites cutover | PR #5 | zero downtime |
-| 7 | Perf tuning (Cloudflare cache layer) | PR #6 | optional |
+| 7 | Perf tuning (Cloudflare cache layer) | PR #6 (optional) | optional |
 
 🟢 **Phase 3 = schema only, Phase 4 = data delta.** This is the recommended strategy end to end (SKILL, README, phases.md, `scripts/db-migrate.sh`). Doing the full data dump in Phase 3 is documented in phases.md as an **Alternative** — it collapses two phases into one but blows the ≤9 min downtime budget on any DB larger than a few hundred MB.
 

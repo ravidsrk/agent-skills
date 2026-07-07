@@ -1,11 +1,11 @@
 # agent-skills
 
-Production-grade skills for AI agents — DNS migration, AWS migration, deep research, viral image generation, autonomous multi-agent issue clean-sweep.
+Production-grade skills for AI agents — DNS migration, AWS migration, deep research, viral image generation, autonomous multi-agent issue clean-sweep, and spec-to-shipped-product builds.
 
 # Project Structure
 
 ```
-skills/                       → 6 capability skills (each with SKILL.md + README.md + scripts/ references/ templates/)
+skills/                       → 7 capability skills (each with SKILL.md + README.md + scripts/ references/ templates/)
 docs/                         → Per-runtime setup guides + skill-anatomy spec
 scripts/                      → Repo-level helpers (validate-skills.py)
 assets/                       → Banner image, screenshots
@@ -23,6 +23,7 @@ LICENSE                       → MIT
 | `deep-research` | 🔍 Research | 8-source parallel evidence orchestrator (X, Reddit, HN, GitHub, Polymarket, YouTube, Exa) |
 | `terminal-poster` | 🎨 Creative | Retro-cyberpunk image posters (5 reusable templates, Nano Banana Pro) |
 | `clean-sweep` | 🛠️ Dev workflow | Autonomous multi-agent issue clean-sweep — one-PR-per-finding pipeline on Orca runtime |
+| `spec-to-ship` | 🛠️ Dev workflow | Autonomous spec → shipped product build — PR-per-task pipeline on Orca runtime |
 
 # Conventions
 

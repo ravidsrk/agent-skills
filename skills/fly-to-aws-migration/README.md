@@ -4,7 +4,7 @@
   <img src="assets/banner.png" alt="fly-to-aws-migration — Fly.io → AWS in 7 phases" width="100%">
 </p>
 
-**End-to-end playbook for migrating a Fly.io project to AWS.** Seven phases, five PRs, ~6 hours of work, full rollback preserved at every step.
+**End-to-end playbook for migrating a Fly.io project to AWS.** Seven phases, five required PRs (+ one optional), ~6 hours of work, full rollback preserved at every step.
 
 🟢 **Coverage:** Fly Postgres → Aurora Serverless v2, Fly Machines → ECS Fargate, Fly static sites → S3+CloudFront, secrets → AWS Secrets Manager, DNS cutover → Cloudflare
 🟢 **Battle-tested:** API + 2 static sites + 87-table Postgres migrated with **9 min total downtime**
@@ -24,7 +24,7 @@ It frames the migration as **7 phases, each its own PR**:
 | 3 | Secrets + **schema-only** DB migration | PR #3 | 30–60 min |
 | 4+5 | API cutover — data delta + DNS flip (Fly off, AWS on) | PR #4 | ≤9 min downtime |
 | 6 | Static sites cutover | PR #5 | zero downtime |
-| 7 | Perf tuning (Cloudflare cache layer) | PR #6 | optional |
+| 7 | Perf tuning (Cloudflare cache layer) | PR #6 (optional) | optional |
 
 🔴 **Core philosophy.** Never destroy a Fly resource until its AWS replacement has served real production traffic for ≥24h. Every phase is independently mergeable. If you pause for a week between Phase 3 and Phase 4, nothing breaks.
 

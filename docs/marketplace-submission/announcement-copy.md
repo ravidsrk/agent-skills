@@ -86,13 +86,14 @@ Why two repos? Different purposes deserve different identities. Same author, sam
 >
 > **🟦 `agent-skills` (`github.com/ravidsrk/agent-skills`)**
 >
-> Six battle-tested capability skills that solve specific high-value tasks:
+> Seven battle-tested capability skills that solve specific high-value tasks:
 > • `cloudflare-dns` — migrate DNS from any registrar to Cloudflare
 > • `namecheap-dns` — manage Namecheap records via the XML API
 > • `fly-to-aws-migration` — full Fly → AWS playbook
 > • `deep-research` — parallel research across 8 sources
 > • `terminal-poster` — viral infographic generation
 > • `clean-sweep` — autonomous multi-agent issue clean-sweep (one PR per finding)
+> • `spec-to-ship` — autonomous frozen-spec → shipped product build
 >
 > **🟧 `autonomous-fleet` (`github.com/ravidsrk/autonomous-fleet`)**
 >
@@ -127,7 +128,7 @@ AI coding agents (Claude Code, Cursor, Codex, Grok Build, Orca) are getting good
 
 So I built two repos.
 
-## `agent-skills` — capability toolkit (6 skills)
+## `agent-skills` — capability toolkit (7 skills)
 
 Reach-for-when-needed skills that solve specific high-value tasks. Each skill is a self-contained capability with `SKILL.md` (agent-facing spec), a README (human-facing), references for progressive disclosure, and scripts.
 
@@ -137,6 +138,7 @@ Reach-for-when-needed skills that solve specific high-value tasks. Each skill is
 - **`deep-research`** — parallel research across X, Reddit, HN, GitHub, YouTube, Exa
 - **`terminal-poster`** — generate dense viral infographics via Nano Banana Pro
 - **`clean-sweep`** — autonomous multi-agent issue clean-sweep on the Orca runtime
+- **`spec-to-ship`** — autonomous frozen-spec → shipped product build on the Orca runtime
 
 [`github.com/ravidsrk/agent-skills`](https://github.com/ravidsrk/agent-skills)
 

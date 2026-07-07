@@ -2,7 +2,7 @@
 name: terminal-poster
 description: "Generate dense, retro-cyberpunk infographic posters in a terminal-aesthetic style — dark charcoal background, vivid orange accents, pixel-bitmap headlines, ASCII box-drawing diagrams, monospace fonts, line-art icons. Use when the user wants to summarize a product, architecture, agent stack, framework, or concept as a viral X/Twitter image; create a Shann-Holmberg-style image summary; produce a terminal-style infographic; visualize a system architecture as a Unicode-boxed diagram; generate a dev-tools aesthetic poster; or build a hero image for a technical product launch. Trigger phrases: 'terminal poster', 'dev infographic', 'shann-style', 'cyberpunk infographic', 'pixel-bitmap poster', 'ascii architecture diagram', 'agent stack visualization', 'image summary', 'retro terminal aesthetic', 'make this look like a viral X post'. Five reusable templates: Cluster A (ASCII Terminal), B (Color-Coded Levels), C (Cyborg Hero), D (Blueprint), E (Editorial). Uses Nano Banana Pro via OpenRouter (~$0.002 per image, ~30s)."
 license: MIT
-compatibility: Requires bash, curl, yq (v4+), and an OPENROUTER_API_KEY env var. Calls google/gemini-3-pro-image-preview via OpenRouter.
+compatibility: Requires bash, curl, yq (v4+), and an OPENROUTER_API_KEY env var. Calls google/gemini-3-pro-image via OpenRouter.
 metadata:
   version: "1.0.0"
   author: "@ravidsrk"
@@ -99,39 +99,22 @@ bash scripts/make-poster.sh \
 
 The CLI takes a YAML spec, picks the right cluster template, fills placeholders, calls `generate.sh`, and saves the prompt next to the output for reproducibility.
 
-**Supported clusters via CLI:** `a` (ASCII Terminal) and `c` (Cyborg Hero — both `c1` painterly and `c2` flat pixel).
-**Manual fill:** `b`, `d`, `e` — use the template files directly (see Step 2 below).
+**Supported clusters via CLI:** ALL of `a`, `b`, `c` (sub-modes `c1` painterly / `c2` flat pixel), `d` (sub-modes `d1` step pipeline / `d2` terminal-window), and `e` (editorial). Sub-mode is selected via the top-level `mode:` field in the spec (defaults to `c1` for cluster c and `d1` for cluster d when omitted).
+
+**Dry-run:** pass `--dry-run` to write the prompt file without calling OpenRouter. Use this while iterating on a spec — no credits are burned, and the prompt is saved next to `<output>` as `<output>.prompt.txt` for inspection.
+
+```bash
+bash scripts/make-poster.sh scripts/example-specs/cluster-a-stack.yaml /tmp/out.png --dry-run
+```
 
 **Example specs:** `scripts/example-specs/`
 - `cluster-a-stack.yaml` — Cluster A engineer-poet zine, 3-panel agent stack
 - `cluster-b-maturity.yaml` — Cluster B color-coded 4-level maturity ladder
-- `cluster-d-playbook.yaml` — Cluster D blueprint 5-step playbook
+- `cluster-c1-hero.yaml` — Cluster C1 painterly cyborg hero (viral launch look)
 - `c2-smoketest.yaml` — Cluster C2 whimsical flat-pixel hero
-
-**YAML spec format (Cluster C1):**
-
-```yaml
-cluster: c
-mode: c1                     # c1 painterly OR c2 flat pixel
-topic: yourapp               # top-left terminal prompt subject
-status: shipping             # top-left terminal status
-status_2: 6 agents online    # top-right MIRRORED status (NOT a version stamp)
-handle: "@yourhandle"
-eyebrow: AGENT-NATIVE
-brand: YOURAPP
-subtitle: 6 AGENTS · ONE BRAIN
-hero_subject: >
-  (multi-line painterly hero description — model fills in details from the 5 composition rules)
-cards:
-  - {header: AGENT ONE,   icon: clipboard,        body: "..."}
-  - {header: AGENT TWO,   icon: magnifying-glass, body: "..."}
-  # ... exactly 6 cards
-tagline_separator: star      # star | pipe | period
-tagline_phrases:
-  - SHIP A BRAIN NOT A PROMPT
-  - PROOF OVER PROMISES
-  - ONE BRAIN. SIX AGENTS.
-```
+- `cluster-d-playbook.yaml` — Cluster D1 blueprint 5-step playbook
+- `cluster-d2-thought-piece.yaml` — Cluster D2 terminal-window thought piece
+- `cluster-e-brandbook.yaml` — Cluster E editorial brand-book spread
 
 **YAML spec format (Cluster A):**
 
@@ -148,6 +131,89 @@ panels:
     prose: "turns ambient natural-language input into a machine-readable plan."
     items: ["yaml or natural-language spec", "schema validation", "intent classification", "skill routing"]
   # ... 3-5 panels total
+```
+
+**YAML spec format (Cluster B):**
+
+```yaml
+cluster: b
+title: the engineering maturity ladder
+subtitle: where is your team?
+bottom_tagline: "most teams are stuck on L1 · L4 is rare · you can climb"
+handle: "@yourhandle"
+levels:
+  - {label: L1, name: HEROIC,        oneliner: "one senior carries the team", bullets: ["...", "..."]}
+  - {label: L2, name: TRIBAL,        oneliner: "small group shares context",  bullets: ["...", "..."]}
+  - {label: L3, name: DOCUMENTED,    oneliner: "wiki exists. mostly stale.",  bullets: ["...", "..."]}
+  - {label: L4, name: AGENT-LEGIBLE, oneliner: "code + docs are AI-navigable",bullets: ["...", "..."]}
+```
+
+Per-level accent hex codes are hard-coded per L-number by the CLI. See `references/design-dna.md` under "Cluster B palette" for the canonical values.
+
+**YAML spec format (Cluster C1 / C2):**
+
+```yaml
+cluster: c
+mode: c1                     # c1 painterly OR c2 flat pixel
+topic: yourapp               # top-left terminal prompt subject
+status: shipping             # top-left terminal status
+status_2: 6 agents online    # top-right MIRRORED status (NOT a version stamp)
+handle: "@yourhandle"
+eyebrow: AGENT-NATIVE
+brand: YOURAPP
+subtitle: 6 AGENTS · ONE BRAIN
+hero_subject: >
+  a full noun-phrase scene description. Do NOT prefix with
+  "a painterly illustration of ..." — the CLI keeps that scoping
+  out of the placeholder now.
+cards:
+  - {header: AGENT ONE,   icon: clipboard,        body: "..."}
+  - {header: AGENT TWO,   icon: magnifying-glass, body: "..."}
+  # ... exactly 6 cards
+tagline_separator: star      # star | pipe | period — the tagline string is JUST the phrases; the mascot is a separate graphic centered on the bar (do NOT put [MASCOT] in the phrases)
+tagline_phrases:
+  - SHIP A BRAIN NOT A PROMPT
+  - PROOF OVER PROMISES
+  - ONE BRAIN. SIX AGENTS.
+```
+
+**YAML spec format (Cluster D1 / D2):**
+
+```yaml
+# D1 — step pipeline
+cluster: d
+mode: d1
+title: the five-step deploy playbook
+subtitle: code to prod in five steps
+bottom_manifesto: "code to prod in five steps. or you don't ship."
+handle: "@yourhandle"
+steps:
+  - {name: AUDIT, icon: shield-with-check, body: "2 lines of monospace body"}
+  # ... 4-7 steps
+
+# D2 — terminal-window mockup
+cluster: d
+mode: d2
+content_title: html-vs-markdown.md
+zsh_prompt: "~/content-system $ ./gate.sh"
+bottom_tagline: "structure over syntax. structure wins."
+handle: "@yourhandle"
+panels:
+  - {label: THE PROBLEM, subject: "markdown-only pipelines", prose: "...", items: ["...", "..."]}
+  # ... 3-5 panels
+```
+
+**YAML spec format (Cluster E):**
+
+```yaml
+cluster: e
+brand: BookMarkable
+hero_tagline: "a soft place for the things you want to remember."
+bottom_tagline: "The archive that reads like a diary."
+handle: "@yourhandle"
+pages:
+  - {number: "01", label: BRAND IDEA, content: "elevator pitch in two serif paragraphs."}
+  # ... 6-9 pages (3x3 thumbnail grid)
 ```
 
 The CLI takes ~5 seconds + the generate.sh API call (~30 seconds). Cost ≈ $0.002.
@@ -194,7 +260,7 @@ bash scripts/generate.sh \
 
 The script handles: JSON escaping → OpenRouter POST → base64 decode → save PNG.
 
-**Always use Nano Banana Pro** (`google/gemini-3-pro-image-preview`) as default. Don't downgrade silently — Nano Banana 2 hallucinates duplicate cards on Cluster C.
+**Always use Nano Banana Pro** (`google/gemini-3-pro-image`) as default. Don't downgrade silently — Nano Banana 2 hallucinates duplicate cards on Cluster C.
 
 ## Step 5 — Verify with vision
 
@@ -251,24 +317,30 @@ previewFile("/path/to/output.png")
 
 ```
 terminal-poster/
-├── SKILL.md                         ← this file
+├── SKILL.md                              ← this file
+├── README.md                             ← human-facing install + usage
 ├── scripts/
-│   ├── generate.sh                  ← Low-level bash helper, takes prompt text + output path
-│   ├── make-poster.sh               ← 🚀 High-level CLI, takes YAML spec + output path (recommended)
+│   ├── generate.sh                       ← Low-level bash helper, takes prompt text + output path
+│   ├── make-poster.sh                    ← High-level CLI, takes YAML spec + output path (supports --dry-run)
 │   └── example-specs/
-│       ├── cluster-a-stack.yaml     ← Cluster A engineer-poet (3-panel agent stack)
-│       ├── cluster-b-maturity.yaml  ← Cluster B color-coded (4-level ladder)
-│       ├── cluster-d-playbook.yaml  ← Cluster D blueprint (5-step playbook)
-│       └── c2-smoketest.yaml        ← Cluster C2 whimsical flat-pixel hero
-└── references/
-    ├── design-dna.md                ← full pattern doc (palette, fonts, layout rules)
-    ├── templates/
-    │   ├── cluster-a-ascii-terminal.md  ← DEFAULT
-    │   ├── cluster-b-color-coded.md
-    │   ├── cluster-c-cyborg-hero.md     ← VIRAL
-    │   ├── cluster-d-blueprint.md
-    │   └── cluster-e-editorial.md
-    └── worked-examples.md           ← real test results, lessons learned
+│       ├── cluster-a-stack.yaml          ← Cluster A engineer-poet (3-panel agent stack)
+│       ├── cluster-b-maturity.yaml       ← Cluster B color-coded (4-level ladder)
+│       ├── cluster-c1-hero.yaml          ← Cluster C1 painterly cyborg hero
+│       ├── c2-smoketest.yaml             ← Cluster C2 whimsical flat-pixel hero
+│       ├── cluster-d-playbook.yaml       ← Cluster D1 blueprint (5-step playbook)
+│       ├── cluster-d2-thought-piece.yaml ← Cluster D2 terminal-window on painterly canvas
+│       └── cluster-e-brandbook.yaml      ← Cluster E editorial brand-book spread
+├── references/
+│   ├── design-dna.md                     ← full pattern doc (palette, fonts, layout rules)
+│   ├── templates/
+│   │   ├── cluster-a-ascii-terminal.md   ← DEFAULT
+│   │   ├── cluster-b-color-coded.md
+│   │   ├── cluster-c-cyborg-hero.md      ← VIRAL
+│   │   ├── cluster-d-blueprint.md
+│   │   └── cluster-e-editorial.md
+│   └── worked-examples.md                ← real test results, lessons learned
+└── assets/
+    └── examples/                         ← rendered sample posters + their prompt.txt trails
 ```
 
 # Worked examples

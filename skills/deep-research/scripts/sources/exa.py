@@ -41,6 +41,26 @@ def _normalize(r: dict) -> dict:
     }
 
 
+def _in_window(published: str, from_date: str, to_date: str) -> bool:
+    """Return True if published_date (YYYY-MM-DD... or ISO) is in [from,to].
+
+    Keeps undated hits (same policy as x_twitter.search) — Exa often omits
+    publishedDate for research papers or PDFs, and dropping them would strip
+    the most useful results silently.
+    """
+    if not published:
+        return True
+    # publishedDate is usually ISO 8601 ("2026-06-22T12:34:56Z"); slice to date.
+    d = published[:10]
+    if len(d) != 10 or d[4] != "-" or d[7] != "-":
+        return True  # non-parseable → keep
+    if from_date and d < from_date:
+        return False
+    if to_date and d > to_date:
+        return False
+    return True
+
+
 def search(
     topic: str,
     from_date: str = "",
@@ -53,9 +73,9 @@ def search(
 
     Args:
         topic: query string
-        from_date, to_date: kept for signature compatibility with the old direct
-            Exa source. The proxy body does not expose date filters, so these are
-            accepted but unused (the orchestrator still records the window).
+        from_date, to_date: YYYY-MM-DD window. The proxy body does not expose
+            server-side date filters, so we filter client-side from each hit's
+            `publishedDate`. Undated hits are kept (same policy as x_twitter).
         limit: max results (proxy max 100)
         include_text: request inline text + highlights for quoting
         category: optional Exa category filter
@@ -78,8 +98,13 @@ def search(
     results = output.get("results") if isinstance(output, dict) else output
     if not isinstance(results, list):
         return []
-    out = [_normalize(r) for r in results if isinstance(r, dict)]
-    sys.stderr.write(f"[exa] got {len(out)} results via monid\n")
+    raw = [_normalize(r) for r in results if isinstance(r, dict)]
+    out = [r for r in raw if _in_window(r.get("published_date", ""), from_date, to_date)]
+    dropped = len(raw) - len(out)
+    sys.stderr.write(
+        f"[exa] got {len(out)} results via monid"
+        f"{f' (dropped {dropped} out-of-window)' if dropped else ''}\n"
+    )
     return out
 
 

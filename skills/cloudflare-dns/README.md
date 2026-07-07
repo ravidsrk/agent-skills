@@ -62,6 +62,18 @@ export CLOUDFLARE_EMAIL=you@example.com
 
 🔴 **Security note.** `CLOUDFLARE_GLOBAL_API_KEY` grants full account access (billing, members, everything). Treat it like a root password — never write it to disk, configs, URLs, or git. The skill always reads it from env at call time.
 
+# Optional: Global-Key fallback
+
+Set `CF_AUTO_FALLBACK=1` if you want `cf_api` to retry with the Global Key on account-token auth errors (Cloudflare codes 10000/9109/6003). It's off by default because the Global Key is broader-scoped than the caller asked for. Whenever it fires you get a one-line notice on stderr — never silent.
+
+# 3.5 Add `.dns-state/` to `.gitignore`
+
+Every migration writes state to `./.dns-state/<domain>/` — DNS record snapshots, DNSSEC key material, Origin CA cert + private key, hardening reports. **Never commit it.**
+
+```bash
+echo '.dns-state/' >> .gitignore
+```
+
 # 3. If migrating from Namecheap
 
 You'll also need the `namecheap-dns` skill installed and its env vars set — see [`skills/namecheap-dns/README.md`](../namecheap-dns/README.md). The `migrate.sh flip` step calls Namecheap's API to update nameservers.
@@ -77,23 +89,27 @@ This is read-only — it just snapshots current state. Output goes to `./.dns-st
 
 # Usage
 
-# Full migration (interactive)
+# Full migration (create + import + verify, stops before flip)
 
 ```bash
 scripts/migrate.sh example.com full
 ```
 
-Walks through every step with prompts. Use this the first few times.
+Runs `create` → `import` → `verify`, then STOPS with a confirmation banner. Never auto-flips nameservers. Review the output, then run `scripts/migrate.sh example.com flip` yourself (add `--dry-run` first to preview).
 
 # Step-by-step (scriptable)
 
 ```bash
-scripts/migrate.sh example.com create     # create zone at Cloudflare
-scripts/migrate.sh example.com import     # import all records from audit-pre.json
-scripts/migrate.sh example.com verify     # query CF's nameservers to confirm
-scripts/migrate.sh example.com flip       # update nameservers at Namecheap
-scripts/migrate.sh example.com watch      # poll propagation until 10 resolvers see CF
+scripts/migrate.sh example.com create                     # create zone at Cloudflare
+scripts/migrate.sh example.com import                     # import supported records (skips URL/URL301/FRAME with a warning)
+scripts/migrate.sh example.com import --keep-eforward     # ALSO import Namecheap eforward MX+SPF (see warning below)
+scripts/migrate.sh example.com verify                     # query CF's nameservers to confirm
+scripts/migrate.sh example.com flip --dry-run             # print planned NS change, no writes
+scripts/migrate.sh example.com flip                       # update nameservers at Namecheap
+scripts/migrate.sh example.com watch                      # poll propagation until 1.1.1.1 + 8.8.8.8 see CF
 ```
+
+🔴 **Email forwarding warning.** Namecheap eforward MX/SPF records are NOT imported by default — Namecheap stops relaying mail the moment NS moves off Namecheap, and dead MX records hide the outage. The importer prints options: set up Cloudflare Email Routing, switch to a real mailbox provider, or pass `--keep-eforward` as a temporary bridge.
 
 # Hardening (after migration is live)
 
@@ -102,10 +118,16 @@ scripts/harden.sh example.com
 ```
 
 Adds:
-- CAA records (`letsencrypt.org`, `digicert.com`) — prevents rogue CAs issuing certs
+- CAA records (`letsencrypt.org`, `pki.goog`, `digicert.com` when proxied, `issuewild ;`, `iodef mailto:`) — prevents rogue CAs issuing certs
 - DMARC monitor (`v=DMARC1; p=none; rua=mailto:postmaster@example.com`) — passive email-spoofing visibility
-- Cloudflare WAF rate-limiting rule (100 req/10s per IP on `/api/*`)
+- Cloudflare WAF rate-limiting rule (default 50 req/10s per IP on `/api/*`, ~300 rpm)
 - Bot Fight Mode, Always Use HTTPS, HSTS, Min TLS 1.2
+
+Preview mode:
+
+```bash
+scripts/harden.sh example.com --dry-run     # prints planned mutations; writes nothing
+```
 
 # DNSSEC
 
@@ -156,14 +178,15 @@ For the account-scoped `CLOUDFLARE_API_KEY`:
 | `Zone Settings:Edit` | Toggle proxy, SSL mode, etc. |
 | `Page Rules:Edit` | If using `harden.sh` |
 | `Zone WAF:Edit` | Rate-limiting rules in `harden.sh` |
-| `Origin CA:Write` | If using `origin-ca.sh` |
+| `Origin CA:Edit` | If using `origin-ca.sh` |
 
 # Known gotchas
 
 - 🟡 **Public resolvers cache stale NS answers up to 30 min** after nameserver flip — even when the parent TLD is already delegating to Cloudflare. Use `dns-direct-query.py` against the TLD's authoritative nameservers (e.g. `v0n0.nic.ai` for `.ai`) to verify ground truth.
 - 🔴 **`POST /zones` requires Global API Key**, not the account token. Cloudflare's docs are misleading on this.
 - 🟡 **Proxy ON + non-Cloudflare CA = cert issuance failures.** The `harden.sh` CAA records (`letsencrypt.org`, `digicert.com`) cover both proxied and unproxied paths.
-- 🟡 **Email forwarding from Namecheap doesn't survive a flip** — MX `eforward1-5.registrar-servers.com` records only work while the domain's NS points at Namecheap. After migration, set up Cloudflare Email Routing instead (the `migrate.sh import` step warns about this).
+- 🟡 **Email forwarding from Namecheap doesn't survive a flip** — MX `eforward1-5.registrar-servers.com` records only work while the domain's NS points at Namecheap. `migrate.sh import` warns and skips by default; pass `--keep-eforward` if you want them imported anyway as a temporary bridge.
+- 🟡 **URL redirect records at Namecheap don't map to CF DNS.** Namecheap `Type=URL / URL301 / FRAME` are silently skipped with a warning during import — configure a **Cloudflare Redirect Rule** (Rules → Redirect Rules) manually.
 
 # File layout
 

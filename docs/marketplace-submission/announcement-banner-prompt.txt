@@ -3,9 +3,9 @@ Aspect ratio EXACTLY 16:9 (1920×1080). This is a single composition split into 
 
 LEFT HALF — "agent-skills"
 - Background: warm cream gradient, color #F8F4EE at center fading to #F5EBDE at edges. Subtle paper-texture grain.
-- Centered abstract illustration: an isometric workbench / toolboard with 5 distinct hand-crafted tools laid out neatly (a compass, a small hammer, a calipers, a ruler, a small paintbrush). Tools rendered in matte coral #E45D40 with thin charcoal #2D2A26 line work. Soft amber side-lighting.
+- Centered abstract illustration: an isometric workbench / toolboard with 6 distinct hand-crafted tools laid out neatly (a compass, a small hammer, a calipers, a ruler, a small paintbrush, a small broom). Tools rendered in matte coral #E45D40 with thin charcoal #2D2A26 line work. Soft amber side-lighting.
 - Below the illustration, sans-serif label in dark charcoal #2D2A26: "agent-skills"
-- Smaller monospace caption underneath: "5 capability skills"
+- Smaller monospace caption underneath: "6 capability skills"
 - Tiny URL caption at the very bottom in light charcoal: "github.com/ravidsrk/agent-skills"
 
 RIGHT HALF — "autonomous-fleet"
@@ -30,7 +30,7 @@ BOTTOM STRIP (10% of total height)
 - Below it in warm off-white monospace, slightly larger: "npx skills add <repo-url>"
 
 TEXT RULES
-- The visible text labels in this image, in their EXACT spelling, are ONLY: "Two sibling open-source repos by @ravidsrk", "MULTI-AGENT TOOLING · ONE AUTHOR · TWO IDENTITIES", "agent-skills", "5 capability skills", "github.com/ravidsrk/agent-skills", "autonomous-fleet", "24 skills · 4 runtimes", "github.com/ravidsrk/autonomous-fleet", "INSTALL ONE OR BOTH", "npx skills add <repo-url>", "GROK", "CLAUDE-CODE", "CODEX", "ORCA", and the single character "+" in the center seam badge.
+- The visible text labels in this image, in their EXACT spelling, are ONLY: "Two sibling open-source repos by @ravidsrk", "MULTI-AGENT TOOLING · ONE AUTHOR · TWO IDENTITIES", "agent-skills", "6 capability skills", "github.com/ravidsrk/agent-skills", "autonomous-fleet", "24 skills · 4 runtimes", "github.com/ravidsrk/autonomous-fleet", "INSTALL ONE OR BOTH", "npx skills add <repo-url>", "GROK", "CLAUDE-CODE", "CODEX", "ORCA", and the single character "+" in the center seam badge.
 - Every label must appear EXACTLY ONCE.
 - Do not add any other text, captions, labels, decorative words, or fake URLs.
 - Do not duplicate any label.

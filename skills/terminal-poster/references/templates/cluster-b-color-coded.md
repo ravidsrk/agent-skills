@@ -16,9 +16,11 @@
 - `[TITLE]` — concise lowercase title
 - `[SUBTITLE]` — secondary line in muted tan
 - `[N]` — number of levels/sections (recommend 3-5)
-- For each level: `[NAME]`, `[ONE-LINER]`, `[ACCENT COLOR]`, `[3-5 BULLET POINTS]`
+- For each level: `[LABEL]` (e.g. L1), `[NAME]` (e.g. HEROIC), `[ONE-LINER]`, `[3-5 BULLET POINTS]`. The accent color is derived from `[LABEL]` (L1 → amber, L2 → teal, L3 → magenta, L4 → rust, L5 → gray — see the canonical Cluster B palette in `references/design-dna.md`).
 - `[BOTTOM TAGLINE]` — lowercase, middle-dot separated
 - `[HANDLE]`
+
+Spec keys (what `scripts/make-poster.sh` reads from a Cluster B YAML): `title`, `subtitle`, `bottom_tagline`, `handle`, `levels[].label`, `levels[].name`, `levels[].oneliner`, `levels[].bullets`.
 
 ## Prompt
 
@@ -43,12 +45,14 @@ Then [N] stacked level rows, top to bottom. Each row:
     - One-liner: "[ONE-LINER]" in cream sans-serif, regular weight
     - Bullets: 3-5 items, each prefixed with → arrow in the accent color, body in muted tan
 
-Cluster B accent palette — pick ONE color per level (semantic, not all-orange):
-  L1: amber #E8A33A (kickoff / foundation)
-  L2: teal #00D9D9 (technical / build)
-  L3: purple #B57FFF (strategy / brain)
-  L4: muted rust #B8541F (operations / sales — NOT vivid Hermes orange)
-  L5: gray #A89680 (admin / maintenance)
+Cluster B accent palette — pick ONE color per level (semantic, not all-orange).
+This is the canonical ramp; do not drift. Also documented in
+`references/design-dna.md` "Cluster B palette":
+  L1: amber   #FFC857  (kickoff / foundation)
+  L2: teal    #00D9D9  (technical / build)
+  L3: magenta #B57FFF  (strategy / brain)
+  L4: rust    #B8541F  (operations / sales — NOT vivid Hermes orange #F26B1F)
+  L5: gray    #A89680  (admin / maintenance)
 
 Between rows: a 1px thin dashed orange vertical line on the spine (using muted rust #B8541F, NOT vivid orange), connecting consecutive badges.
 

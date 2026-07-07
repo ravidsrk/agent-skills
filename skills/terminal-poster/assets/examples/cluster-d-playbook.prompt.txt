@@ -1,0 +1,38 @@
+A vertical infographic poster, portrait 3:4 aspect ratio. Premium dev-playbook / technical blueprint aesthetic.
+
+CANVAS: warm dark charcoal #0D0D0D with a very subtle dotted blueprint grid pattern at 5% opacity. Top-left of the canvas: three macOS-style traffic-light circles (red, yellow, green) as window chrome — REQUIRED. They sit just above the title.
+
+FOREGROUND: bone off-white #EAEAEA primary, **phosphor green #A8E060 as the primary accent** (NOT orange, NOT amber, NOT yellow). Optional secondary: muted tan #A89680 for captions.
+
+TITLE at top in chunky Press Start 2P / VT323 pixel-bitmap style:
+  "the five-step deploy playbook"
+in phosphor green #A8E060. Below it, a smaller subtitle in green monospace italic:
+  "code to prod in five steps"
+
+Below the title, 5 step cards laid out as a pipeline (horizontal row if 5 ≤ 4, otherwise compact 2-row wrap with continuation arrows). Each step card is a rectangle outlined with a **thin DASHED green border** (NOT solid, NOT rounded). Inside each card:
+  - A single line-art icon at the top (white #EAEAEA, ~2px stroke, Lucide style)
+  - A numbered label inside square brackets in green: [1], [2], [3], etc.
+  - The step name in ALL CAPS cream sans-serif
+  - 2 lines of monospace body in muted tan below
+
+Between steps: a long thin dashed green arrow `───── ▶` pointing right (or down-and-right if wrapping rows).
+
+Step contents (left to right, then wrap):
+
+  [1] AUDIT — icon: shield-with-check — "scan deps for CVEs, secrets in tracked files, and lint errors. block on any critical hit."
+  [2] BUILD — icon: hammer-and-gear — "compile, run unit tests, build container image. tag with git sha + semver."
+  [3] STAGE — icon: server-stack — "deploy to staging. run smoke tests + load shape. promote only if green."
+  [4] SHIP — icon: rocket — "rolling deploy to prod. watch error rate + latency p99 for 5 min before declaring done."
+  [5] VERIFY — icon: heartbeat-line — "synthetic health check from 3 regions. open changelog entry. notify channel."
+
+Bottom: a single horizontal manifesto callout prefixed with ✦ star, in lowercase manifesto style:
+  "✦ code to prod in five steps. or you don't ship."
+with "@yourhandle" right-aligned in muted tan below it.
+
+⚠️ CRITICAL TEXT RULES — read carefully before rendering letters:
+• Spell every word completely. Do NOT abbreviate. Do NOT drop letters.
+• Punctuation marks (. , : ; ·) must render as actual punctuation glyphs, NEVER as the spelled-out word (PERIOD, COMMA, COLON, MIDDLE-DOT).
+• Symbol characters (✦ ★ → ◆ ▶) must render as the actual unicode glyph, NEVER as the spelled-out word (STAR, ARROW, DIAMOND, TRIANGLE). Render `✦` as the literal six-point-star character.
+• Avoid any duplicate or stuttered words.
+
+Aesthetic: technical manual + engineer's lab notebook + macOS terminal-app screenshot + 1990s computer documentation. Sharp, info-dense, no painterly elements. Flat geometric icons only. **Phosphor-green dominant — NOT orange.** The macOS traffic-light dots are a signature — never omit them.

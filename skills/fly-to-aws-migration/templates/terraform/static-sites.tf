@@ -6,7 +6,7 @@
 variable "static_sites" {
   description = "Static sites to deploy. Each site gets its own S3 bucket + CloudFront distribution."
   type = map(object({
-    aliases = list(string)  # domains served by this distribution
+    aliases = list(string) # domains served by this distribution
   }))
   default = {
     web = {
@@ -18,17 +18,24 @@ variable "static_sites" {
   }
 }
 
+variable "primary_domain" {
+  description = "The apex domain used as the ACM cert's primary CommonName. All other aliases become SANs. Explicit so cert layout isn't sensitive to map ordering."
+  type        = string
+}
+
 locals {
-  # Flatten all aliases across all sites for the single cert
-  all_aliases = distinct(flatten([for k, v in var.static_sites : v.aliases]))
+  # Flatten all aliases across all sites for the single cert. Order the primary
+  # domain first so it's the cert's CN; SANs are everything else.
+  all_aliases         = distinct(flatten([for k, v in var.static_sites : v.aliases]))
+  cert_san_candidates = [for a in local.all_aliases : a if a != var.primary_domain]
 }
 
 # ── ACM cert in us-east-1 — REQUIRED for CloudFront ──
 resource "aws_acm_certificate" "sites" {
-  provider = aws.us-east-1  # 🔴 CRITICAL
+  provider = aws.us-east-1 # 🔴 CRITICAL
 
-  domain_name               = local.all_aliases[0]
-  subject_alternative_names = slice(local.all_aliases, 1, length(local.all_aliases))
+  domain_name               = var.primary_domain
+  subject_alternative_names = local.cert_san_candidates
   validation_method         = "DNS"
 
   lifecycle { create_before_destroy = true }
@@ -48,7 +55,7 @@ resource "cloudflare_record" "sites_cert_validation" {
   value   = trimsuffix(each.value.record, ".")
   type    = each.value.type
   ttl     = 1
-  proxied = false  # DNS-only for validation
+  proxied = false # DNS-only for validation
 }
 
 resource "aws_acm_certificate_validation" "sites" {
@@ -115,7 +122,7 @@ resource "aws_cloudfront_response_headers_policy" "site" {
 
   security_headers_config {
     strict_transport_security {
-      access_control_max_age_sec = 63072000  # 2 years
+      access_control_max_age_sec = 63072000 # 2 years
       include_subdomains         = true
       preload                    = true
       override                   = true
@@ -176,7 +183,7 @@ resource "aws_cloudfront_distribution" "site" {
   enabled             = true
   is_ipv6_enabled     = true
   http_version        = "http2and3"
-  price_class         = "PriceClass_100"  # NA+EU only = cheapest
+  price_class         = "PriceClass_100" # NA+EU only = cheapest
   aliases             = each.value.aliases
   default_root_object = "index.html"
 
@@ -193,7 +200,7 @@ resource "aws_cloudfront_distribution" "site" {
     cached_methods         = ["GET", "HEAD"]
     compress               = true
 
-    cache_policy_id          = "658327ea-f89d-4fab-a63d-7e88639e58f6"  # CachingOptimized (AWS managed)
+    cache_policy_id            = "658327ea-f89d-4fab-a63d-7e88639e58f6" # CachingOptimized (AWS managed)
     response_headers_policy_id = aws_cloudfront_response_headers_policy.site.id
 
     function_association {

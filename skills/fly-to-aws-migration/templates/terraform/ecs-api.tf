@@ -101,8 +101,8 @@ resource "aws_iam_role" "task_execution" {
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Action = "sts:AssumeRole"
-      Effect = "Allow"
+      Action    = "sts:AssumeRole"
+      Effect    = "Allow"
       Principal = { Service = "ecs-tasks.amazonaws.com" }
     }]
   })
@@ -119,14 +119,22 @@ resource "aws_iam_role_policy" "task_execution_secrets" {
 
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [{
-      Effect = "Allow"
-      Action = [
-        "secretsmanager:GetSecretValue",
-        "kms:Decrypt"
-      ]
-      Resource = "*"  # narrow to specific secrets in prod
-    }]
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = ["secretsmanager:GetSecretValue"]
+        # Scope to this project's 8 grouped secrets — matches secrets-migrate.sh.
+        Resource = [
+          "arn:aws:secretsmanager:${var.aws_region}:*:secret:${var.project}/${var.environment}/*"
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = ["kms:Decrypt"]
+        # Scope KMS decrypt to the Aurora key we manage in aurora.tf.
+        Resource = [aws_kms_key.aurora.arn]
+      }
+    ]
   })
 }
 
@@ -137,8 +145,8 @@ resource "aws_iam_role" "task" {
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Action = "sts:AssumeRole"
-      Effect = "Allow"
+      Action    = "sts:AssumeRole"
+      Effect    = "Allow"
       Principal = { Service = "ecs-tasks.amazonaws.com" }
     }]
   })
@@ -171,11 +179,11 @@ resource "aws_ecs_task_definition" "api" {
   requires_compatibilities = ["FARGATE"]
 
   # 🟡 RIGHT-SIZE THESE based on actual usage. Start small.
-  cpu    = "512"   # 0.5 vCPU
-  memory = "1024"  # 1 GB
+  cpu    = "512"  # 0.5 vCPU
+  memory = "1024" # 1 GB
 
   runtime_platform {
-    cpu_architecture        = "ARM64"  # 20% cheaper. Switch to X86_64 if needed.
+    cpu_architecture        = "ARM64" # 20% cheaper. Switch to X86_64 if needed.
     operating_system_family = "LINUX"
   }
 
@@ -217,8 +225,15 @@ resource "aws_ecs_task_definition" "api" {
         }
       }
 
+      # Container-level health check runs INSIDE the container, so it must use
+      # a tool the image ships. Node images don't include wget; we use node
+      # itself for portability. For non-Node runtimes, DELETE this healthCheck
+      # block — the ALB target-group health check in alb.tf is enough on its own.
       healthCheck = {
-        command     = ["CMD-SHELL", "wget --spider -q http://localhost:3000/health || exit 1"]
+        command = [
+          "CMD-SHELL",
+          "node -e \"require('http').get('http://localhost:3000/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))\""
+        ]
         interval    = 30
         timeout     = 5
         retries     = 3
@@ -228,7 +243,7 @@ resource "aws_ecs_task_definition" "api" {
   ])
 
   lifecycle {
-    ignore_changes = [container_definitions]  # allow CI to update image
+    ignore_changes = [container_definitions] # allow CI to update image
   }
 }
 
@@ -257,10 +272,10 @@ resource "aws_ecs_service" "api" {
   deployment_minimum_healthy_percent = 100
   deployment_maximum_percent         = 200
 
-  health_check_grace_period_seconds = 120  # allow boot time
+  health_check_grace_period_seconds = 120 # allow boot time
 
   lifecycle {
-    ignore_changes = [task_definition, desired_count]  # CI manages these
+    ignore_changes = [task_definition, desired_count] # CI manages these
   }
 
   depends_on = [aws_lb_listener.api_https]

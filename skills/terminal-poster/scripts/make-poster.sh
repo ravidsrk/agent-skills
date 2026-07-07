@@ -2,11 +2,15 @@
 # make-poster.sh — One-command poster generator using the terminal-poster skill.
 #
 # Usage:
-#   make-poster.sh <spec.yaml> <output.png>
+#   make-poster.sh <spec.yaml> <output.png> [--dry-run]
 #
 # Spec format: see scripts/example-specs/
-# Reads a YAML poster spec → picks the right cluster template → fills placeholders →
-# runs generate.sh → writes the image.
+# Reads a YAML poster spec -> picks the right cluster template -> fills placeholders ->
+# runs generate.sh -> writes the image.
+#
+# --dry-run: skip the OpenRouter API call. Still writes <output>.prompt.txt so
+# you can inspect the exact prompt. No credits are burned. This is the
+# recommended way to iterate on templates and specs.
 #
 # Dependencies: yq (for YAML parsing), bash 4+, generate.sh in same dir.
 #
@@ -17,38 +21,97 @@
 #   3 = spec parse error
 #   4 = generation failed
 
-set -e
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL_DIR="$(dirname "$SCRIPT_DIR")"
 TEMPLATES_DIR="$SKILL_DIR/references/templates"
 
 # --- Args ---
-if [ $# -ne 2 ]; then
-  echo "Usage: make-poster.sh <spec.yaml> <output.png>" >&2
+DRY_RUN=0
+POSITIONAL=()
+for arg in "$@"; do
+  case "$arg" in
+    --dry-run) DRY_RUN=1 ;;
+    -h|--help)
+      echo "Usage: make-poster.sh <spec.yaml> <output.png> [--dry-run]" >&2
+      echo "Spec format examples: $SCRIPT_DIR/example-specs/" >&2
+      exit 0
+      ;;
+    -*)
+      echo "Unknown flag: $arg" >&2
+      echo "Usage: make-poster.sh <spec.yaml> <output.png> [--dry-run]" >&2
+      exit 1
+      ;;
+    *) POSITIONAL+=("$arg") ;;
+  esac
+done
+
+if [ "${#POSITIONAL[@]}" -ne 2 ]; then
+  echo "Usage: make-poster.sh <spec.yaml> <output.png> [--dry-run]" >&2
   echo "Spec format examples: $SCRIPT_DIR/example-specs/" >&2
   exit 1
 fi
 
-SPEC="$1"
-OUTPUT="$2"
+SPEC="${POSITIONAL[0]}"
+OUTPUT="${POSITIONAL[1]}"
 
 if [ ! -f "$SPEC" ]; then
-  echo "❌ Spec file not found: $SPEC" >&2
+  echo "ERROR: Spec file not found: $SPEC" >&2
   exit 1
 fi
 
 # --- Dependency check ---
 if ! command -v yq >/dev/null 2>&1; then
-  echo "⚠️  yq not found. Installing to /workspace/tools/bin..." >&2
-  mkdir -p /workspace/tools/bin
-  curl -sL "https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64" \
-    -o /workspace/tools/bin/yq && chmod +x /workspace/tools/bin/yq
-  export PATH="/workspace/tools/bin:$PATH"
+  UNAME_S="$(uname -s)"
+  UNAME_M="$(uname -m)"
+  case "$UNAME_S" in
+    Darwin)
+      echo "ERROR: yq not found. On macOS install via Homebrew:" >&2
+      echo "         brew install yq" >&2
+      exit 2
+      ;;
+    Linux)
+      case "$UNAME_M" in
+        x86_64) YQ_BIN="yq_linux_amd64" ;;
+        aarch64|arm64) YQ_BIN="yq_linux_arm64" ;;
+        *)
+          echo "ERROR: yq not found and no auto-installer for arch $UNAME_M." >&2
+          echo "         See https://github.com/mikefarah/yq/releases/latest" >&2
+          exit 2
+          ;;
+      esac
+      # Prefer /usr/local/bin when writable, otherwise fall back to ~/.local/bin.
+      if [ -w /usr/local/bin ] 2>/dev/null; then
+        INSTALL_DIR=/usr/local/bin
+      else
+        INSTALL_DIR="$HOME/.local/bin"
+      fi
+      mkdir -p "$INSTALL_DIR"
+      echo "[make-poster] yq not found; installing $YQ_BIN to $INSTALL_DIR ..." >&2
+      curl -fsSL "https://github.com/mikefarah/yq/releases/latest/download/$YQ_BIN" \
+        -o "$INSTALL_DIR/yq"
+      chmod +x "$INSTALL_DIR/yq"
+      export PATH="$INSTALL_DIR:$PATH"
+      ;;
+    *)
+      echo "ERROR: yq not found and platform $UNAME_S has no auto-installer." >&2
+      echo "         See https://github.com/mikefarah/yq/releases/latest" >&2
+      exit 2
+      ;;
+  esac
 fi
 
 # --- Helpers ---
-yqr() { yq -r "$1" "$SPEC" 2>/dev/null || echo ""; }
+# yq (mikefarah v4+) prints the literal string "null" for missing keys and
+# exits 0. Map that back to empty string so absent optional fields don't
+# leak the word "null" into the model prompt.
+yqr() {
+  local v
+  v=$(yq -r "$1" "$SPEC" 2>/dev/null || echo "")
+  [ "$v" = "null" ] && v=""
+  printf '%s' "$v"
+}
 
 # --- Parse spec ---
 CLUSTER=$(yqr '.cluster')
@@ -59,13 +122,13 @@ if [ -z "$CLUSTER" ]; then
   exit 3
 fi
 
-CLUSTER=$(echo "$CLUSTER" | tr '[:upper:]' '[:lower:]')
-MODE=$(echo "$MODE" | tr '[:upper:]' '[:lower:]')
+CLUSTER=$(printf '%s' "$CLUSTER" | tr '[:upper:]' '[:lower:]')
+MODE=$(printf '%s' "$MODE" | tr '[:upper:]' '[:lower:]')
 
-echo "[make-poster] cluster=$CLUSTER mode=${MODE:-default} spec=$SPEC"
+echo "[make-poster] cluster=$CLUSTER mode=${MODE:-default} spec=$SPEC dry_run=$DRY_RUN"
 
 # --- Build prompt by dispatching to cluster handler ---
-PROMPT_FILE=$(mktemp /tmp/poster-prompt-XXXXXX.txt)
+PROMPT_FILE=$(mktemp -t poster-prompt.XXXXXX)
 
 case "$CLUSTER" in
   a)
@@ -85,9 +148,7 @@ Title at top:
   "$TITLE"
 underlined by a single thin horizontal rule of dashes spanning the page width.
 
-Below, $PANELS_COUNT stacked rectangular panels drawn with thin Unicode box-drawing characters (┌ ─ ┐ │ └ ┘). Each panel has its label inset into the top border with the canonical Cluster A signature pattern:
-
-┌─ [LABEL]: [SUBJECT] ◆ [PANEL_TAGLINE] ──────────────┐
+Below, $PANELS_COUNT stacked rectangular panels drawn with thin Unicode box-drawing characters (┌ ─ ┐ │ └ ┘). Each panel has its label inset into the top border in the form "label: subject ◆ panel-tagline". Render the panel headers EXACTLY as listed under "Panel contents" below — never render placeholder tokens or square brackets in headers.
 
 The ◆ DIAMOND SEPARATOR between subject and panel-tagline is REQUIRED — it is THE Cluster A signature. Always include it.
 
@@ -173,14 +234,22 @@ TOP-RIGHT CORNER (MIRRORED — second prompt, not a version stamp): "> sys\$ $ST
 EOF
 
     if [ "$SUB_MODE" = "c2" ]; then
+      # Hero subject is expected to be a full scene description ("a flat 8-bit
+      # pixel-art scene of ..."). Do NOT prepend a wrapper sentence here or the
+      # prompt double-scopes the scene. Style constraints live below.
       cat >> "$PROMPT_FILE" <<EOF
-HERO ZONE (top ~22%, keep small): A FLAT PIXEL-ART scene of $HERO_SUBJECT. Must look bitmap with visible square pixels, not smooth curves. Pure pixel-art game-asset style. NO painterly. NO smooth gradients. NO radial glow.
+HERO ZONE (top ~22%, keep small): $HERO_SUBJECT
+
+Style constraints for the hero zone: pure flat pixel-art game-asset style, visible square pixels along every edge, 1-bit shading. NO painterly. NO smooth gradients. NO radial glow.
 
 EOF
     else
-      # C1 painterly hero with 5 composition rules
+      # C1 painterly hero with 5 composition rules.
+      # hero_subject is expected to be a full scene description.
       cat >> "$PROMPT_FILE" <<EOF
-HERO ZONE (top ~30%): A PAINTERLY illustration of $HERO_SUBJECT. Follow these 5 composition rules:
+HERO ZONE (top ~30%): $HERO_SUBJECT
+
+Follow these 5 composition rules for the hero zone:
 
 🔴 RULE 1 — CAMERA POSITION: Tight CHEST-UP shot, camera positioned BEHIND the subject's LEFT shoulder, slightly above. Over-the-shoulder framing. NEVER frontal. NEVER wide.
 
@@ -234,13 +303,13 @@ EOF
 
     case "$TAGLINE_SEP" in
       star)
-        echo "Tagline: \"★ $PHRASE1   ★ $PHRASE2   ★ $PHRASE3\"" >> "$PROMPT_FILE"
+        echo "The bar's text reads exactly: \"★ $PHRASE1   ★ $PHRASE2   ★ $PHRASE3\"" >> "$PROMPT_FILE"
         ;;
       pipe)
-        echo "Tagline: \"$PHRASE1  |  [MASCOT]  |  $PHRASE2  |  $PHRASE3\"" >> "$PROMPT_FILE"
+        echo "The bar's text reads exactly: \"$PHRASE1  |  $PHRASE2  |  $PHRASE3\"" >> "$PROMPT_FILE"
         ;;
       period|*)
-        echo "Tagline: \"$PHRASE1.  [MASCOT]  $PHRASE2.  $PHRASE3.\"" >> "$PROMPT_FILE"
+        echo "The bar's text reads exactly: \"$PHRASE1.  $PHRASE2.  $PHRASE3.\"" >> "$PROMPT_FILE"
         ;;
     esac
 
@@ -253,7 +322,7 @@ EOF
 • Render every dot as a small square pixel or punctuation glyph, not as letters.
 • Avoid any duplicate or stuttered words.
 
-[MASCOT] is a LARGE prominent pixel-art robot icon, CENTERED on the tagline bar — square head, two glowing rectangular orange eyes, two tiny antenna nubs on top, no body. Sized at ~14% of the tagline bar height. CLEAN, BOLD, and ICONIC with crisp 8-bit pixel edges. Do NOT attempt damage details.
+CENTERED on the tagline bar, between the phrases, sits a LARGE prominent pixel-art robot icon (a graphic, not text) — square head, two glowing rectangular orange eyes, two tiny antenna nubs on top, no body. Sized at ~14% of the tagline bar height. CLEAN, BOLD, and ICONIC with crisp 8-bit pixel edges. Do NOT attempt damage details. The bar must contain ONLY the three phrases and the robot icon — no labels, no bracketed tokens, no words like "Tagline" or "Mascot".
 
 Overall style references: hacker zine, Bloomberg Terminal, Pip-Boy interface, 1990s computer manual diagrams. Hero painterly (Mode C1) or flat-pixel (Mode C2) + body cards flat + chrome ENGINEERED.
 EOF
@@ -274,11 +343,13 @@ BACKGROUND: warm dark charcoal #0E0E0E. Subtle 12-column grid hinted at 3% opaci
 
 FOREGROUND: bone off-white #EAEAEA. Body text in lowercase Inter or Geist sans-serif (NOT monospace, NOT pixel-bitmap). ALL CAPS section labels in letter-spaced Inter.
 
-Per-level semantic palette — use distinct colors per level, NOT all-orange:
-  L1 amber #FFC857
-  L2 teal #00D9D9
+Per-level semantic palette — use distinct colors per level, NOT all-orange.
+Canonical Cluster B palette (also in references/design-dna.md "Cluster B palette"):
+  L1 amber   #FFC857
+  L2 teal    #00D9D9
   L3 magenta #B57FFF
-  L4 muted rust #B8541F (NOT vivid Hermes orange #F26B1F — use the desaturated rust)
+  L4 rust    #B8541F  (NOT vivid Hermes orange #F26B1F — use the desaturated rust)
+  L5 gray    #A89680
 
 TITLE at top in lowercase Inter (NOT pixel-bitmap):
   "$TITLE"
@@ -357,8 +428,7 @@ FLOATING TERMINAL WINDOW (centered, ~80% width, ~85% height): A fake terminal/ed
 INNER CONTENT (inside the floating window):
 Title line at top: lowercase, underlined with a thin dashed rule.
 
-Below, $PANELS_COUNT stacked rectangular panels drawn with thin Unicode box-drawing characters (┌ ─ ┐ │ └ ┘). Each panel has its label inset into the top border:
-┌─ [LABEL] ◆ [SUBJECT] ─────────────────┐
+Below, $PANELS_COUNT stacked rectangular panels drawn with thin Unicode box-drawing characters (┌ ─ ┐ │ └ ┘). Each panel has its label inset into the top border in the form "label ◆ subject". Render the panel headers EXACTLY as listed under "Panel contents" below — never render placeholder tokens or square brackets in headers.
 
 Inside each panel: lowercase prose + the \`›\` quote-bullet list pattern + the "what runs here:" ritual line.
 
@@ -372,7 +442,7 @@ EOF
         PROSE=$(yqr ".panels[$i].prose")
         cat >> "$PROMPT_FILE" <<EOF
 ┌─ $LABEL ◆ $SUBJECT ──────────────────┐
-prose: $PROSE
+$PROSE
 what runs here:
 EOF
         ITEMS_COUNT=$(yq -r ".panels[$i].items | length" "$SPEC")
@@ -525,19 +595,31 @@ esac
 
 # --- Generate ---
 echo "[make-poster] prompt written to $PROMPT_FILE ($(wc -l < "$PROMPT_FILE") lines)"
+
+# Save the prompt next to the output for reproducibility (always, even on --dry-run)
+PROMPT_SAVED="${OUTPUT%.*}.prompt.txt"
+cp "$PROMPT_FILE" "$PROMPT_SAVED"
+
+if [ "$DRY_RUN" -eq 1 ]; then
+  rm "$PROMPT_FILE"
+  echo ""
+  echo "[make-poster] DRY RUN - skipped OpenRouter call."
+  echo "   Prompt: $PROMPT_SAVED"
+  echo "   (rerun without --dry-run to render $OUTPUT)"
+  exit 0
+fi
+
 echo "[make-poster] calling generate.sh..."
 
 bash "$SCRIPT_DIR/generate.sh" "$PROMPT_FILE" "$OUTPUT" || {
-  echo "❌ generate.sh failed" >&2
+  echo "ERROR: generate.sh failed" >&2
+  rm -f "$PROMPT_FILE"
   exit 4
 }
 
-# Save the prompt next to the output for reproducibility
-PROMPT_SAVED="${OUTPUT%.*}.prompt.txt"
-cp "$PROMPT_FILE" "$PROMPT_SAVED"
 rm "$PROMPT_FILE"
 
 echo ""
-echo "✅ Poster generated:"
+echo "[make-poster] Poster generated:"
 echo "   Image:  $OUTPUT"
 echo "   Prompt: $PROMPT_SAVED"

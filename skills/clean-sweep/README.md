@@ -65,20 +65,24 @@ human-owned steps (with the promotion-PR auto-close trick documented in `referen
 clean-sweep/
 ├── SKILL.md                     # the coordinator playbook (loads on activation)
 ├── references/
-│   ├── learnings.md             # 32 hard-won operational failure→fix items — read before spawning
-│   └── pipeline.md              # per-finding state machine + ledger schema + merge ordering
+│   ├── learnings.md             # hard-won operational failure→fix items — read before spawning
+│   ├── pipeline.md              # per-finding state machine + ledger schema + merge ordering
+│   ├── hygiene.md               # commit + secret hygiene rules
+│   └── housekeeping.md          # Phase 6 post-run promotion / stale-branch reconciliation
 ├── scripts/
 │   ├── spawn_worker.sh          # reliable dispatch (works around the paste-not-submitted bug)
-│   └── pm.py                    # tolerant parser for orchestration inbox/check JSON
+│   ├── pm.py                    # tolerant parser for orchestration inbox/check JSON
+│   └── preflight.py             # BASE != default-branch + deps preflight (M-5 guardrail)
 └── assets/
-    ├── integrator_preamble.txt  # open-PR + bot-reconcile role template ({{PLACEHOLDERS}})
+    ├── builder_preamble.txt     # implement + regression-test role template ({{PLACEHOLDERS}})
+    ├── integrator_preamble.txt  # open-PR + bot-reconcile role template
     ├── reviewer_preamble.txt    # build-blind review role template
     └── merge_preamble.txt       # conflict-aware commit-preserving merge role template
 ```
 
 # Known gotchas
 
-Captured in full in `references/learnings.md` (32 items). The ones that bite first:
+Captured in full in `references/learnings.md`. The ones that bite first:
 
 | Gotcha | Fix |
 |---|---|

@@ -20,8 +20,8 @@ LAYOUT (you have ONE giant typographic moment in the center):
                        ║   skills    ║   ← giant serif word with orange "i" dot
                        ╚═════════════╝
 
-  BELOW "skills", a horizontal divider — not a line, but FIVE small precisely-spaced dots in coral #F26B4A (representing the 5 skills). Each dot has a tiny label beneath it in small monospace caps (legible but small):
-    "DNS · MIGRATION · RESEARCH · POSTERS · UTILITIES"
+  BELOW "skills", a horizontal divider — not a line, but SIX small precisely-spaced dots in coral #F26B4A (representing the 6 skills). Each dot has a tiny label beneath it in small monospace caps (legible but small):
+    "DNS · DOMAINS · MIGRATION · RESEARCH · POSTERS · CLEAN-SWEEP"
   (or similar — keep these short, one tag per dot).
 
   Way below, near the bottom of the canvas, a single thin horizontal rule, and beneath it in centered small ink type:
@@ -36,4 +36,4 @@ FEEL: Editorial. Premium. Distinctive at thumbnail size (the giant word reads in
 
 NO illustrations of clouds, servers, etc. NO emoji. NO 3D. NO icons. NO terminal aesthetic. NO cyberpunk. Just exquisite type on warm paper.
 
-Important: the giant word MUST be legible and beautifully kerned. The orange "i" dot is the ONLY non-typographic element on the canvas other than the 5 small dots beneath.
+Important: the giant word MUST be legible and beautifully kerned. The orange "i" dot is the ONLY non-typographic element on the canvas other than the 6 small dots beneath.

@@ -40,29 +40,44 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          # Full history so `git diff` against $BASE works even for pushes that
+          # bundle more than 2 commits or land on a branch that's not fully in
+          # a shallow clone.
+          fetch-depth: 0
 
       - name: Detect changes
         id: changes
         run: |
+          set -euo pipefail
+          site_out() {
+            # $1: site key, $2: value (true|false)
+            echo "$1=$2" >> "$GITHUB_OUTPUT"
+          }
+
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             SITE="${{ inputs.site }}"
-            [ "$SITE" = "both" ] || [ "$SITE" = "web" ] && echo "web=true" >> $GITHUB_OUTPUT || echo "web=false" >> $GITHUB_OUTPUT
-            [ "$SITE" = "both" ] || [ "$SITE" = "docs" ] && echo "docs=true" >> $GITHUB_OUTPUT || echo "docs=false" >> $GITHUB_OUTPUT
+            case "$SITE" in
+              both) site_out web true;  site_out docs true ;;
+              web)  site_out web true;  site_out docs false ;;
+              docs) site_out web false; site_out docs true ;;
+            esac
             exit 0
           fi
 
           BASE="${{ github.event.before }}"
           HEAD="${{ github.sha }}"
           if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
-            echo "web=true" >> $GITHUB_OUTPUT
-            echo "docs=true" >> $GITHUB_OUTPUT
+            site_out web true; site_out docs true
             exit 0
           fi
 
+          # Make sure BASE is fetched (fetch-depth:0 usually gets it, but be
+          # defensive for force-pushes / cross-branch scenarios).
+          git fetch --no-tags origin "$BASE" || true
+
           CHANGED=$(git diff --name-only "$BASE" "$HEAD")
-          echo "$CHANGED" | grep -q "^apps/web/" && echo "web=true" >> $GITHUB_OUTPUT || echo "web=false" >> $GITHUB_OUTPUT
-          echo "$CHANGED" | grep -q "^apps/docs/" && echo "docs=true" >> $GITHUB_OUTPUT || echo "docs=false" >> $GITHUB_OUTPUT
+          echo "$CHANGED" | grep -q "^apps/web/"  && site_out web true  || site_out web false
+          echo "$CHANGED" | grep -q "^apps/docs/" && site_out docs true || site_out docs false
 
   web:
     needs: detect

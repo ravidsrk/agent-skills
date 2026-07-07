@@ -19,7 +19,7 @@
 
 - `[LOWERCASE TITLE]` — e.g. "a typical agent stack"
 - `[N]` — number of panels (recommend 3-5)
-- For each panel: `[LABEL]` (e.g. "LEVEL 1", "LAYER 1"), `[SUBJECT]`, `[TAGLINE]`, `[FLOW]`, `[2 LINES PROSE]`, `[8 ITEMS]`
+- For each panel: `[LABEL]` (e.g. "LEVEL 1", "LAYER 1"), `[SUBJECT]`, `[TAGLINE]`, `[FLOW]`, `[2 LINES PROSE]`, `[4 ITEMS]`
 - `[BOTTOM TAGLINE]` — lowercase manifesto, ending in `.`
 - `[HANDLE]` — e.g. `@yourhandle`
 - `[USE_RIGHT_RAIL]` — optional: yes/no (adds `CONTROL STATION` sidebar)

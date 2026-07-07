@@ -39,6 +39,8 @@ Used by Shann: "where the HTML gate fits in my content system" (2054134844096172
 - `[BOTTOM MANIFESTO]` — for `✦` callout
 - `[HANDLE]`
 
+Spec keys (what `scripts/make-poster.sh` reads from a Cluster D1 YAML): `title`, `subtitle`, `bottom_manifesto`, `handle`, `steps[].name`, `steps[].icon`, `steps[].body`. The `[1]`/`[2]` numeric badge is auto-generated from list position.
+
 ```
 A vertical infographic poster, portrait 3:4 aspect ratio. Premium dev-playbook / technical blueprint aesthetic.
 
@@ -90,10 +92,12 @@ Aesthetic: technical manual + engineer's lab notebook + macOS terminal-app scree
 ### Placeholders to fill
 - `[CONTENT TITLE]` — what's inside the terminal window
 - `[N]` — number of ASCII panels inside the window (recommend 3-5)
-- For each panel: `[LABEL]`, `[BODY]`
+- For each panel: `[LABEL]`, `[SUBJECT]`, `[PROSE]`, `[ITEMS]`
 - `[ZSH PROMPT]` — terminal bottom line, e.g. `~/content-system $ ./gate.sh`
 - `[BOTTOM TAGLINE]`
 - `[HANDLE]`
+
+Spec keys (what `scripts/make-poster.sh` reads from a Cluster D2 YAML): `content_title`, `zsh_prompt`, `bottom_tagline`, `handle`, `panels[].label`, `panels[].subject`, `panels[].prose`, `panels[].items`.
 
 ```
 A vertical infographic poster, portrait 3:4 aspect ratio. Premium "content-in-a-terminal-window" treatment.

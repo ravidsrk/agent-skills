@@ -41,13 +41,16 @@ If you only want the skills (not the AGENTS.md rules), copy the `skills/` direct
 OpenCode inherits from the shell. Set in `~/.zshrc` / `~/.bashrc`:
 
 ```bash
-export CLOUDFLARE_API_KEY=cfat_...
+export CLOUDFLARE_API_KEY=cfat_...       # cloudflare-dns: account token
 export NAMECHEAP_API_KEY=...
 export NAMECHEAP_API_USER=your-account
-export MONID_API_KEY=...
-export OPENROUTER_API_KEY=...
-export AWS_PROFILE=migration
-export FLY_API_TOKEN=...
+export MONID_API_KEY=...                 # deep-research
+export OPENROUTER_API_KEY=...            # terminal-poster
+export AWS_PROFILE=migration             # fly-to-aws-migration
+export FLY_API_TOKEN=...                 # fly-to-aws-migration
+export CLOUDFLARE_API_TOKEN=...          # fly-to-aws-migration: scoped Zone:DNS:Edit token
+export CLOUDFLARE_ZONE_ID=...            # fly-to-aws-migration
+# clean-sweep: no env vars — requires Orca runtime + `gh` CLI on PATH
 ```
 
 # Verify activation

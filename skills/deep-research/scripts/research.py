@@ -45,9 +45,27 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
 from sources import reddit, hackernews, polymarket, github, x_twitter, youtube, exa  # noqa: E402
+from sources._monid import get_total_cost, reset_total_cost  # noqa: E402
 
 
 ALL_SOURCES = ["reddit", "hn", "polymarket", "github_repos", "github_issues", "x", "youtube", "exa"]
+
+# --- Error redaction --------------------------------------------------------
+# Errors are surfaced verbatim to the user via the markdown file. Redact common
+# secret shapes so a leaked token in an upstream error message never lands in
+# an evidence file that gets shared with a downstream writer.
+_REDACT_PATTERNS = [
+    re.compile(r"(Bearer\s+)[A-Za-z0-9_\-\.=]+", re.I),
+    re.compile(r"([?&](?:api[_-]?key|token|access[_-]?token|key)=)[^&\s\"']+", re.I),
+    re.compile(r"(x-api-key[:\s]+)[A-Za-z0-9_\-\.=]+", re.I),
+]
+
+
+def _redact(s: str) -> str:
+    out = s
+    for pat in _REDACT_PATTERNS:
+        out = pat.sub(r"\1[REDACTED]", out)
+    return out
 
 
 def _slug(s: str) -> str:
@@ -82,8 +100,17 @@ def research(
 ) -> dict:
     """Run all sources in parallel and collect into a single evidence dict."""
     if sources is None:
-        sources = ALL_SOURCES
+        sources = list(ALL_SOURCES)
     sources = [s for s in sources if s in ALL_SOURCES]
+    if not sources:
+        raise ValueError(
+            "no valid sources selected — pass a subset of "
+            f"{ALL_SOURCES}"
+        )
+
+    # Cost accounting is per-process. Reset here so `get_total_cost()` returns
+    # the cost of this run only, even if research() is called multiple times.
+    reset_total_cost()
 
     from_date, to_date = _date_window(days)
     sys.stderr.write(f"\n=== Research: {topic!r} | depth={depth} | window={from_date}..{to_date} | sources={sources} ===\n\n")
@@ -96,9 +123,9 @@ def research(
     L = limits.get(depth, limits["default"])
 
     jobs = {}
-    with ThreadPoolExecutor(max_workers=len(sources)) as ex:
+    with ThreadPoolExecutor(max_workers=max(1, len(sources))) as ex:
         if "reddit" in sources:
-            jobs[ex.submit(_run_source, "reddit", reddit.search, topic, "month", L["reddit"])] = "reddit"
+            jobs[ex.submit(_run_source, "reddit", reddit.search, topic, days, L["reddit"])] = "reddit"
         if "hn" in sources:
             jobs[ex.submit(_run_source, "hn", hackernews.search, topic, days, L["hn"])] = "hn"
         if "polymarket" in sources:
@@ -125,7 +152,11 @@ def research(
                 errors[name] = err
             sys.stderr.write(f"  [{name}] done in {elapsed:.1f}s ({len(out)} items){' — ' + err if err else ''}\n")
 
-    sys.stderr.write(f"\n=== Done. Sources fired: {len(results)}, errored: {len(errors)} ===\n")
+    total_cost, priced_calls = get_total_cost()
+    sys.stderr.write(
+        f"\n=== Done. Sources fired: {len(results)}, errored: {len(errors)} "
+        f"| Total cost: ${total_cost:.4f} across {priced_calls} monid calls ===\n"
+    )
 
     return {
         "topic": topic,
@@ -137,6 +168,8 @@ def research(
         "errors": errors,
         "timings_seconds": timings,
         "counts": {s: len(r) for s, r in results.items()},
+        "cost_usd": round(total_cost, 4),
+        "monid_calls": priced_calls,
         "results": results,
     }
 
@@ -153,8 +186,15 @@ def render_markdown(evidence: dict) -> str:
     out.append(f"**Window:** {dw['from']} → {dw['to']} ({dw['days']} days)")
     out.append(f"**Generated:** {evidence['generated_at']}")
     out.append(f"**Sources:** {', '.join(f'{s}={c}' for s, c in counts.items() if c)}")
+    if evidence.get("cost_usd") is not None:
+        out.append(
+            f"**Cost:** ${evidence['cost_usd']:.4f} across "
+            f"{evidence.get('monid_calls', 0)} monid calls"
+        )
     if evidence.get("errors"):
-        out.append(f"**⚠️ Errors:** {evidence['errors']}")
+        out.append(f"**⚠️ Errors:**")
+        for src, msg in evidence["errors"].items():
+            out.append(f"  - `{src}`: {_redact(str(msg))}")
     out.append(f"")
     out.append(f"---")
 
@@ -165,8 +205,6 @@ def render_markdown(evidence: dict) -> str:
             eng = f"{p.get('likes',0)}♥ {p.get('reposts',0)}🔄 {p.get('replies',0)}💬"
             out.append(f"- [{eng} @{p.get('author','?')} {p.get('date','?')}]({p.get('url','')})")
             out.append(f"  > {p.get('text','')[:280].replace(chr(10),' ')}")
-            if p.get("why_relevant"):
-                out.append(f"  *Why:* {p['why_relevant']}")
             out.append("")
 
     # Reddit
@@ -258,8 +296,21 @@ def main():
                    help="Output dir (default: ./research/<slug>/ relative to CWD)")
     args = p.parse_args()
 
-    sources = [s.strip() for s in args.sources.split(",") if s.strip()]
-    slug = _slug(args.topic)
+    requested = [s.strip() for s in args.sources.split(",") if s.strip()]
+    valid = [s for s in requested if s in ALL_SOURCES]
+    dropped = [s for s in requested if s not in ALL_SOURCES]
+    if dropped:
+        sys.stderr.write(
+            f"[research] ignoring unknown source name(s): {dropped} "
+            f"(valid choices: {ALL_SOURCES})\n"
+        )
+    if not valid:
+        sys.stderr.write(
+            f"[research] no valid sources selected — pass a subset of {ALL_SOURCES}\n"
+        )
+        sys.exit(2)
+
+    slug = _slug(args.topic) or "topic"
     date_tag = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
     # Project-agnostic default: ./research/<slug>/ in the current working directory.
@@ -268,17 +319,21 @@ def main():
     out_dir.mkdir(parents=True, exist_ok=True)
 
     evidence = research(args.topic, depth=args.depth, days=args.days,
-                        sources=sources, yt_transcripts=args.yt_transcripts)
+                        sources=valid, yt_transcripts=args.yt_transcripts)
 
     json_path = out_dir / f"research-{date_tag}.json"
     md_path = out_dir / f"research-{date_tag}.md"
 
-    json_path.write_text(json.dumps(evidence, indent=2, default=str))
-    md_path.write_text(render_markdown(evidence))
+    json_path.write_text(json.dumps(evidence, indent=2, default=str), encoding="utf-8")
+    md_path.write_text(render_markdown(evidence), encoding="utf-8")
 
     sys.stderr.write(f"\n✓ Saved {json_path}\n")
     sys.stderr.write(f"✓ Saved {md_path}\n")
     sys.stderr.write(f"\nTotal items collected: {sum(evidence['counts'].values())}\n")
+    sys.stderr.write(
+        f"Total cost: ${evidence.get('cost_usd', 0):.4f} across "
+        f"{evidence.get('monid_calls', 0)} monid calls\n"
+    )
     print(str(md_path))  # stdout = the markdown path, for easy chaining
 
 

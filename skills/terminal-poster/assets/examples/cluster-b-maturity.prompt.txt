@@ -4,11 +4,13 @@ BACKGROUND: warm dark charcoal #0E0E0E. Subtle 12-column grid hinted at 3% opaci
 
 FOREGROUND: bone off-white #EAEAEA. Body text in lowercase Inter or Geist sans-serif (NOT monospace, NOT pixel-bitmap). ALL CAPS section labels in letter-spaced Inter.
 
-Per-level semantic palette — use distinct colors per level, NOT all-orange:
-  L1 amber #FFC857
-  L2 teal #00D9D9
+Per-level semantic palette — use distinct colors per level, NOT all-orange.
+Canonical Cluster B palette (also in references/design-dna.md "Cluster B palette"):
+  L1 amber   #FFC857
+  L2 teal    #00D9D9
   L3 magenta #B57FFF
-  L4 muted rust #B8541F (NOT vivid Hermes orange #F26B1F — use the desaturated rust)
+  L4 rust    #B8541F  (NOT vivid Hermes orange #F26B1F — use the desaturated rust)
+  L5 gray    #A89680
 
 TITLE at top in lowercase Inter (NOT pixel-bitmap):
   "the engineering maturity ladder"
@@ -25,25 +27,41 @@ Below the title, a VERTICAL SPINE of 4 level cards stacked top-to-bottom. Each l
 
 Levels (top to bottom):
 
-HEROIC null
-  one-liner: null
+L1 HEROIC
+  one-liner: one senior carries the team
   bullets:
+    → knowledge in one person's head
+    → breaks when they're on vacation
+    → onboarding takes 3+ months
+    → no shared standards
 
-TRIBAL null
-  one-liner: null
+L2 TRIBAL
+  one-liner: small group shares context
   bullets:
+    → team chat as documentation
+    → patterns by oral tradition
+    → onboarding takes 1 month
+    → review-based knowledge transfer
 
-DOCUMENTED null
-  one-liner: null
+L3 DOCUMENTED
+  one-liner: wiki exists. mostly stale.
   bullets:
+    → ADRs for big decisions
+    → runbooks for known incidents
+    → onboarding takes 1 week
+    → 20% docs always out of date
 
-AGENT-LEGIBLE null
-  one-liner: null
+L4 AGENT-LEGIBLE
+  one-liner: code + docs are AI-navigable
   bullets:
+    → every module has a SKILL.md
+    → agents can answer 'how do I X?'
+    → onboarding takes 1 day
+    → docs regenerate from source
 
 
 Bottom: a single LOWERCASE manifesto tagline centered, with phrases separated by `·` middle-dots (NOT periods, NOT ALL CAPS):
-  "most teams are stuck on L1. L4 is rare."
+  "most teams are stuck on L1 · L4 is rare · you can climb"
 with "@yourhandle" right-aligned below in muted tan.
 
 ⚠️ CRITICAL TEXT RULES — read carefully before rendering letters:

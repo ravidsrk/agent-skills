@@ -3,6 +3,18 @@
 #
 # 🟡 For very low traffic (dev/staging), consider RDS db.t4g.micro instead.
 
+variable "aurora_deletion_protection" {
+  description = "Aurora cluster deletion protection. Keep true in prod."
+  type        = bool
+  default     = true
+}
+
+variable "aurora_performance_insights" {
+  description = "Enable RDS Performance Insights. Adds ~$0.02/vCPU-hour above 7-day retention. See references/cost-model.md."
+  type        = bool
+  default     = false
+}
+
 # Subnet group across private subnets
 resource "aws_db_subnet_group" "aurora" {
   name       = "${local.name_prefix}-aurora-subnets"
@@ -37,7 +49,14 @@ resource "aws_kms_alias" "aurora" {
 # Random admin password (rotate after launch)
 resource "random_password" "aurora_admin" {
   length  = 32
-  special = false  # avoid URL-encoding issues
+  special = false # avoid URL-encoding issues
+}
+
+# Stable random suffix for the final snapshot name — plain timestamp() would
+# perpetually diff on every plan; random_id is stable across applies until you
+# explicitly taint it.
+resource "random_id" "aurora_final_snapshot" {
+  byte_length = 4
 }
 
 # ── Cluster ──
@@ -45,7 +64,7 @@ resource "aws_rds_cluster" "main" {
   cluster_identifier = "${local.name_prefix}-aurora"
 
   engine         = "aurora-postgresql"
-  engine_mode    = "provisioned"  # required for Serverless v2
+  engine_mode    = "provisioned" # required for Serverless v2
   engine_version = "17.4"
 
   database_name   = replace(var.project, "-", "_")
@@ -58,21 +77,23 @@ resource "aws_rds_cluster" "main" {
   storage_encrypted = true
   kms_key_id        = aws_kms_key.aurora.arn
 
-  backup_retention_period   = 7
-  preferred_backup_window   = "16:00-17:00"  # UTC
+  backup_retention_period = 7
+  preferred_backup_window = "16:00-17:00" # UTC
+
+  deletion_protection = var.aurora_deletion_protection
 
   skip_final_snapshot       = false
-  final_snapshot_identifier = "${local.name_prefix}-aurora-final"
+  final_snapshot_identifier = "${local.name_prefix}-aurora-final-${random_id.aurora_final_snapshot.hex}"
 
   serverlessv2_scaling_configuration {
-    min_capacity = 0.5  # 🟡 Min charge $58/mo (changing to 0 in some regions)
+    min_capacity = 0.5 # 🟡 Min charge $58/mo (changing to 0 in some regions)
     max_capacity = 4.0
   }
 
   lifecycle {
     ignore_changes = [
-      master_password,   # rotate manually after creation
-      engine_version     # patch independently
+      master_password, # rotate manually after creation
+      engine_version   # patch independently
     ]
   }
 }
@@ -86,8 +107,8 @@ resource "aws_rds_cluster_instance" "main" {
   engine         = aws_rds_cluster.main.engine
   engine_version = aws_rds_cluster.main.engine_version
 
-  performance_insights_enabled = true
-  monitoring_interval          = 0  # set to 60 for Enhanced Monitoring (costs more)
+  performance_insights_enabled = var.aurora_performance_insights
+  monitoring_interval          = 0 # set to 60 for Enhanced Monitoring (costs more)
 }
 
 # Store admin URL in Secrets Manager
@@ -98,18 +119,25 @@ resource "aws_secretsmanager_secret" "db" {
 
 resource "aws_secretsmanager_secret_version" "db" {
   secret_id = aws_secretsmanager_secret.db.id
+  # TWO connection strings:
+  #   DATABASE_URL         Prisma-shaped (sslmode=no-verify is a Prisma synonym).
+  #                        Use this from Prisma clients.
+  #   DATABASE_URL_LIBPQ   libpq-compatible (sslmode=require). Use this from
+  #                        pg_dump / psql / pgcli / any raw libpq tool — libpq
+  #                        does NOT accept the "no-verify" synonym.
+  # See references/gotchas.md #22 (Prisma DATABASE_URL vs libpq).
   secret_string = jsonencode({
-    DATABASE_URL = "postgresql://admin:${random_password.aurora_admin.result}@${aws_rds_cluster.main.endpoint}:5432/${aws_rds_cluster.main.database_name}?sslmode=no-verify"
-    DATABASE_HOST = aws_rds_cluster.main.endpoint
-    DATABASE_PORT = "5432"
-    DATABASE_NAME = aws_rds_cluster.main.database_name
-    DATABASE_USER = "admin"
-    DATABASE_PASSWORD = random_password.aurora_admin.result
+    DATABASE_URL       = "postgresql://admin:${random_password.aurora_admin.result}@${aws_rds_cluster.main.endpoint}:5432/${aws_rds_cluster.main.database_name}?sslmode=no-verify"
+    DATABASE_URL_LIBPQ = "postgresql://admin:${random_password.aurora_admin.result}@${aws_rds_cluster.main.endpoint}:5432/${aws_rds_cluster.main.database_name}?sslmode=require"
+    DATABASE_HOST      = aws_rds_cluster.main.endpoint
+    DATABASE_PORT      = "5432"
+    DATABASE_NAME      = aws_rds_cluster.main.database_name
+    DATABASE_USER      = "admin"
+    DATABASE_PASSWORD  = random_password.aurora_admin.result
   })
-
-  lifecycle {
-    ignore_changes = [secret_string]  # allow manual updates without TF reverting
-  }
+  # NOTE: no ignore_changes on secret_string — if you rotate the master password
+  # you WANT the secret to update. Rotate via aws secretsmanager put-secret-value
+  # then aws ecs update-service --force-new-deployment.
 }
 
 output "aurora_endpoint" { value = aws_rds_cluster.main.endpoint }

@@ -47,7 +47,7 @@ psql "$AURORA_URL/postgres" -c "CREATE DATABASE $DB_NAME"
 
 # Secrets: leave them in Secrets Manager; cost $3.20/mo to retain 8 groups
 # OR delete:
-for SECRET in db llm email social payments data-providers auth telemetry; do
+for SECRET in db llm email social payments data auth telemetry; do
   aws secretsmanager delete-secret --secret-id "$PROJECT/$ENV/$SECRET" --force-delete-without-recovery
 done
 ```
@@ -64,7 +64,7 @@ ZONE_ID="..."
 API_RECORD_ID="..."
 FLY_DNS="<fly-app>.fly.dev"
 
-curl -X PATCH -H "X-Auth-Email: $CLOUDFLARE_EMAIL" -H "X-Auth-Key: $CLOUDFLARE_GLOBAL_API_KEY" \
+curl -sSf -X PATCH -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
   -H "Content-Type: application/json" \
   "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records/$API_RECORD_ID" \
   -d "{\"content\":\"$FLY_DNS\",\"proxied\":true}"
@@ -202,22 +202,47 @@ aws rds restore-db-cluster-from-snapshot \
   --db-cluster-identifier $PROJECT-$ENV-aurora-restored \
   --snapshot-identifier <snapshot-id>
 
-# OR re-dump from Fly (Fly Postgres is still authoritative until Phase 4+5)
-flyctl postgres connect -a <db> -C "pg_dump --schema=public" > /tmp/dump.sql
-psql "$AURORA_URL" -f /tmp/dump.sql
+# OR re-dump from Fly (Fly Postgres is still authoritative until Phase 4+5).
+# `flyctl postgres connect` opens psql — it can't run pg_dump. Use flyctl proxy
+# + local pg_dump instead. scripts/db-migrate.sh does this end-to-end:
+scripts/db-migrate.sh --schema-only \
+  --fly-app <fly-db-app> \
+  --aurora-secret $PROJECT/$ENV/db
 ```
 
 ## Scenario C: Bun + Prisma WASM silent outage (Gotcha #4)
 
 ```bash
-# Get previous task definition revision
-PREV_REVISION=$(aws ecs describe-task-definition --task-definition $PROJECT-$ENV-api 2>&1 \
-  | jq -r '.taskDefinition.revision' | xargs -I {} expr {} - 1)
+# Get the CURRENT task definition revision (the one you want to roll back FROM).
+CURRENT=$(aws ecs describe-task-definition \
+  --task-definition $PROJECT-$ENV-api \
+  --query 'taskDefinition.revision' --output text)
+
+if ! [[ "$CURRENT" =~ ^[0-9]+$ ]]; then
+  echo "🔴 Couldn't read current revision (got: $CURRENT). Aborting."
+  exit 1
+fi
+if [ "$CURRENT" -le 1 ]; then
+  echo "🔴 Current revision is $CURRENT — no prior revision to roll back to."
+  echo "   Deploy a good image via 'aws ecs update-service --force-new-deployment' instead."
+  exit 1
+fi
+
+PREV=$((CURRENT - 1))
+
+# Verify the previous revision still exists (some accounts prune revisions).
+if ! aws ecs describe-task-definition \
+     --task-definition "$PROJECT-$ENV-api:$PREV" >/dev/null 2>&1; then
+  echo "🔴 Revision $PREV was pruned. Pick a specific revision from:"
+  aws ecs list-task-definitions --family-prefix "$PROJECT-$ENV-api" \
+    --sort DESC --max-items 10
+  exit 1
+fi
 
 aws ecs update-service \
   --cluster $CLUSTER \
   --service $SERVICE \
-  --task-definition $PROJECT-$ENV-api:$PREV_REVISION \
+  --task-definition $PROJECT-$ENV-api:$PREV \
   --force-new-deployment
 
 # Recovery: ~2 min

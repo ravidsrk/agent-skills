@@ -1,6 +1,12 @@
 ---
 name: deep-research
 description: Generic parallel multi-source deep-research orchestrator. Fans out across 8 data sources in parallel (X via monid/tikhub, Reddit via monid, Hacker News via Algolia, GitHub repos + issues, Polymarket Gamma, YouTube with transcripts via monid, Exa neural web search via monid) and dumps quotable evidence as JSON + human-readable markdown in a single command. Use whenever the user says "do deep research on X", "what's the discourse on Y", "research this topic", "give me a primer on Z", asks for cross-source validation of a thesis, or needs broad evidence before drafting any long-form piece (briefing, post, report, memo).
+license: MIT
+compatibility: Requires the `monid` CLI (`npm i -g monid`), `MONID_API_KEY` env var with a funded balance, and python3 stdlib only (no `requirements.txt`).
+metadata:
+  version: "1.1.0"
+  author: "@ravidsrk"
+allowed-tools: Bash Read Write
 ---
 
 # Deep Research — parallel multi-source orchestrator
@@ -66,7 +72,7 @@ The markdown groups results by source (X, Reddit, HN, GitHub repos, GitHub issue
 
 | Source | Cost | Auth | What it's good for |
 |---|---|---|---|
-| 🟢 **X / Twitter** (via monid `tikhub/twitter/web/fetch_search_timeline`) | ~$0.0015/page | `MONID_API_KEY` | Verbatim tweets with real engagement (likes/RT/replies/views), ranked by engagement. ~20 tweets/page; deep depth pages + a Latest sweep. The single most valuable source for op-ed work. |
+| 🟢 **X / Twitter** (via monid `tikhub/twitter/web/fetch_search_timeline`) | ~$0.0015/page | `MONID_API_KEY` | Verbatim tweets with real engagement (likes/RT/replies/views), ranked by engagement. ~20 tweets/page; deep depth pages + a Latest sweep. The single most valuable source for op-ed work. **Note:** tikhub is a third-party scraping tier, not the official X/Twitter API — expect occasional HTML rate-limit pages (auto-retried) and treat legal/TOS status as tikhub's, not X's. |
 | 🟢 **Reddit** (via monid Apify `trudax/reddit-scraper-lite`) | ~$0.05-0.10/run | `MONID_API_KEY` | Operator/user opinion threads with top comments. Anti-corporate angle. |
 | 🟢 **Hacker News** (via monid `exa/contents` → Algolia JSON) | ~$0.0022/call | `MONID_API_KEY` | Developer-community discussion. Great for tooling/product launches. |
 | 🟢 **GitHub repos** (via monid `exa/contents` → api.github.com) | ~$0.0022/call | `MONID_API_KEY` | Star counts, release dates, license, related projects. Critical for ecosystem maps. |
@@ -76,6 +82,8 @@ The markdown groups results by source (X, Reddit, HN, GitHub repos, GitHub issue
 | 🟢 **Exa neural web search** (via monid `blockrun.ai/api/v1/exa/search`) | ~$0.011/call | `MONID_API_KEY` | Recent grounded web content + research papers. Supports a `category` filter (research paper, news, github, tweet, …). Returns inline text + highlights. |
 
 🟢 **Total per-run cost: ~$0.10-0.20** at default depth. No monthly subscription.
+
+🟡 **Worst-case cost:** each `exa/contents` proxy call retries up to 2× on transient livecrawl 504s, so the effective per-call cost for HN/GitHub/Polymarket is up to 3× the base ($0.0022 × 3 ≈ $0.0066). Under sustained flakiness a default run can reach ~$0.30. The orchestrator prints an exact `Total cost: $X.XXXX` (4 decimals) at the end of every run and stores it in `research-<date>.json` under `cost_usd` — trust that number, not the estimate.
 
 🟢 **EVERY source routes through monid** — one auth (`MONID_API_KEY`), one balance, zero per-vendor keys. Paid sources (X, Reddit, YouTube, Exa) use native monid endpoints; sources with no native monid endpoint (HN Algolia, GitHub REST, Polymarket Gamma) are proxied through `blockrun.ai/api/v1/exa/contents`, which returns the upstream JSON body **verbatim** (raw bytes, no markdown cleaning) for ~$0.0022/call.
 
@@ -161,6 +169,7 @@ export MONID_API_KEY=your_key_here
 | 🟡 **Reddit can return 0 results** for low-volume topics | Try a broader query, then filter manually. |
 | 🔴 **GitHub /search/issues requires `is:issue` or `is:pr`** (returns 422 otherwise as of 2026-05) | Already handled in `github.py` — module appends `is:issue` automatically. |
 | 🟡 **HN: web/fetch-style cleaners mangle Algolia `story_text`/`_highlightResult`** (legacy note; exa/contents avoids this) | `hackernews.py` still requests `attributesToHighlight=["none"]` + a tight field whitelist to keep payloads small and URL-free — defensive even with the raw path. |
+| 🟡 **HN: obscure topics may return zero results** — `hackernews.py` drops stories with `points<5 AND num_comments<3` to filter spam. Legitimate but low-engagement niches get filtered too. | If HN returns 0 for a topic you expected coverage on, lower the floor at `hackernews.py:67` (the `if points < 5 and n_comments < 3: continue` line) or accept that HN just doesn't discuss it. |
 | 🔴 **tikhub (X) intermittently returns an HTML error page** (`Unexpected token '<'`) under rate-limiting — ~1 in 3 calls | Already handled: `_monid.py` detects transient HTML/UNKNOWN errors and retries with exponential backoff (2 retries default). If X still returns 0, re-run or lower depth. |
 | 🟡 **tikhub (X) has no date param** — date filtering is client-side from each tweet's `created_at` | `x_twitter.py` parses `created_at` and filters to the `--days` window; undated tweets are kept rather than dropped. Use short keywords (1-2 words), not sentences. |
 | 🟡 **Polymarket Gamma keyword search ignores very short terms** (e.g. "AI") | Use longer queries ("artificial intelligence"); the orchestrator passes the full topic. |

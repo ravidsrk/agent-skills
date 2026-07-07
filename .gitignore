@@ -10,3 +10,4 @@ __pycache__/
 .audit/
 /tmp-render/
 .tmp-images/
+/research/

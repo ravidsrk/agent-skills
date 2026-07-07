@@ -1,16 +1,18 @@
-"""Hacker News search via Algolia — routed through monid (web/fetch proxy).
+"""Hacker News search via Algolia — routed through monid (exa/contents proxy).
 
-Migrated 2026-06-22 to route the Algolia REST call through monid's generic
-`blockrun.ai/api/v1/surf/web/fetch` proxy so HN billing/auth flows through the
+Migrated 2026-06-22 to route the Algolia REST call through monid's
+`blockrun.ai/api/v1/exa/contents` proxy so HN billing/auth flows through the
 single MONID_API_KEY balance (per the "everything through monid" decision).
-The Algolia API has no native monid endpoint; web/fetch returns the JSON body
-which `_monid.fetch_json` unwraps.
+Algolia has no native monid endpoint; `exa/contents` returns the upstream HTTP
+body verbatim (raw bytes, no markdown cleaning) and `_monid.fetch_json`
+json.loads() that directly. NEVER use `surf/web/fetch` here — its markdown
+cleaner mangles URLs embedded in JSON strings and corrupts the parse on
+prose-heavy fields like `_highlightResult.story_text`.
 
-⚠️ web/fetch runs a markdown cleaner that corrupts embedded URLs inside large
-JSON string fields. HN's `_highlightResult.story_text` echoes story prose with
-links, which broke the parse. Fix: request `attributesToHighlight=["none"]`
-(drops `_highlightResult` entirely) + a tight `attributesToRetrieve` whitelist
-so no URL-bearing prose field survives. Verified clean for 20-hit pages.
+Defense in depth: this module still passes `attributesToHighlight=["none"]`
+and a tight `attributesToRetrieve` whitelist to keep payloads small (no
+story_text / comment_text) — useful for cost and response size, not required
+for parse correctness now that the raw-passthrough proxy is in place.
 
 Endpoint: https://hn.algolia.com/api/v1/search[_by_date]
 """
@@ -81,11 +83,11 @@ def search(topic: str, days: int = 30, limit: int = 30, mode: str = "popular") -
 
 
 def get_top_comments(object_id: str, limit: int = 5) -> list[dict]:
-    """Fetch top-level comments on an HN story by score, via monid web/fetch.
+    """Fetch top-level comments on an HN story by score, via monid exa/contents.
 
-    Note: comment text is HTML with embedded links; the cleaner may drop some
-    URLs but comment bodies remain readable for quoting. Not used by the
-    orchestrator's default flow — kept for ad-hoc deep dives.
+    Comment text is HTML with embedded links; the exa/contents raw passthrough
+    preserves them intact. Not used by the orchestrator's default flow — kept
+    for ad-hoc deep dives.
     """
     url = f"https://hn.algolia.com/api/v1/items/{object_id}"
     data = fetch_json(url, tag="hn")

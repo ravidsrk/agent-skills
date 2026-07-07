@@ -90,6 +90,7 @@ If you have AWS credits (typical $5K-$100K from startup programs):
 - Standard storage: $0.12/GB-mo + $0.22/M IOs
 - I/O-Optimized: +30% compute, free I/O (break-even at ~1M IO/hr)
 - Backup: free up to AllocatedStorage size
+- 🟡 **Performance Insights**: adds ~$0.02/vCPU-hour beyond the 7-day free retention window (~$14/mo on a 1 ACU cluster running 24/7 at longer retention). The Aurora template ships with it OFF by default (`var.aurora_performance_insights`); flip it on when you need query-level attribution.
 
 ## ECS Fargate
 - $0.05056/vCPU-hour + $0.00553/GB-hour

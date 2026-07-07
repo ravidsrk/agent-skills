@@ -1,0 +1,60 @@
+# Cluster E — Editorial Brand Book
+# Topic: a fictional brand book spread for "BookMarkable"
+# Render:
+#   bash make-poster.sh cluster-e-brandbook.yaml out.png
+#   bash make-poster.sh cluster-e-brandbook.yaml out.png --dry-run
+#
+# Rendered PNG: assets/examples/cluster-e-brandbook.png (2026-07-07, Nano Banana
+# Pro via OpenRouter). Verify prompt changes with --dry-run before burning credits.
+#
+# Field notes:
+#   brand           = XL Instrument Serif brand name (on the enlarged master page)
+#   hero_tagline    = italic serif tagline under the brand name
+#   bottom_tagline  = editorial italic tagline at the very bottom (sentence case)
+#   pages[].number  = section prefix like "01 /"
+#   pages[].label   = ALL CAPS section name
+#   pages[].content = short description of what that thumbnail page shows
+
+cluster: e
+
+brand: BookMarkable
+hero_tagline: "a soft place for the things you want to remember."
+bottom_tagline: "The archive that reads like a diary."
+handle: "@yourhandle"
+
+pages:
+  - number: "01"
+    label: BRAND IDEA
+    content: "elevator pitch in two serif paragraphs. sets the tone: warm archive, not cold vault."
+
+  - number: "02"
+    label: PALETTE
+    content: "bookmark red · save peach · confirm green · pitch black · ash gray swatches with hex."
+
+  - number: "03"
+    label: TYPOGRAPHY
+    content: "Instrument Serif display · Inter body · JetBrains Mono accents. specimens shown."
+
+  - number: "04"
+    label: UI PRIMITIVES
+    content: "cards, buttons, ribbons, bookmark clips. all built from one 8px rhythm."
+
+  - number: "05"
+    label: VOICE
+    content: "gentle, precise, never precious. five bullets and three refusals."
+
+  - number: "06"
+    label: IMAGE MODEL PROMPT
+    content: "reproducible prompt used to generate hero imagery. dark canvas, cream pages."
+
+  - number: "07"
+    label: LOGOMARK
+    content: "wordmark with a small bookmark ribbon substituting the crossbar of the k."
+
+  - number: "08"
+    label: ICONOGRAPHY
+    content: "16px bookmark family: solid, outline, torn, ribboned, tabbed. all optical."
+
+  - number: "09"
+    label: SHIPPING
+    content: "example final assets — cover, share card, in-app illustration, favicon."

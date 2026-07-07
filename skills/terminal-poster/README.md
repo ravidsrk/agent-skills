@@ -52,11 +52,11 @@ Spec: [`scripts/example-specs/c2-smoketest.yaml`](scripts/example-specs/c2-smoke
 
 # Cluster B — Color-Coded Levels (maturity ladder)
 
-> Semantic palette per level (red → orange → yellow → green by default). Best for "L1 → L4" maturity ladders, comparison ladders, before/after frameworks.
+> Semantic palette per level (canonical ramp: L1 amber → L2 teal → L3 magenta → L4 rust → L5 gray). Best for "L1 → L4" maturity ladders, comparison ladders, before/after frameworks.
 
 <img src="assets/examples/cluster-b-maturity.png" alt="Cluster B — the engineering maturity ladder" width="600">
 
-🟡 **Score: 78/100** — All structure correct (4 cards, badges, taglines, bullets) and clean typography, but the model substituted its own palette (amber → teal → purple → orange) instead of the requested red → green ramp. A regeneration with explicit hex codes would lock it. Useful as a "honest model drift" example.
+🟢 **Score: ~95/100** — Regenerated 2026-07-07 after the CLI's null-corruption fix (see `references/worked-examples.md`). Labels, one-liners, and bullets all correct; canonical per-level palette held (amber / teal / magenta / rust). First generation.
 
 Generated with:
 ```bash
@@ -77,7 +77,7 @@ Spec: [`scripts/example-specs/cluster-b-maturity.yaml`](scripts/example-specs/cl
 export OPENROUTER_API_KEY="sk-or-..."
 ```
 
-Get one at [openrouter.ai/keys](https://openrouter.ai/keys). The skill uses `google/gemini-3-pro-image-preview` (a.k.a. Nano Banana Pro) at ~$0.002/image.
+Get one at [openrouter.ai/keys](https://openrouter.ai/keys). The skill uses `google/gemini-3-pro-image` (a.k.a. Nano Banana Pro) at ~$0.002/image.
 
 # 2. Install yq (one-time)
 
@@ -85,14 +85,28 @@ Get one at [openrouter.ai/keys](https://openrouter.ai/keys). The skill uses `goo
 # macOS
 brew install yq
 
-# Linux
+# Linux (needs sudo to write to /usr/local/bin, or drop into ~/.local/bin)
+sudo curl -L https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 \
+  -o /usr/local/bin/yq && sudo chmod +x /usr/local/bin/yq
+
+# Linux, no sudo:
+mkdir -p ~/.local/bin
 curl -L https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 \
-  -o /usr/local/bin/yq && chmod +x /usr/local/bin/yq
+  -o ~/.local/bin/yq && chmod +x ~/.local/bin/yq
+export PATH="$HOME/.local/bin:$PATH"
 ```
+
+`make-poster.sh` will also auto-install yq on Linux if it's missing. On macOS the script refuses to auto-install and tells you to run `brew install yq` instead.
 
 # 3. Generate a poster
 
 ```bash
+# --dry-run first: writes ./my-first-poster.prompt.txt without hitting OpenRouter (no credit burn).
+bash scripts/make-poster.sh \
+  scripts/example-specs/cluster-a-stack.yaml \
+  ./my-first-poster.png --dry-run
+
+# Happy with the prompt? Drop --dry-run to render.
 bash scripts/make-poster.sh \
   scripts/example-specs/cluster-a-stack.yaml \
   ./my-first-poster.png
@@ -168,7 +182,7 @@ The `.prompt.txt` is your audit trail. If something looks wrong, you can edit th
 | Typical session (3 iterations) | ~$0.006 |
 | First-generation success rate | 68–99% depending on cluster |
 
-Cluster A and C2 are the most reliable. Cluster B requires explicit hex codes if you want the red→green ramp held. See [`references/worked-examples.md`](references/worked-examples.md) for the full iteration log + failure modes catalogued.
+Cluster A and C2 are the most reliable. Cluster B holds the canonical amber/teal/magenta/rust ramp because the CLI hard-codes the per-L hex codes into the prompt. See [`references/worked-examples.md`](references/worked-examples.md) for the full iteration log + failure modes catalogued.
 
 ---
 
@@ -179,13 +193,16 @@ terminal-poster/
 ├── README.md                              ← this file
 ├── SKILL.md                               ← agent-readable skill specification
 ├── scripts/
-│   ├── make-poster.sh                     ← high-level CLI (YAML spec → PNG)
+│   ├── make-poster.sh                     ← high-level CLI (YAML spec → PNG); supports --dry-run
 │   ├── generate.sh                        ← low-level helper (prompt.txt → PNG)
 │   └── example-specs/
 │       ├── cluster-a-stack.yaml           ← Cluster A engineer-poet zine
 │       ├── cluster-b-maturity.yaml        ← Cluster B color-coded ladder
-│       ├── cluster-d-playbook.yaml        ← Cluster D blueprint playbook
-│       └── c2-smoketest.yaml              ← Cluster C2 whimsical pixel hero
+│       ├── cluster-c1-hero.yaml           ← Cluster C1 painterly hero
+│       ├── c2-smoketest.yaml              ← Cluster C2 whimsical pixel hero
+│       ├── cluster-d-playbook.yaml        ← Cluster D1 blueprint playbook
+│       ├── cluster-d2-thought-piece.yaml  ← Cluster D2 terminal-window
+│       └── cluster-e-brandbook.yaml       ← Cluster E editorial brand book
 ├── references/
 │   ├── design-dna.md                      ← palette, fonts, layout rules
 │   ├── worked-examples.md                 ← iteration log, scores, failure modes
@@ -196,7 +213,7 @@ terminal-poster/
 │       ├── cluster-d-blueprint.md
 │       └── cluster-e-editorial.md
 └── assets/
-    └── examples/                          ← the three sample posters above
+    └── examples/                          ← 7 rendered posters + their .prompt.txt trails (one per cluster/sub-mode)
 ```
 
 ---

@@ -57,10 +57,11 @@ provider "aws" {
 }
 
 # ── Cloudflare provider ──
-# Use either global API key OR API token (token preferred)
+# Scoped API token (Zone:DNS:Edit + Zone:Cache Purge on the target zone).
+# Global API key still works via the provider but is discouraged and not wired
+# up here — create a token at https://dash.cloudflare.com/profile/api-tokens.
 provider "cloudflare" {
-  email   = var.cloudflare_email
-  api_key = var.cloudflare_global_api_key
+  api_token = var.cloudflare_api_token
 }
 
 # ── Variables ──
@@ -86,14 +87,8 @@ variable "cloudflare_zone_id" {
   type        = string
 }
 
-variable "cloudflare_email" {
-  description = "Cloudflare account email"
-  type        = string
-  sensitive   = true
-}
-
-variable "cloudflare_global_api_key" {
-  description = "Cloudflare global API key"
+variable "cloudflare_api_token" {
+  description = "Cloudflare scoped API token (Zone:DNS:Edit + Zone:Cache Purge)."
   type        = string
   sensitive   = true
 }

@@ -1,0 +1,63 @@
+# Cluster C Mode C1 — Painterly Cyborg Hero (the viral launch look)
+# Topic: a fictional "MarketIntell" agent, framed as an AI analyst desk launch.
+# Render:
+#   bash make-poster.sh cluster-c1-hero.yaml out.png             # produces image
+#   bash make-poster.sh cluster-c1-hero.yaml out.png --dry-run   # prints prompt only
+#
+# Rendered PNG: assets/examples/cluster-c1-hero.png (2026-07-07, Nano Banana Pro
+# via OpenRouter). Verify prompt changes with --dry-run before burning credits.
+#
+# Field notes:
+#   hero_subject       = full scene description (do NOT prefix with "a painterly
+#                        illustration of ..." — the CLI keeps that scoping out of
+#                        the placeholder now).
+#   cards[]            = EXACTLY 6 entries. Rendered as a 3x2 grid.
+#   tagline_separator  = star | pipe | period. Star is the safest.
+
+cluster: c
+mode: c1
+
+topic: marketintell
+status: analyst online
+status_2: uptime 47h
+handle: "@yourhandle"
+
+eyebrow: AGENT-NATIVE
+brand: MARKETINTELL
+subtitle: THE AI ANALYST DESK
+
+hero_subject: >
+  a cyborg AI analyst seen from three-quarter rear over the LEFT shoulder,
+  chest-up, at a cluttered 3am trading desk. Multiple scuffed CRT monitors
+  glow orange with candlestick charts and node graphs. The analyst's head and
+  one shoulder occupy the LEFT THIRD of the frame; the right two-thirds are
+  filled with instruments, sticky notes peeling off a bezel, a half-empty
+  coffee cup with steam, frayed cables snaking across the desk. Half-human,
+  half-cyborg detailing at the neck: faint glowing filaments, scuffed armor
+  edges. Do NOT show the face.
+
+cards:
+  - header: SIGNAL PICKER
+    icon: line-chart-with-marker
+    body: "watches 200 tickers · flags anomalies · ranks by conviction"
+  - header: MEMO WRITER
+    icon: scroll-with-fountain-pen
+    body: "drafts 1-page memos · cites raw sources · never invents numbers"
+  - header: RISK RADAR
+    icon: radar-sweep
+    body: "correlates positions · shows worst-case ladders · alerts on tail risk"
+  - header: BACKTEST DECK
+    icon: layered-cards
+    body: "rebuilds histories · slices by regime · reports p50 and p95"
+  - header: SOURCE VAULT
+    icon: filing-cabinet
+    body: "keeps every filing · deduped · timestamped · queryable"
+  - header: DAILY BRIEF
+    icon: envelope-with-clock
+    body: "shipped at 6am · one screen · yesterday closed, today open"
+
+tagline_separator: star
+tagline_phrases:
+  - SIGNAL OVER NOISE
+  - PROOF OVER PROMISES
+  - SIX AGENTS. ONE BRAIN.

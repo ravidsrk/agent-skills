@@ -158,7 +158,8 @@ This handles enabling + topology in one resource with zero paid features.
 
 **Fix options (pick one):**
 
-A. **Separate ECS service with `desired_count=1`** (we did this for your-scheduler-app):
+A. **Separate ECS service with `desired_count=1`** — the recommended path.
+
 ```hcl
 resource "aws_ecs_service" "scheduler" {
   desired_count = 1
@@ -168,16 +169,9 @@ resource "aws_ecs_service" "scheduler" {
 }
 ```
 
-B. **Env var override** at task definition level:
-```hcl
-environment = [{
-  name = "PRIMARY_MACHINE_ID"
-  value = "primary"  # hardcoded, same across all tasks
-}]
-```
-And update code: `if (process.env.FLY_MACHINE_ID === process.env.PRIMARY_MACHINE_ID || process.env.PRIMARY_MACHINE_ID === "primary") { runScheduler() }`
+🔴 **Don't try env-var-based election on Fargate.** Every task in the same service reads the same task-definition environment, so there is no per-task stable identity to key on. Any code of the form `if (process.env.X === "primary") runScheduler()` runs on every replica → duplicate cron jobs. If you need per-task election on shared tasks (rare), use a DB advisory lock or DynamoDB conditional-put as the coordinator.
 
-C. **Use EventBridge Scheduler → ECS RunTask** for cron jobs instead of in-process scheduling.
+B. **Use EventBridge Scheduler → ECS RunTask** for cron jobs instead of in-process scheduling.
 
 ---
 
@@ -445,11 +439,11 @@ When CAA says `issuewild "letsencrypt.org"`, **only Let's Encrypt can issue wild
 ZONE=<cloudflare-zone-id>
 for tag in issue issuewild; do
   for value in amazon.com amazontrust.com; do
-    curl -sS -X POST \
-      -H "X-Auth-Email: $CLOUDFLARE_EMAIL" -H "X-Auth-Key: $CLOUDFLARE_GLOBAL_API_KEY" \
+    curl -sSf -X POST \
+      -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
       -H "Content-Type: application/json" \
       "https://api.cloudflare.com/client/v4/zones/$ZONE/dns_records" \
-      -d "{\"type\":\"CAA\",\"name\":\"$(echo $ZONE_DOMAIN)\",\"data\":{\"flags\":0,\"tag\":\"$tag\",\"value\":\"$value\"},\"ttl\":300,\"proxied\":false}"
+      -d "{\"type\":\"CAA\",\"name\":\"$ZONE_DOMAIN\",\"data\":{\"flags\":0,\"tag\":\"$tag\",\"value\":\"$value\"},\"ttl\":300,\"proxied\":false}"
   done
 done
 ```
@@ -570,7 +564,7 @@ aws ecs run-task --cluster $CLUSTER --task-definition your-prod-db-migrate \
 
 ---
 
-# 🔴 19. Prisma DATABASE_URL params + sslmode values libpq rejects
+# 🔴 22. Prisma DATABASE_URL params + sslmode values libpq rejects
 
 **Symptom:** Postgres backups fail every hour with sequential errors:
 ```
@@ -635,7 +629,7 @@ References:
 
 ---
 
-# 🔴 20. ECS doesn't auto-poll ECR — push ≠ deploy
+# 🔴 23. ECS doesn't auto-poll ECR — push ≠ deploy
 
 **Symptom:** Pushed new image to ECR `:latest` tag, image is visible in registry, but the running ECS task is still using the OLD code. New bug-fix doesn't take effect even minutes after CI shows green.
 

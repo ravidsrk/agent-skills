@@ -1,6 +1,12 @@
 ---
 name: fly-to-aws-migration
 description: End-to-end playbook for migrating a Fly.io project to AWS — handles Fly Postgres → Aurora Serverless v2, Fly Machines → ECS Fargate, Fly static sites → S3+CloudFront, secrets migration via Secrets Manager, DNS cutover via Cloudflare. Use when the user says "migrate from Fly to AWS", "move my Fly app to AWS", "leave Fly", "AWS migration", "ECS migration", "switch to AWS", or pastes a Fly project structure (apps/, fly.toml files) and asks to move it. Covers 7 phases (audit → foundation → code prep → secrets → API cutover → static sites → cache layer), with rollback paths preserved at every step. Battle-tested on a production migration (2026) — migrated API + 2 static sites + 87-table Postgres with 9 min total downtime.
+license: MIT
+compatibility: Requires flyctl, aws v2, terraform >=1.5, docker, psql/pg_dump/pg_restore, jq. Env vars: AWS_PROFILE, FLY_API_TOKEN, CLOUDFLARE_API_TOKEN (scoped token — global API key is deprecated), CLOUDFLARE_ZONE_ID.
+metadata:
+  version: "1.1.0"
+  author: "@ravidsrk"
+allowed-tools: Bash Read Write Edit
 ---
 
 # Fly.io → AWS Migration Playbook
@@ -37,19 +43,21 @@ User says any of:
 | 0 | Audit current Fly setup | none | 15 min |
 | 1 | Foundation IaC (VPC, IAM, Aurora, ECR, ALB) | PR #1 | 60-90 min |
 | 2 | Code prep (Dockerfile fixes, ECR push workflow) | PR #2 | 30 min |
-| 3 | Secrets + DB schema migration | PR #3 | 30-60 min |
-| 4+5 | API production cutover (Fly off, AWS on) | PR #4 | 30 min downtime ≤9 min |
+| 3 | Secrets + **schema-only** DB migration | PR #3 | 30-60 min |
+| 4+5 | API production cutover — data delta + DNS flip | PR #4 | 30 min wall, ≤9 min user-facing downtime |
 | 6 | Static sites cutover | PR #5 | zero downtime |
 | 7 | Perf tuning (Cloudflare cache layer) | PR #6 | optional |
 
-Read `references/phases.md` for the detailed step-by-step. Read `references/gotchas.md` BEFORE running any phase — there are at least 12 traps that cost real time on a production migration.
+🟢 **Phase 3 = schema only, Phase 4 = data delta.** This is the recommended strategy end to end (SKILL, README, phases.md, `scripts/db-migrate.sh`). Doing the full data dump in Phase 3 is documented in phases.md as an **Alternative** — it collapses two phases into one but blows the ≤9 min downtime budget on any DB larger than a few hundred MB.
+
+Read `references/phases.md` for the detailed step-by-step. Read `references/gotchas.md` BEFORE running any phase — 23 traps documented, each with symptom → root cause → fix, most cost real time on a production migration.
 
 # Critical inputs to collect before starting
 
 Ask the user upfront:
 
 1. 🔴 **AWS account ID** + which region they want (`ap-southeast-1` for SEA, `us-east-1` for US, `eu-west-1` for EU)
-2. 🔴 **Cloudflare zone ID** (where DNS lives) + global API key OR API token
+2. 🔴 **Cloudflare zone ID** (where DNS lives) + **scoped API token** (`CLOUDFLARE_API_TOKEN`, `Zone:DNS:Edit` + `Zone:Cache Purge`). The legacy Global API Key still works but is discouraged — the templates default to `api_token`.
 3. 🔴 **List of Fly apps** to migrate — `flyctl apps list`
 4. 🔴 **Database size** — `flyctl postgres connect -a <db> -c "SELECT pg_size_pretty(pg_database_size(current_database()))"`
 5. 🔴 **Maintenance window** — when can we tolerate ~10 min API downtime?
@@ -60,16 +68,18 @@ Ask the user upfront:
 
 ```
 Phase 0  → flyctl apps list, flyctl machines list, fly pg connect, du -sh state
-Phase 1  → terraform apply foundation (VPC, IAM, Aurora, ECR, ALB, ACM)
+Phase 1  → CAA preflight (dig CAA — Amazon must be authorized)
+            → terraform apply foundation (VPC, IAM, Aurora, ECR, ALB, ACM)
             └─ outputs: aurora endpoint, ECR URI, ALB DNS, github_deploy role ARN
 Phase 2  → fix Dockerfile if needed, add ECR push workflow, push :latest
-Phase 3  → pg_dump from Fly → restore to Aurora (in maintenance window OR with replication)
+Phase 3  → SCHEMA-ONLY dump from Fly → restore to Aurora (no data yet)
             └─ migrate flyctl secrets → AWS Secrets Manager (8 secret groups by category)
-Phase 4+5 → flyctl scale count 0 on Fly app, ECS service update --force-new-deployment,
-            wait healthy, flip Cloudflare CNAME api.* → ALB
+Phase 4+5 → pre-warm ECS with an idle Aurora connection → freeze Fly writes →
+            data-only delta dump/restore → ECS force-new-deployment → wait healthy →
+            flip Cloudflare CNAME api.* → ALB
 Phase 6  → S3 + CloudFront for static sites (web + docs)
             └─ npm build → aws s3 sync → flip DNS
-Phase 7  → Cloudflare Tiered Cache + cache rule for HTML (4.8x TTFB win, $0/mo)
+Phase 7  → Cloudflare Tiered Cache + cache rule for HTML (~4.6x TTFB win: 300ms→65ms, $0/mo)
 ```
 
 # Decision matrix: which AWS services per Fly component
@@ -115,22 +125,23 @@ Phase 7  → Cloudflare Tiered Cache + cache rule for HTML (4.8x TTFB win, $0/mo
 
 - `references/phases.md` — Every phase with exact commands, AWS resource counts, verification steps
 - `references/gotchas.md` — Every trap with symptom → root cause → fix
-- `references/cost-model.md` — Real pricing from a production migration (Singapore region, ~$667/mo as-built, ~$265/mo right-sized)
+- `references/cost-model.md` — Real pricing from a production migration (Singapore region, ~$667/mo as-built, ~$291/mo right-sized)
 - `references/rollback.md` — Per-phase rollback procedures (each <5 min)
 
 # Templates
 
 - `templates/terraform/` — Reusable Terraform modules (VPC, Aurora, ECS, ALB, S3+CF static sites)
 - `templates/github-workflows/` — Deploy workflows (API to ECS, static sites to S3)
-- `templates/dockerfile-fixes/` — Common Fly Dockerfile → AWS Dockerfile patches
+
+Common Fly → AWS Dockerfile patches (respect `$PORT`, drop Fly-only env, avoid Bun in CI builder) are inlined in [`references/phases.md`](references/phases.md) → Phase 2.
 
 # Scripts
 
 - `scripts/audit-fly.sh` — Run Phase 0 audit against a Fly account
-- `scripts/db-migrate.sh` — pg_dump from Fly + restore to Aurora with verification
-- `scripts/secrets-migrate.sh` — Map Fly secrets → grouped AWS Secrets Manager entries
-- `scripts/cutover-dns.sh` — Atomic DNS flip via Cloudflare API
-- `scripts/verify-parity.sh` — Compare Fly vs AWS production responses for drift
+- `scripts/db-migrate.sh` — pg_dump from Fly + restore to Aurora with real per-table COUNT(\*) parity. Modes: `--schema-only` (default, Phase 3), `--data-only` (Phase 4 delta), `--full` (alternative single-shot)
+- `scripts/secrets-migrate.sh` — Map `flyctl secrets` → 8 grouped AWS Secrets Manager entries. `--dry-run` (default) prints the mapping; `--apply` writes it
+- `scripts/cutover-dns.sh` — Atomic DNS flip via Cloudflare API (scoped token; verifies proxied)
+- `scripts/verify-parity.sh` — Compare Fly vs AWS production responses for drift (single request per side)
 
 # How to use this skill
 
@@ -160,7 +171,7 @@ Production state post-migration:
 - 🟢 API: 104ms p50 TTFB (was ~500ms on Fly)
 - 🟢 Static sites: 65ms p50 TTFB (was ~300ms on Fly with CDN)
 - 🟢 Database: identical row counts, parity verified via `verify-parity.sh`
-- 🟡 Cost: $667/mo as-built (Fly was ~$150/mo). Right-sized to ~$265/mo possible.
+- 🟡 Cost: $667/mo as-built (Fly was ~$150/mo). Right-sized to ~$291/mo possible (see `references/cost-model.md` for the itemized breakdown).
 
 # Final reminder
 

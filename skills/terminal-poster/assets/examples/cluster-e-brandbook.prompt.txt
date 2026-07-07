@@ -1,0 +1,52 @@
+A vertical infographic poster, portrait 2:3 aspect ratio. High-end editorial brand-book spread aesthetic.
+
+🔴 BACKGROUND: pure DARK CANVAS #0D0D0D — NOT a single cream page. The canvas is the backdrop. Multiple CREAM / OFF-WHITE brand-book PAGES float ON TOP of the dark canvas as a composited spread. The pages themselves are #F5F0E6 cream with subtle paper-grain texture.
+
+LAYOUT: split the composition into LEFT 2/3 and RIGHT 1/3.
+
+LEFT 2/3: A 3×3 grid of 9 small portrait-orientation page thumbnails arranged like a magazine contact-sheet. Each thumbnail is a cream page floating on the dark canvas, with a 1px hairline border. Each labeled with its section number in Inter caps letter-spaced (e.g. "01 /", "02 /", "03 /").
+
+RIGHT 1/3: ONE enlarged master page at readable scale. This is the hero. It shows:
+  - Brand name "BookMarkable" in extra-large Instrument Serif (NOT all caps — sentence case with serif elegance)
+  - Italic Inter or italic Instrument Serif tagline below: "a soft place for the things you want to remember."
+  - A banded orange→peach aura/halo gradient behind the headline (stacked light-leak look, NOT smooth radial). Use Bookmark Red #FC4A2B fading to Save Peach #F7A488.
+  - Subtle paper-grain texture on the page
+
+ACCENT PALETTE — NOT Hermes orange #F26B1F. Use these editorial colors:
+  Bookmark Red #FC4A2B (primary accent)
+  Save Peach #F7A488 (secondary)
+  Confirm Green #1E8E3E (active state)
+  Pitch Black #0D0D0D (canvas)
+  Ash Gray #8E8E8E (muted body)
+
+Page contents (left grid, in order):
+
+01 / BRAND IDEA
+  content: elevator pitch in two serif paragraphs. sets the tone: warm archive, not cold vault.
+02 / PALETTE
+  content: bookmark red · save peach · confirm green · pitch black · ash gray swatches with hex.
+03 / TYPOGRAPHY
+  content: Instrument Serif display · Inter body · JetBrains Mono accents. specimens shown.
+04 / UI PRIMITIVES
+  content: cards, buttons, ribbons, bookmark clips. all built from one 8px rhythm.
+05 / VOICE
+  content: gentle, precise, never precious. five bullets and three refusals.
+06 / IMAGE MODEL PROMPT
+  content: reproducible prompt used to generate hero imagery. dark canvas, cream pages.
+07 / LOGOMARK
+  content: wordmark with a small bookmark ribbon substituting the crossbar of the k.
+08 / ICONOGRAPHY
+  content: 16px bookmark family: solid, outline, torn, ribboned, tabbed. all optical.
+09 / SHIPPING
+  content: example final assets — cover, share card, in-app illustration, favicon.
+
+Bottom of canvas (below the spread): a thin horizontal divider line, then a single italic Instrument Serif tagline centered — SENTENCE CASE not all caps:
+  "The archive that reads like a diary."
+with "@yourhandle" right-aligned in small caps Inter below.
+
+⚠️ CRITICAL TEXT RULES — read carefully before rendering letters:
+• Spell every word completely. Do NOT abbreviate. Do NOT drop letters.
+• Punctuation marks (. , : ; — /) must render as actual punctuation glyphs, NEVER as the spelled-out word (PERIOD, COMMA, COLON, EM-DASH, SLASH). The `/` in section labels like "01 / BRAND IDEA" must render as a literal slash character.
+• Avoid any duplicate or stuttered words.
+
+Aesthetic: a fashion magazine brand book + a Pentagram identity reveal + a Saturday Evening Post spread. Warm, contemplative, editorial. NOT terminal. NOT cyberpunk. NOT pixel-bitmap. Sentence-case throughout, italic editorial tagline (breaks the ALL-CAPS rule of other clusters — this is intentional for E).

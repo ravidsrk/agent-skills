@@ -1,16 +1,16 @@
 # agent-skills
 
-Production-grade skills for AI agents — DNS migration, AWS migration, deep research, viral image generation.
+Production-grade skills for AI agents — DNS migration, AWS migration, deep research, viral image generation, autonomous multi-agent issue clean-sweep.
 
 # Project Structure
 
 ```
-skills/        → 5 capability skills (each with SKILL.md + README.md + scripts/ references/ templates/)
-docs/          → Per-runtime setup guides + skill-anatomy spec
-scripts/       → Repo-level helpers (validate-skills.py)
-assets/        → Banner image, screenshots
-plugin.json    → Claude Code marketplace manifest
-LICENSE        → MIT
+skills/                       → 6 capability skills (each with SKILL.md + README.md + scripts/ references/ templates/)
+docs/                         → Per-runtime setup guides + skill-anatomy spec
+scripts/                      → Repo-level helpers (validate-skills.py)
+assets/                       → Banner image, screenshots
+.claude-plugin/plugin.json    → Claude Code marketplace manifest
+LICENSE                       → MIT
 ```
 
 # Skills
@@ -22,6 +22,7 @@ LICENSE        → MIT
 | `fly-to-aws-migration` | 🌐 Infrastructure | 7-phase Fly.io → AWS playbook with ≤9 min downtime |
 | `deep-research` | 🔍 Research | 8-source parallel evidence orchestrator (X, Reddit, HN, GitHub, Polymarket, YouTube, Exa) |
 | `terminal-poster` | 🎨 Creative | Retro-cyberpunk image posters (5 reusable templates, Nano Banana Pro) |
+| `clean-sweep` | 🛠️ Dev workflow | Autonomous multi-agent issue clean-sweep — one-PR-per-finding pipeline on Orca runtime |
 
 # Conventions
 

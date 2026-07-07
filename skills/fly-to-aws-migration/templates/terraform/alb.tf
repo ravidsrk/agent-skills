@@ -37,7 +37,7 @@ resource "aws_lb" "main" {
   subnets            = aws_subnet.public[*].id
 
   enable_http2               = true
-  enable_deletion_protection = false  # set true for prod after stable
+  enable_deletion_protection = false # set true for prod after stable
 
   # Long keep-alive cuts handshake overhead
   idle_timeout = 60
@@ -49,14 +49,14 @@ resource "aws_lb_target_group" "api" {
   port                 = 3000
   protocol             = "HTTP"
   vpc_id               = aws_vpc.main.id
-  target_type          = "ip"  # required for Fargate
-  deregistration_delay = 30    # drain time on rolling deploys
+  target_type          = "ip" # required for Fargate
+  deregistration_delay = 30   # drain time on rolling deploys
 
   health_check {
     enabled             = true
     path                = "/health"
     healthy_threshold   = 2
-    unhealthy_threshold = 5   # be lenient — slow boots
+    unhealthy_threshold = 5 # be lenient — slow boots
     timeout             = 5
     interval            = 30
     matcher             = "200"
@@ -88,7 +88,7 @@ resource "cloudflare_record" "api_cert_validation" {
   value   = trimsuffix(each.value.record, ".")
   type    = each.value.type
   ttl     = 1     # auto
-  proxied = false  # MUST be DNS-only for ACM validation
+  proxied = false # MUST be DNS-only for ACM validation
 }
 
 resource "aws_acm_certificate_validation" "api" {

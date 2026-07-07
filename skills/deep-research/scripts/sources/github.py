@@ -1,19 +1,16 @@
-"""GitHub research via REST API — routed through monid (web/fetch proxy).
+"""GitHub research via REST API — routed through monid (exa/contents proxy).
 
-Migrated 2026-06-22 to route GitHub REST calls through monid's generic
-`blockrun.ai/api/v1/surf/web/fetch` proxy so GitHub billing/auth flows through
+Migrated 2026-06-22 to route GitHub REST calls through monid's
+`blockrun.ai/api/v1/exa/contents` proxy so GitHub billing/auth flows through
 the single MONID_API_KEY balance (per the "everything through monid" decision).
-GitHub has no native monid search endpoint; web/fetch returns the JSON body
-which `_monid.fetch_json` unwraps.
+GitHub has no native monid search endpoint; `exa/contents` returns the upstream
+HTTP body verbatim (raw bytes, no markdown cleaning) and `_monid.fetch_json`
+json.loads() that directly. NEVER use `surf/web/fetch` here — its markdown
+cleaner mangles URLs embedded in JSON strings.
 
 Note: GitHub's public search API does not require a token for our read-only
 queries (60 req/hr unauthenticated is plenty for one research run, and the
 proxy IP pool spreads the limit). GITHUB_TOKEN is therefore no longer needed.
-
-⚠️ Issue `body` fields contain markdown with embedded URLs that web/fetch's
-markdown cleaner can corrupt. `search_recent_issues` drops `body` from the
-parsed result for cleaner-safety and relies on title/reactions/comments for
-signal. Repo search is unaffected (no long prose fields).
 
 Supports:
 - Repo search by topic (sorted by stars)
@@ -32,8 +29,8 @@ from ._monid import fetch_json
 API = "https://api.github.com"
 
 
-def _get_json(path: str, timeout: int = 15):
-    """GET a GitHub API path through the monid web/fetch proxy → parsed JSON."""
+def _get_json(path: str):
+    """GET a GitHub API path through the monid exa/contents proxy → parsed JSON."""
     url = f"{API}{path}" if path.startswith("/") else path
     data = fetch_json(url, tag="github")
     return data
@@ -89,8 +86,8 @@ def search_recent_issues(topic: str, days: int = 30, limit: int = 15) -> list[di
     for it in items:
         reactions = it.get("reactions", {}) or {}
         body = it.get("body") or ""
-        # Cleaner-safe trim: collapse whitespace, strip if it carries raw URLs that
-        # the web/fetch markdown cleaner may have already mangled.
+        # 800-char cap on issue bodies to keep the evidence file readable —
+        # not a cleaner-safety measure (exa/contents is a raw passthrough).
         body = body.replace("\r", " ").strip()[:800]
         out.append({
             "title": it.get("title", "") or "",

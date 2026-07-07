@@ -1,0 +1,53 @@
+# Cluster D Mode D2 — Terminal-Window Mockup on painterly canvas
+# Topic: "why HTML beats markdown in an agent-native content system"
+# Render:
+#   bash make-poster.sh cluster-d2-thought-piece.yaml out.png
+#   bash make-poster.sh cluster-d2-thought-piece.yaml out.png --dry-run
+#
+# Rendered PNG: assets/examples/cluster-d2-thought-piece.png (2026-07-07, Nano
+# Banana Pro via OpenRouter). Verify prompt changes with --dry-run first.
+#
+# Field notes:
+#   content_title    = titlebar filename in the fake terminal window
+#   zsh_prompt       = bottom line inside the window (shows a fake command)
+#   bottom_tagline   = manifesto below the whole floating window (lowercase)
+#   panels[].label   = ALL CAPS panel label in the top border
+#   panels[].subject = short subject phrase after the ◆ separator
+#   panels[].prose   = 1-2 lines of lowercase prose
+#   panels[].items   = 3-5 bullets under "what runs here:"
+
+cluster: d
+mode: d2
+
+content_title: html-vs-markdown.md
+zsh_prompt: "~/content-system $ ./gate.sh"
+bottom_tagline: "structure over syntax. structure wins."
+handle: "@yourhandle"
+
+panels:
+  - label: THE PROBLEM
+    subject: markdown-only pipelines
+    prose: "markdown collapses semantics into presentation. agents can't tell a call-to-action from a footnote."
+    items:
+      - "no structural roles"
+      - "styling and meaning collapsed"
+      - "brittle when parsed"
+      - "hard to audit"
+
+  - label: THE INSIGHT
+    subject: html was already the answer
+    prose: "html is a structural contract. every element carries a role an agent can query."
+    items:
+      - "semantic tags carry intent"
+      - "attributes are typed"
+      - "css is separable"
+      - "trivially parseable"
+
+  - label: THE RULE
+    subject: html for machines, markdown for humans
+    prose: "authors write markdown. the gate converts to html and enriches. agents read the html."
+    items:
+      - "one input, two views"
+      - "gate lives at build time"
+      - "voice + tone preserved"
+      - "no runtime cost"

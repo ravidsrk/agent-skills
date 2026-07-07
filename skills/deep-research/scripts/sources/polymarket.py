@@ -33,6 +33,17 @@ def _get_json(url: str, timeout: int = 120) -> Optional[dict]:
     return data if isinstance(data, dict) else None
 
 
+def _to_float(v) -> float:
+    """Polymarket Gamma returns numeric fields as either float or string
+    (e.g. `"9500.42"`). Coerce anything to float; unparseable → 0.0."""
+    if v is None or v == "":
+        return 0.0
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return 0.0
+
+
 def _norm_event(e: dict) -> dict:
     markets = e.get("markets", []) or []
     market_summaries = []
@@ -52,8 +63,8 @@ def _norm_event(e: dict) -> dict:
             "question": m.get("question", ""),
             "outcomes": outcomes_l,
             "outcome_prices": prices_l,
-            "volume": m.get("volume", 0),
-            "liquidity": m.get("liquidity", 0),
+            "volume": _to_float(m.get("volume")),
+            "liquidity": _to_float(m.get("liquidity")),
             "end_date": m.get("endDate", ""),
             "url": f"https://polymarket.com/event/{e.get('slug', '')}",
         })
@@ -64,8 +75,8 @@ def _norm_event(e: dict) -> dict:
         "url": f"https://polymarket.com/event/{e.get('slug', '')}",
         "start_date": e.get("startDate", ""),
         "end_date": e.get("endDate", ""),
-        "volume": e.get("volume", 0),
-        "liquidity": e.get("liquidity", 0),
+        "volume": _to_float(e.get("volume")),
+        "liquidity": _to_float(e.get("liquidity")),
         "markets": market_summaries,
     }
 
@@ -74,6 +85,11 @@ def search(topic: str, limit: int = 15) -> list[dict]:
     """Find Polymarket events related to the topic (via monid exa/contents)."""
     q = urllib.parse.quote_plus(topic)
     capped = min(limit, _MAX_LIMIT)  # exa livecrawl 504s on Gamma's >~1MB payload
+    if capped < limit:
+        sys.stderr.write(
+            f"[polymarket] capping limit_per_type={limit} → {capped} "
+            f"(exa livecrawl 504s on Gamma payloads above ~1MB)\n"
+        )
     url = f"{GAMMA_URL}?q={q}&limit_per_type={capped}&events_status=active"
     sys.stderr.write(f"[polymarket] search {topic!r} (limit={capped}, via monid)\n")
     data = _get_json(url)
@@ -81,8 +97,9 @@ def search(topic: str, limit: int = 15) -> list[dict]:
         return []
     events = data.get("events", []) or []
     out = [_norm_event(e) for e in events]
-    # Drop events with no volume at all (dead markets)
-    out = [e for e in out if (e.get("volume", 0) or 0) > 100]
+    # Drop events with no volume at all (dead markets). Volumes are floats now
+    # (see _to_float) so the comparison is safe even if Gamma returns strings.
+    out = [e for e in out if e.get("volume", 0.0) > 100]
     sys.stderr.write(f"[polymarket] got {len(out)} active markets\n")
     return out
 

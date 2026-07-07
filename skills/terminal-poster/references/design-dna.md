@@ -48,6 +48,20 @@ The common pattern across all 5 clusters. If you can only remember 10 things, re
 | Save peach | `#F7A488` | Cluster E secondary |
 | Confirm green | `#1E8E3E` | Cluster E "active" state |
 
+## Cluster B palette — the L-badge ramp (SINGLE SOURCE OF TRUTH)
+
+The CLI hard-codes these hex values per L-number; template docs and prompts must reference these exact values. Chosen to give a legible L1→L4 semantic ramp without leaning on vivid Hermes orange (which belongs to Cluster C).
+
+| Badge | Name    | Hex       | Semantic |
+|-------|---------|-----------|----------|
+| L1    | amber   | `#FFC857` | kickoff / foundation |
+| L2    | teal    | `#00D9D9` | technical / build |
+| L3    | magenta | `#B57FFF` | strategy / brain |
+| L4    | rust    | `#B8541F` | operations / sales (NOT vivid `#F26B1F`) |
+| L5    | gray    | `#A89680` | admin / maintenance |
+
+If you change these hexes, update `references/design-dna.md`, `references/templates/cluster-b-color-coded.md`, and the `b)` branch of `scripts/make-poster.sh` in the same diff.
+
 # Typography rules
 
 | Cluster | Display | Body |

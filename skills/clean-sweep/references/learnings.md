@@ -303,3 +303,37 @@ finds genuine value — in one run it surfaced a residual **S0 security gap** pl
 missed. Keep a source branch until its fix is salvaged+merged, then delete. Never touch a branch checked out in
 another worktree. Finally, fast-forward the stale working branch to the default (stash leftover working-tree
 files first — recoverable, don't discard). Offer all of this; don't assume — but users usually want it.
+
+---
+
+## The sharpest anti-inflation lesson (from standing up a real live-op E2E gate)
+
+### 43. Mocked tests can be 100% green while the real integration is 100% broken — the gate needs ≥1 LIVE call per external service
+The strongest form of "green tests ≠ working product." A third-party connectors integration had **4 passing
+unit tests** (mocked `fetch`) yet **every** real connection failed: the code used the wrong path-casing for the
+vendor's current REST API (one casing convention where the live API had migrated to another) → an HTML 404 on
+every request. The mock accepted any URL, so it asserted the code's OWN assumptions, never the third party's
+contract. One live call caught it instantly — and then surfaced a *second* bug behind it (the vendor's newer
+API version had added a now-required request field the code never sent).
+**Rule:** for each external service the critical path touches (LLM, sandbox provisioner, connectors, memory,
+payments), the anti-inflation gate should make ONE real call against a test account (behind a flag / gitignored
+creds), not trust mocked tests. Mocks structurally cannot catch wrong-endpoint / wrong-payload / API-version
+drift — exactly the class of bug a clean-sweep's per-PR (mocked) review waves through.
+
+### 44. A live E2E harness is mostly a GOTCHA-DISCOVERY tool on the first run — make it self-heal, don't assume a clean box
+Standing up a real local stack (web + agent + DB + mail) surfaces a long tail of environment/contract issues
+that mocked suites hide. Real ones hit in one run: the migration CLI crashed on a bleeding-edge Postgres
+(apply the journaled SQL directly, like prod, instead of the tool); a host service already owned the DB port
+and shadowed docker (drive the port from the connection string, and **free ports before boot** — framework
+dev-servers spawn child workers that survive SIGTERM → `EADDRINUSE` on re-run); the auth framework rejected
+programmatic signup without a consent flag + a same-origin `Origin` header; the agent's request body shape
+differed from the guess. **Bake the fixes into the harness** (free ports, apply SQL directly, redact secrets)
+so re-runs are deterministic — and budget the first run for discovery, not a clean pass.
+
+### 45. Secrets: the fix run needs none (#41), but genuine live-validation + informed owner consent is a different call
+#41 holds for the clean-sweep fix run itself — it needs no live secrets. But when a DIFFERENT task genuinely
+requires live creds (e.g., a live E2E validation of ops) and the user OWNS them, has been told the tradeoff,
+and insists, respect the informed decision rather than refusing on a loop (which becomes obstruction): inject
+into a GITIGNORED file only, redact every value from all output, never commit or echo them, and flag
+`_live_`-prefixed keys once. The line is not "never touch the user's keys" — it is "never *mishandle* them":
+no tracked files, no echoed values, no external exfil beyond the calls the keys exist for.

@@ -6,17 +6,21 @@ set -euo pipefail
 
 # --- env validation ------------------------------------------------------
 
+# require_env <var> [<var> ...]
+#
+# Each caller declares only the env vars it actually needs.
+# Common groupings:
+#   require_env CLOUDFLARE_API_KEY                                       # CF-only ops
+#   require_env CLOUDFLARE_API_KEY NAMECHEAP_API_KEY NAMECHEAP_API_USER  # migrate/audit/rollback
+#   require_env CLOUDFLARE_GLOBAL_API_KEY CLOUDFLARE_EMAIL               # zone-create only
 require_env() {
   local missing=()
-  [ -n "${CLOUDFLARE_API_KEY:-}" ]        || missing+=("CLOUDFLARE_API_KEY")
-  [ -n "${NAMECHEAP_API_KEY:-}" ]         || missing+=("NAMECHEAP_API_KEY")
-
-  # Global key + email only required for zone creation
-  if [ "${REQUIRE_GLOBAL_KEY:-0}" = "1" ]; then
-    [ -n "${CLOUDFLARE_GLOBAL_API_KEY:-}" ] || missing+=("CLOUDFLARE_GLOBAL_API_KEY")
-    [ -n "${CLOUDFLARE_EMAIL:-}" ]          || missing+=("CLOUDFLARE_EMAIL")
-  fi
-
+  local v
+  for v in "$@"; do
+    if [ -z "${!v:-}" ]; then
+      missing+=("$v")
+    fi
+  done
   if [ ${#missing[@]} -gt 0 ]; then
     echo "ERROR: missing env vars: ${missing[*]}" >&2
     exit 1
@@ -35,10 +39,14 @@ state_dir() {
 # --- Cloudflare API wrappers --------------------------------------------
 
 # cf_api <method> <path> [<body-json>]
-# Tries ACCOUNT TOKEN first (Bearer). On `Authentication error` (code 10000)
-# falls back to GLOBAL KEY automatically. This handles the common case where
-# the account token's zone-resource binding doesn't yet include a newly-
-# created zone — the token can list zones but can't read records inside them.
+# Uses the ACCOUNT TOKEN (Bearer) by default.
+#
+# If CF_AUTO_FALLBACK=1 is set AND the account token gets an auth-related
+# error (Cloudflare codes 10000, 9109, 6003), automatically retries with
+# the Global API Key + email header pair. Off by default because it grants
+# broader privilege than the caller asked for; opt in explicitly:
+#   CF_AUTO_FALLBACK=1 scripts/harden.sh example.com
+# When it fires, a one-line notice is printed to stderr so it's never silent.
 cf_api() {
   local method="$1" path="$2" body="${3:-}"
   local resp
@@ -52,9 +60,12 @@ cf_api() {
       -H "Authorization: Bearer ${CLOUDFLARE_API_KEY}")
   fi
 
-  # On account-token auth failure, fall back to global key if available.
-  local needs_fallback
-  needs_fallback=$(echo "$resp" | python3 -c "
+  # Opt-in Global-Key fallback on auth errors.
+  if [ "${CF_AUTO_FALLBACK:-0}" = "1" ] \
+     && [ -n "${CLOUDFLARE_GLOBAL_API_KEY:-}" ] \
+     && [ -n "${CLOUDFLARE_EMAIL:-}" ]; then
+    local needs_fallback
+    needs_fallback=$(echo "$resp" | python3 -c "
 import json, sys
 try:
     d = json.load(sys.stdin)
@@ -66,24 +77,27 @@ try:
 except Exception:
     print('0')
 ")
-  if [ "$needs_fallback" = "1" ] && [ -n "${CLOUDFLARE_GLOBAL_API_KEY:-}" ] && [ -n "${CLOUDFLARE_EMAIL:-}" ]; then
-    if [ -n "$body" ]; then
-      resp=$(curl -sS -X "$method" "https://api.cloudflare.com/client/v4${path}" \
-        -H "X-Auth-Key: ${CLOUDFLARE_GLOBAL_API_KEY}" \
-        -H "X-Auth-Email: ${CLOUDFLARE_EMAIL}" \
-        -H "Content-Type: application/json" \
-        --data "$body")
-    else
-      resp=$(curl -sS -X "$method" "https://api.cloudflare.com/client/v4${path}" \
-        -H "X-Auth-Key: ${CLOUDFLARE_GLOBAL_API_KEY}" \
-        -H "X-Auth-Email: ${CLOUDFLARE_EMAIL}")
+    if [ "$needs_fallback" = "1" ]; then
+      echo "cf_api: account-token auth failed on ${method} ${path}; falling back to CLOUDFLARE_GLOBAL_API_KEY (CF_AUTO_FALLBACK=1)" >&2
+      if [ -n "$body" ]; then
+        resp=$(curl -sS -X "$method" "https://api.cloudflare.com/client/v4${path}" \
+          -H "X-Auth-Key: ${CLOUDFLARE_GLOBAL_API_KEY}" \
+          -H "X-Auth-Email: ${CLOUDFLARE_EMAIL}" \
+          -H "Content-Type: application/json" \
+          --data "$body")
+      else
+        resp=$(curl -sS -X "$method" "https://api.cloudflare.com/client/v4${path}" \
+          -H "X-Auth-Key: ${CLOUDFLARE_GLOBAL_API_KEY}" \
+          -H "X-Auth-Email: ${CLOUDFLARE_EMAIL}")
+      fi
     fi
   fi
   printf '%s' "$resp"
 }
 
 # cf_global <method> <path> [<body-json>]  — uses GLOBAL KEY (email + key)
-# Use only for zone creation. Always sets REQUIRE_GLOBAL_KEY=1 in caller.
+# Use only for zone creation (POST /zones). Callers must have called:
+#   require_env CLOUDFLARE_GLOBAL_API_KEY CLOUDFLARE_EMAIL
 cf_global() {
   local method="$1" path="$2" body="${3:-}"
   if [ -n "$body" ]; then
@@ -112,20 +126,21 @@ cf_assert_success() {
 }
 
 # Resolve the user's Cloudflare account ID (cached for session).
-# Always uses the global key — account tokens can read accounts but the
-# fallback wrapper masks intermittent issues; for account ID we want
-# determinism.
+# Prefers the account token; falls back to global key only if the account
+# token can't list accounts (some scoped tokens can't).
 cf_account_id() {
   if [ -z "${_CF_ACCT_ID:-}" ]; then
-    if [ -n "${CLOUDFLARE_GLOBAL_API_KEY:-}" ] && [ -n "${CLOUDFLARE_EMAIL:-}" ]; then
+    _CF_ACCT_ID=$(cf_api GET "/accounts?per_page=1" | python3 -c "
+import json, sys
+try:
+    r = json.load(sys.stdin).get('result') or []
+    print(r[0]['id'] if r else '')
+except Exception:
+    print('')")
+    if [ -z "$_CF_ACCT_ID" ] && [ -n "${CLOUDFLARE_GLOBAL_API_KEY:-}" ] && [ -n "${CLOUDFLARE_EMAIL:-}" ]; then
       _CF_ACCT_ID=$(curl -sS "https://api.cloudflare.com/client/v4/accounts?per_page=1" \
         -H "X-Auth-Key: ${CLOUDFLARE_GLOBAL_API_KEY}" \
         -H "X-Auth-Email: ${CLOUDFLARE_EMAIL}" | python3 -c "
-import json, sys
-r = json.load(sys.stdin).get('result') or []
-print(r[0]['id'] if r else '')")
-    else
-      _CF_ACCT_ID=$(cf_api GET "/accounts?per_page=1" | python3 -c "
 import json, sys
 r = json.load(sys.stdin).get('result') or []
 print(r[0]['id'] if r else '')")
@@ -149,7 +164,9 @@ print(r[0]['id'] if r else '')
 
 # --- Namecheap API wrappers ---------------------------------------------
 
-NC_USER="${NAMECHEAP_API_USER:-your-username}"
+# Callers must have already run: require_env NAMECHEAP_API_USER
+# No placeholder default — an unset var must be an explicit error.
+_nc_user() { echo "${NAMECHEAP_API_USER:-}"; }
 
 nc_my_ip() {
   curl -s https://api.ipify.org
@@ -158,12 +175,13 @@ nc_my_ip() {
 # nc_get_hosts <sld> <tld>  → prints raw XML
 nc_get_hosts() {
   local sld="$1" tld="$2"
-  local ip
+  local ip user
   ip=$(nc_my_ip)
+  user=$(_nc_user)
   curl -sS -G "https://api.namecheap.com/xml.response" \
-    --data-urlencode "ApiUser=${NC_USER}" \
+    --data-urlencode "ApiUser=${user}" \
     --data-urlencode "ApiKey=${NAMECHEAP_API_KEY}" \
-    --data-urlencode "UserName=${NC_USER}" \
+    --data-urlencode "UserName=${user}" \
     --data-urlencode "ClientIp=${ip}" \
     --data-urlencode "Command=namecheap.domains.dns.getHosts" \
     --data-urlencode "SLD=${sld}" \
@@ -171,32 +189,61 @@ nc_get_hosts() {
 }
 
 # nc_get_nameservers <sld> <tld>  → prints current NS list, one per line
+# Uses xml.etree so URL-redirect records or attribute changes don't break parsing.
 nc_get_nameservers() {
   local sld="$1" tld="$2"
-  local ip
+  local ip user
   ip=$(nc_my_ip)
+  user=$(_nc_user)
   curl -sS -G "https://api.namecheap.com/xml.response" \
-    --data-urlencode "ApiUser=${NC_USER}" \
+    --data-urlencode "ApiUser=${user}" \
     --data-urlencode "ApiKey=${NAMECHEAP_API_KEY}" \
-    --data-urlencode "UserName=${NC_USER}" \
+    --data-urlencode "UserName=${user}" \
     --data-urlencode "ClientIp=${ip}" \
     --data-urlencode "Command=namecheap.domains.dns.getList" \
     --data-urlencode "SLD=${sld}" \
-    --data-urlencode "TLD=${tld}" | grep -oE '<Nameserver>[^<]+</Nameserver>' | sed 's/<[^>]*>//g'
+    --data-urlencode "TLD=${tld}" | python3 -c "
+import sys, xml.etree.ElementTree as ET
+raw = sys.stdin.read()
+try:
+    root = ET.fromstring(raw)
+except ET.ParseError:
+    sys.exit(0)
+# Namespace strip so we can iterate by local tag name
+for el in root.iter():
+    if '}' in el.tag:
+        el.tag = el.tag.split('}', 1)[1]
+for ns in root.iter('Nameserver'):
+    txt = (ns.text or '').strip()
+    if txt:
+        print(txt)
+"
 }
 
 # nc_set_nameservers <sld> <tld> <ns1> <ns2> [ns3 ...]
 nc_set_nameservers() {
   local sld="$1" tld="$2"
   shift 2
+  if [ $# -eq 0 ]; then
+    echo "ERROR: nc_set_nameservers called with no nameservers" >&2
+    return 1
+  fi
+  local ns
+  for ns in "$@"; do
+    if [ -z "$ns" ]; then
+      echo "ERROR: nc_set_nameservers received an empty nameserver arg" >&2
+      return 1
+    fi
+  done
   local ns_csv
   ns_csv=$(IFS=,; echo "$*")
-  local ip
+  local ip user
   ip=$(nc_my_ip)
+  user=$(_nc_user)
   curl -sS -G "https://api.namecheap.com/xml.response" \
-    --data-urlencode "ApiUser=${NC_USER}" \
+    --data-urlencode "ApiUser=${user}" \
     --data-urlencode "ApiKey=${NAMECHEAP_API_KEY}" \
-    --data-urlencode "UserName=${NC_USER}" \
+    --data-urlencode "UserName=${user}" \
     --data-urlencode "ClientIp=${ip}" \
     --data-urlencode "Command=namecheap.domains.dns.setCustom" \
     --data-urlencode "SLD=${sld}" \
@@ -207,12 +254,13 @@ nc_set_nameservers() {
 # Reset NS back to Namecheap default (BasicDNS).
 nc_reset_nameservers() {
   local sld="$1" tld="$2"
-  local ip
+  local ip user
   ip=$(nc_my_ip)
+  user=$(_nc_user)
   curl -sS -G "https://api.namecheap.com/xml.response" \
-    --data-urlencode "ApiUser=${NC_USER}" \
+    --data-urlencode "ApiUser=${user}" \
     --data-urlencode "ApiKey=${NAMECHEAP_API_KEY}" \
-    --data-urlencode "UserName=${NC_USER}" \
+    --data-urlencode "UserName=${user}" \
     --data-urlencode "ClientIp=${ip}" \
     --data-urlencode "Command=namecheap.domains.dns.setDefault" \
     --data-urlencode "SLD=${sld}" \
@@ -229,46 +277,77 @@ domain_split() {
   echo "$sld $tld"
 }
 
-# Parse Namecheap getHosts XML → JSON list (uses python).
+# Parse Namecheap getHosts XML → JSON list using xml.etree (not regex).
+# Handles URL/URL301/FRAME records whose Address contains '/' — the old
+# regex silently dropped those; the parser keeps them so we can warn
+# clearly when they can't map to a Cloudflare DNS record.
 nc_hosts_to_json() {
   python3 -c "
-import sys, re, json
-xml = sys.stdin.read()
+import sys, json, xml.etree.ElementTree as ET
+
+raw = sys.stdin.read()
+try:
+    root = ET.fromstring(raw)
+except ET.ParseError as e:
+    print(json.dumps({'error': f'malformed XML: {e}', 'email_type': '', 'hosts': []}))
+    sys.exit(0)
+
+for el in root.iter():
+    if '}' in el.tag:
+        el.tag = el.tag.split('}', 1)[1]
+
+email_type = ''
+dhr = root.find('.//DomainDNSGetHostsResult')
+if dhr is not None:
+    email_type = dhr.attrib.get('EmailType', '')
+
 hosts = []
-for m in re.finditer(r'<host\s+([^/]+)/>', xml):
-    attrs = dict(re.findall(r'(\w+)=\"([^\"]*)\"', m.group(1)))
+for h in root.iter('host'):
+    a = h.attrib
     hosts.append({
-        'name':    attrs.get('Name', ''),
-        'type':    attrs.get('Type', ''),
-        'address': attrs.get('Address', ''),
-        'mxpref':  attrs.get('MXPref', '10'),
-        'ttl':     attrs.get('TTL', '300'),
+        'name':    a.get('Name', ''),
+        'type':    a.get('Type', ''),
+        'address': a.get('Address', ''),
+        'mxpref':  a.get('MXPref', '10'),
+        'ttl':     a.get('TTL', '300'),
     })
-# also extract EmailType from the wrapper
-em = re.search(r'EmailType=\"([^\"]*)\"', xml)
-print(json.dumps({'email_type': em.group(1) if em else '', 'hosts': hosts}, indent=2))
+
+print(json.dumps({'email_type': email_type, 'hosts': hosts}, indent=2))
 "
 }
 
 # Convert a Namecheap host record → Cloudflare DNS record body.
-# Stdin: one JSON record, stdout: one JSON record (Cloudflare body).
+# Stdin: one JSON record.
+# Stdout:
+#   - one JSON Cloudflare-record body   (for supported types)
+#   - the exact string 'SKIP:<reason>'  (for unsupported types like URL/URL301/FRAME)
+# For URL redirects, use a Cloudflare Redirect Rule (dashboard: Rules →
+# Redirect Rules), not a DNS record.
 nc_to_cf_record() {
   local domain="$1"
   python3 -c "
 import sys, json
 domain = '$domain'
 r = json.load(sys.stdin)
+
+SUPPORTED = {'A', 'AAAA', 'CNAME', 'MX', 'TXT', 'CAA', 'SRV', 'NS'}
+rtype = (r.get('type') or '').upper()
+
+if rtype not in SUPPORTED:
+    print(f'SKIP:{rtype or \"UNKNOWN\"} type not a Cloudflare DNS record — configure a Cloudflare Redirect Rule (Rules -> Redirect Rules) instead for URL forwarding')
+    sys.exit(0)
+
 name = r['name']
 fqdn = domain if name == '@' else f\"{name}.{domain}\"
 out = {
-    'type':    r['type'],
+    'type':    rtype,
     'name':    fqdn,
-    'content': r['address'].rstrip('.'),  # CF normalizes trailing dots
+    'content': r['address'].rstrip('.'),
     'ttl':     int(r.get('ttl', 300)),
     'proxied': False,
     'comment': 'Imported from Namecheap by cloudflare-dns skill',
 }
-if r['type'] == 'MX':
+if rtype == 'MX':
     out['priority'] = int(r.get('mxpref', 10))
 print(json.dumps(out))
 "
@@ -300,7 +379,7 @@ cf_set_setting() {
 #     issue pki.goog + issuewild ; + iodef mailto:…). Earlier versions of
 #     this function matched on (type, name) only and blew them away on
 #     each upsert — only the LAST CAA survived. Fixed here.
-#   - For MX: same {type, name, priority, content} → PUT; else POST.
+#   - For MX: same {type, name, content} → PUT; else POST.
 #     (apex commonly has 5 eforward MXes.)
 #   - For TXT: same {type, name, content} → PUT; else POST.
 #     (apex can hold SPF + DKIM + verification + …)

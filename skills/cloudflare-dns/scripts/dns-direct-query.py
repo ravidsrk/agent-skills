@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """
-Send a DNS query directly to a specific nameserver via UDP.
+Send a DNS query directly to a specific nameserver via UDP (with TCP fallback
+on TC=1). Verifies the response transaction ID matches the query so the parser
+isn't drifting off a stray packet.
 
-Used to verify a Cloudflare zone is correct BEFORE flipping NS at
-the registrar — public DNS still points to Namecheap, but Cloudflare's
+Used to verify a Cloudflare zone is correct BEFORE flipping NS at the
+registrar — public DNS still points to Namecheap, but Cloudflare's
 authoritative NS already serve the new zone.
 
 Usage:
@@ -63,7 +65,6 @@ def parse_rdata(buf: bytes, offset: int, rdlen: int, rtype: int) -> str:
         name, _ = decode_name(buf, offset + 2)
         return f"{pref} {name}"
     if rtype == 16:  # TXT
-        # may have multiple <length><string> chunks
         end = offset + rdlen
         out = []
         while offset < end:
@@ -84,11 +85,9 @@ def resolve_to_ip(host: str) -> str:
     """If host is an IP, return as-is; else query 1.1.1.1 to get its A."""
     if re.match(r"^\d+\.\d+\.\d+\.\d+$", host):
         return host
-    # Use socket — sandbox usually has IPv4 connectivity to 1.1.1.1
     try:
         return socket.gethostbyname(host)
     except socket.gaierror:
-        # Fall back to DoH at 1.1.1.1
         import urllib.request
         req = urllib.request.Request(
             f"https://1.1.1.1/dns-query?name={host}&type=A",
@@ -101,16 +100,45 @@ def resolve_to_ip(host: str) -> str:
         raise RuntimeError(f"could not resolve {host}")
 
 
+def _build_query(txid: int, name: str, qtype_n: int) -> bytes:
+    flags = 0x0100  # standard query, RD=1
+    header = struct.pack("!HHHHHH", txid, flags, 1, 0, 0, 0)
+    question = encode_name(name) + struct.pack("!HH", qtype_n, 1)
+    return header + question
+
+
+def _tcp_query(ns_ip: str, pkt: bytes, timeout: float) -> bytes:
+    """Send the same query over TCP (2-byte length prefix)."""
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.settimeout(timeout)
+    try:
+        sock.connect((ns_ip, 53))
+        sock.sendall(struct.pack("!H", len(pkt)) + pkt)
+        # Read 2-byte length prefix
+        lbuf = b""
+        while len(lbuf) < 2:
+            chunk = sock.recv(2 - len(lbuf))
+            if not chunk:
+                raise ConnectionError("EOF while reading TCP length prefix")
+            lbuf += chunk
+        (rlen,) = struct.unpack("!H", lbuf)
+        resp = b""
+        while len(resp) < rlen:
+            chunk = sock.recv(rlen - len(resp))
+            if not chunk:
+                raise ConnectionError("EOF mid TCP response")
+            resp += chunk
+        return resp
+    finally:
+        sock.close()
+
+
 def query(ns_host: str, name: str, qtype: str = "A", timeout: float = 5.0):
     qtype_n = TYPE_MAP[qtype.upper()]
     ns_ip = resolve_to_ip(ns_host)
 
-    # Build query
     txid = random.randint(0, 0xFFFF)
-    flags = 0x0100  # standard query, RD=1
-    header = struct.pack("!HHHHHH", txid, flags, 1, 0, 0, 0)
-    question = encode_name(name) + struct.pack("!HH", qtype_n, 1)
-    pkt = header + question
+    pkt = _build_query(txid, name, qtype_n)
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.settimeout(timeout)
@@ -129,14 +157,28 @@ def query(ns_host: str, name: str, qtype: str = "A", timeout: float = 5.0):
     finally:
         sock.close()
 
-    # Parse
     if len(resp) < 12:
         return {"error": "short response", "answers": []}
-    _, rflags, qd, an, ns_count, ar = struct.unpack("!HHHHHH", resp[:12])
+
+    # Validate TXID matches — reject unmatched packets (defence against
+    # off-path spoofed replies, and against parser drift on stray packets).
+    (rtxid, rflags, qd, an, ns_count, ar) = struct.unpack("!HHHHHH", resp[:12])
+    if rtxid != txid:
+        return {"error": f"txid mismatch: sent {txid}, got {rtxid}", "answers": []}
+
+    # If truncated (TC bit set), retry via TCP
+    if rflags & 0x0200:
+        try:
+            resp = _tcp_query(ns_ip, pkt, timeout)
+            (rtxid, rflags, qd, an, ns_count, ar) = struct.unpack("!HHHHHH", resp[:12])
+            if rtxid != txid:
+                return {"error": "tcp txid mismatch", "answers": []}
+        except Exception as e:
+            return {"error": f"TCP fallback failed: {e}", "answers": []}
+
     rcode = rflags & 0x0F
 
     offset = 12
-    # skip questions
     for _ in range(qd):
         _, offset = decode_name(resp, offset)
         offset += 4

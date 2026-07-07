@@ -290,8 +290,8 @@ turned ~6 human round-trips (each answering "yes, apply the obvious mock fix") i
 ### 41. The run needs NO live secrets — decline any the user offers, and advise rotation
 Workers operate on code + tests + a LOCAL throwaway DB. They never need production API keys/tokens. State this
 up front. If the user pastes live secrets "to help", do NOT store/echo/use them; tell them the run doesn't need
-them and — since they've now transited the chat — that they should ROTATE them. (Reaffirms #... secret hygiene:
-never commit real secrets; never echo values.)
+them and — since they've now transited the chat — that they should ROTATE them. (Reaffirms the secret hygiene
+rule stated in SKILL.md: never commit real secrets; never echo values into PR bodies or comments.)
 
 ### 42. Post-run stale-branch reconciliation is real cleanup value — and surfaces gaps the run missed
 After promotion, the repo is usually littered with stale branches (fix-unit leftovers, pre-existing feature

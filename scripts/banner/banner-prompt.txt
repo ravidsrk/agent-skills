@@ -1,5 +1,3 @@
-NOTE (repo maintenance — strip this line before pasting into the image model): assets/banner.jpg was generated from an earlier 5-skill version of this prompt; regenerate to show 6 dots.
-
 A wide horizontal banner image, 16:9 landscape aspect ratio, for the top of a GitHub README.
 
 STYLE: Bold typographic poster. Almost no illustration. Editorial magazine-cover feel. Inspired by Stripe Press book covers and the Vercel changelog aesthetic. Modern, confident, distinctive — built around typography itself as the hero element.

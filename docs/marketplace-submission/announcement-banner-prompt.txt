@@ -1,5 +1,3 @@
-🔴 NOTE: The on-disk `announcement-banner.jpg` in this directory is STALE — it was rendered from a previous version of this prompt that said "5 capability skills". Before using the JPG in any launch post, regenerate it from THIS prompt (see PRE-SUBMIT.md step 4). Do not attach the current JPG as-is.
-
 Wide announcement banner introducing two sibling open-source repos as a coordinated launch.
 Aspect ratio EXACTLY 16:9 (1920×1080). This is a single composition split into two equal vertical halves separated by a thin vertical seam.
 

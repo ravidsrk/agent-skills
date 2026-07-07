@@ -80,7 +80,7 @@ resource "aws_nat_gateway" "main" {
   allocation_id = aws_eip.nat.id
   subnet_id     = aws_subnet.public[0].id
 
-  tags = { Name = "${local.name_prefix}-nat" }
+  tags       = { Name = "${local.name_prefix}-nat" }
   depends_on = [aws_internet_gateway.main]
 }
 
@@ -144,7 +144,7 @@ resource "aws_vpc_endpoint" "interface" {
   vpc_id              = aws_vpc.main.id
   service_name        = "com.amazonaws.${var.aws_region}.${each.value}"
   vpc_endpoint_type   = "Interface"
-  subnet_ids          = aws_subnet.private[*].id  # Change to [private[0].id] for 1-AZ
+  subnet_ids          = aws_subnet.private[*].id # Change to [private[0].id] for 1-AZ
   security_group_ids  = [aws_security_group.vpc_endpoints.id]
   private_dns_enabled = true
 

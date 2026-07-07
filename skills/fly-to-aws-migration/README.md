@@ -19,10 +19,10 @@ It frames the migration as **7 phases, each its own PR**:
 | Phase | Goal | PR | Wall time |
 |---|---|---|---|
 | 0 | Audit current Fly setup | none | 15 min |
-| 1 | Foundation IaC (VPC, IAM, Aurora, ECR, ALB) | PR #1 | 60–90 min |
+| 1 | Foundation IaC (VPC, IAM, Aurora, ECR, ALB) — CAA preflight first | PR #1 | 60–90 min |
 | 2 | Code prep (Dockerfile fixes, ECR push workflow) | PR #2 | 30 min |
-| 3 | Secrets + DB schema migration | PR #3 | 30–60 min |
-| 4+5 | API production cutover (Fly off, AWS on) | PR #4 | ≤9 min downtime |
+| 3 | Secrets + **schema-only** DB migration | PR #3 | 30–60 min |
+| 4+5 | API cutover — data delta + DNS flip (Fly off, AWS on) | PR #4 | ≤9 min downtime |
 | 6 | Static sites cutover | PR #5 | zero downtime |
 | 7 | Perf tuning (Cloudflare cache layer) | PR #6 | optional |
 
@@ -66,8 +66,9 @@ You'll need these CLIs on PATH:
 | `aws` (v2) | All AWS provisioning + deploys |
 | `terraform` (≥1.5) | IaC for the AWS side (Phase 1) |
 | `docker` (or `buildx`) | Building images for ECR (Phase 2) |
-| `psql` + `pg_dump` / `pg_restore` | Postgres migration (Phase 3) |
+| `psql` + `pg_dump` / `pg_restore` | Postgres migration (Phase 3 + 4) |
 | `jq` | JSON munging across every script |
+| `dig` | CAA preflight in Phase 1 |
 
 # 3. Required credentials
 
@@ -78,8 +79,11 @@ export AWS_PROFILE=migration
 # Fly — for reading state and the final NS flip / destroy
 export FLY_API_TOKEN=...
 
-# Cloudflare — for the DNS cutover (Phase 6)
-export CLOUDFLARE_API_KEY=...
+# Cloudflare — scoped API token (Zone:DNS:Edit + Zone:Cache Purge on your zone)
+#   Create at: https://dash.cloudflare.com/profile/api-tokens
+#   The legacy CLOUDFLARE_GLOBAL_API_KEY still works but is discouraged.
+export CLOUDFLARE_API_TOKEN=...
+export CLOUDFLARE_ZONE_ID=...
 ```
 
 🔴 **Drop AdministratorAccess to a least-privilege role** once Phase 7 completes. The migration needs it; steady-state doesn't.
@@ -120,16 +124,14 @@ Common Dockerfile fixes for Fly→ECS:
 # Phase 3 — Secrets + DB schema
 
 ```bash
-# Export Fly secrets, push into AWS Secrets Manager
-scripts/db-migrate.sh your-app-db your-app/prod/db
-```
+# 1. Map Fly secrets into 8 grouped AWS Secrets Manager entries (dry-run first!)
+scripts/secrets-migrate.sh your-fly-api --dry-run
+scripts/secrets-migrate.sh your-fly-api --apply
 
-Then **schema-only** migration to Aurora (so Phase 4 just needs a final delta sync):
-
-```bash
-fly proxy 5432:5432 -a your-app-db &
-pg_dump --schema-only -h localhost -U postgres > schema.sql
-psql "postgresql://...aurora..." < schema.sql
+# 2. Schema-only DB migration (default mode)
+scripts/db-migrate.sh --schema-only \
+  --fly-app your-app-db \
+  --aurora-secret your-app/prod/db
 ```
 
 🔴 **Don't restore data here.** Data sync happens during the Phase 4 cutover window so you don't have to handle dual-writes.
@@ -139,18 +141,21 @@ psql "postgresql://...aurora..." < schema.sql
 The actual outage window. Run from a checklist:
 
 ```
-[ ] Fly app set to read-only / maintenance mode
-[ ] Final pg_dump --data-only from Fly Postgres
-[ ] psql restore --data-only into Aurora (parallel jobs)
-[ ] ECS service scale 0 → desired_count
-[ ] DNS A record: example.com → ALB DNS name (TTL=60 ahead of time)
-[ ] curl health checks against new endpoint
+[ ] Pre-warm ECS: task healthy against Aurora (schema-only) for ≥15 min BEFORE cutover
+[ ] Freeze Fly writes (scale API to 0 — DB stays up read-only-effectively)
+[ ] Final data-only dump from Fly Postgres: scripts/db-migrate.sh --data-only ...
+[ ] psql --data-only restore into Aurora with ON_ERROR_STOP=1
+[ ] ECS force-new-deployment against Aurora + wait services-stable
+[ ] Cloudflare DNS PATCH (proxied CNAME) → ALB DNS
+[ ] curl health checks against new endpoint (30s verify window)
 [ ] Smoke test: login, write, read, payment, etc.
 [ ] Watch CloudWatch logs for 10 min
 [ ] If anything's off → rollback (see references/rollback.md)
 ```
 
 In production, this phase typically takes **6–9 minutes of actual user-facing downtime** for a small/medium app.
+
+🔴 **Pre-warming ECS is what makes the ≤9 min budget hold.** Fargate cold starts (Bun 40s+, `health_check_grace_period_seconds=120`, ARM64 image pull) will otherwise consume most of the window. See [`references/phases.md`](references/phases.md) → Phase 4 for the exact commands.
 
 # Phase 6 — Static sites
 
@@ -227,9 +232,10 @@ fly-to-aws-migration/
 │   └── cost-model.md                         ← AWS pricing breakdown
 ├── scripts/
 │   ├── audit-fly.sh                          ← Phase 0: snapshot Fly setup
-│   ├── db-migrate.sh                         ← Phase 3: secrets + schema
+│   ├── secrets-migrate.sh                    ← Phase 3: flyctl secrets → 8 grouped AWS SM entries (dry-run by default)
+│   ├── db-migrate.sh                         ← Phase 3 (--schema-only) / Phase 4 (--data-only) / --full
 │   ├── verify-parity.sh                      ← Side-by-side Fly vs AWS checks
-│   └── cutover-dns.sh                        ← Phase 6 static-site DNS flip
+│   └── cutover-dns.sh                        ← Phase 4+5 (API) / Phase 6 static-site DNS flip
 └── templates/
     ├── terraform/                            ← Full IaC for Phase 1
     │   ├── main.tf

@@ -4,7 +4,7 @@ Everything needed to submit both repos to the **Claude Code Community Marketplac
 
 # What submission means
 
-When Anthropic approves a submission, your plugin entry lands in [`claude-plugins-community/.claude-plugin/marketplace.json`](https://github.com/anthropics/claude-plugins-community/blob/main/.claude-plugin/marketplace.json) (2,200+ plugins as of June 2026). Users discover and install via:
+When Anthropic approves a submission, your plugin entry lands in [`claude-plugins-community/.claude-plugin/marketplace.json`](https://github.com/anthropics/claude-plugins-community/blob/main/.claude-plugin/marketplace.json) (2,200+ plugins as of July 2026). Users discover and install via:
 
 ```bash
 /plugin marketplace add anthropics/claude-plugins-community
@@ -28,11 +28,12 @@ Both feed the same review pipeline. Use the Console form unless you already have
 
 - ✅ Both repos have `.claude-plugin/plugin.json` at the root
   - autonomous-fleet: `2a0f7b9664fac8c19f192bac26809ee9f7360fd4`
-  - agent-skills: `813d097d0fe9fba2c30287a116034ef5ebdf3595`
+  - agent-skills: bump to current HEAD at submission time — see [`PRE-SUBMIT.md`](./PRE-SUBMIT.md)
 - ✅ Both have `SKILL.md` files following the agentskills.io spec
-- ✅ Both have full READMEs with banners + install instructions
+- 🟡 Most skills ship with a per-skill banner + install instructions in their README (see AGENTS.md → Imagery & Banners; `clean-sweep` and `terminal-poster` are documented exceptions)
 - ✅ Both are MIT licensed
 - ✅ Both have CI green on the submission SHA
+- 🔴 **Before submitting agent-skills, run through [`PRE-SUBMIT.md`](./PRE-SUBMIT.md)** — it regenerates the pinned SHA, verifies the skill count, and guards against the "ai-image-generation" ghost-skill regression.
 - 🟡 Optional pre-submit: run `claude plugin validate` locally (the review pipeline runs the same check)
 
 # Submission packet for `autonomous-fleet`
@@ -51,13 +52,13 @@ Both feed the same review pipeline. Use the Console form unless you already have
 # Submission packet for `agent-skills`
 
 **Repository:** https://github.com/ravidsrk/agent-skills
-**Pinned SHA:** `813d097d0fe9fba2c30287a116034ef5ebdf3595`
+**Pinned SHA:** `<BUMP-TO-HEAD-AT-SUBMIT>` — refresh with `git rev-parse HEAD` immediately before opening the form (see [`PRE-SUBMIT.md`](./PRE-SUBMIT.md))
 **Category:** development
-**One-line pitch:** Production-grade capability skills for AI coding agents. 5 battle-tested skills covering cloud infrastructure, research, and image generation.
+**One-line pitch:** Production-grade capability skills for AI coding agents. 6 battle-tested skills covering cloud infrastructure, research, viral image generation, and autonomous multi-agent codebase clean-sweep.
 
 **Description** (paste into form):
 
-> Production-grade capability skills for AI coding agents. Five battle-tested skills: cloudflare-dns (migrate DNS from any registrar to Cloudflare with bulk record import and registrar nameserver flip), fly-to-aws-migration (end-to-end Fly.io → AWS migration playbook covering Postgres → Aurora, Machines → ECS Fargate, secrets, DNS cutover), deep-research (parallel multi-source research across X, Reddit, HackerNews, GitHub, Polymarket, YouTube, and Exa neural search), terminal-poster (dense retro-cyberpunk viral infographics via Nano Banana Pro), and ai-image-generation (best-in-class image generation routing). MIT licensed.
+> Production-grade capability skills for AI coding agents. Six battle-tested skills: cloudflare-dns (migrate DNS from any registrar to Cloudflare with bulk record import and registrar nameserver flip), namecheap-dns (manage Namecheap DNS records via the XML API — handles IP-allowlist and wholesale-replace quirks), fly-to-aws-migration (end-to-end Fly.io → AWS migration playbook covering Postgres → Aurora, Machines → ECS Fargate, secrets, DNS cutover), deep-research (parallel multi-source research across X, Reddit, HackerNews, GitHub, Polymarket, YouTube, and Exa neural search), terminal-poster (dense retro-cyberpunk viral infographics via Nano Banana Pro), and clean-sweep (autonomous multi-agent issue clean-sweep — one-PR-per-finding pipeline on the Orca runtime). MIT licensed.
 
 **Marketplace entry** (ready-to-paste JSON): see [`agent-skills.marketplace-entry.json`](./agent-skills.marketplace-entry.json)
 

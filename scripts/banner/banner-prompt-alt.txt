@@ -10,7 +10,7 @@ PALETTE:
   - White (#FFFFFF) for card faces
 
 LAYOUT:
-  Centered composition. Five (5) isometric "skill cards" arranged in a gentle horizontal arc across the canvas, slightly overlapping. Each card is a thin floating rectangle in isometric perspective (think a credit-card-sized object floating in 3D space, 30° isometric angle).
+  Centered composition. Six (6) isometric "skill cards" arranged in a gentle horizontal arc across the canvas, slightly overlapping. Each card is a thin floating rectangle in isometric perspective (think a credit-card-sized object floating in 3D space, 30° isometric angle).
 
   Each card represents one skill with a single iconic visual on its face:
 
@@ -22,7 +22,9 @@ LAYOUT:
 
   CARD 4 (front-right): a central node with EIGHT thin lines fanning outward to small orbiting circles (representing the 8 research sources). Cream face. Label: "DEEP-RESEARCH".
 
-  CARD 5 (rightmost, slight back): a stylized poster or framed picture with abstract pixel-bitmap art on it. Cream face. Label: "TERMINAL-POSTER".
+  CARD 5 (right, slightly back): a stylized poster or framed picture with abstract pixel-bitmap art on it. Cream face. Label: "TERMINAL-POSTER".
+
+  CARD 6 (rightmost, slight back): a stylized broom sweeping three tiny squares into a neat checked stack (issues being closed). Cream face, teal accent. Label: "CLEAN-SWEEP".
 
 ABOVE the cards (top-left of canvas): the title "agent-skills" set in a clean modern sans-serif (Inter or Geist), dark slate, lowercase, comfortable size — about 1/8 the canvas height. Below the title, in smaller weight: "production-grade skills for AI agents".
 
@@ -30,4 +32,4 @@ BELOW the cards (bottom-center): a single thin horizontal line of tiny dots and 
 
 GENERAL FEEL: Linear.app meets Stripe.com meets a Dieter Rams product photo. Calm, confident, premium. Lots of negative space. The cards should feel like physical objects you could pick up. Subtle drop shadows under each card. NO dense text. NO terminal aesthetics. NO cyberpunk. NO neon glow. No overcomplicated patterns.
 
-The viewer should immediately understand: "this is a curated collection of 5 distinct tools".
+The viewer should immediately understand: "this is a curated collection of 6 distinct tools".

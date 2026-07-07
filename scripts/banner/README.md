@@ -1,6 +1,6 @@
 # Banner Generation
 
-The repo banner (`assets/banner.jpg`) and the 4 per-skill banners are generated with Nano Banana Pro (Google Gemini 3 Pro Image) via OpenRouter.
+The repo banner (`assets/banner.jpg`) and the per-skill banners under `skills/<name>/assets/banner.{jpg,png}` are generated with Nano Banana Pro (Google Gemini 3 Pro Image) via OpenRouter.
 
 # Reproducing the main banner
 

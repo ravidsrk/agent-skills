@@ -8,7 +8,7 @@ Drafted post copy for the dual-launch of `agent-skills` + `autonomous-fleet`. At
 
 > Two open-source agent toolkits live today, sharing one design philosophy:
 >
-> 🟦 `agent-skills` — 5 capability skills (DNS, AWS migration, research, image gen)
+> 🟦 `agent-skills` — 6 capability skills (DNS × 2, AWS migration, research, image gen, autonomous clean-sweep)
 > 🟧 `autonomous-fleet` — 24-skill multi-agent engineering framework
 >
 > github.com/ravidsrk/agent-skills
@@ -41,7 +41,7 @@ Drafted post copy for the dual-launch of `agent-skills` + `autonomous-fleet`. At
 ```
 1/ Shipped two open-source AI-agent repos today:
 
-🟦 agent-skills — 5 capability skills that just work
+🟦 agent-skills — 6 capability skills that just work
 🟧 autonomous-fleet — multi-agent engineering framework with 24 skills
 
 Different purposes. Same philosophy: SKILL.md is the source of truth, agents read it, agents do the work.
@@ -49,10 +49,11 @@ Different purposes. Same philosophy: SKILL.md is the source of truth, agents rea
 2/ agent-skills covers:
 
 • cloudflare-dns — migrate DNS from any registrar to Cloudflare
+• namecheap-dns — manage Namecheap records via the XML API (handles the wholesale-replace quirk)
 • fly-to-aws-migration — full Fly.io → AWS playbook
 • deep-research — 8 sources in parallel (X, Reddit, HN, GitHub, YouTube, Exa…)
 • terminal-poster — viral infographics via Nano Banana Pro
-• ai-image-generation — best-image-per-task routing
+• clean-sweep — autonomous multi-agent issue clean-sweep (one PR per finding)
 
 3/ autonomous-fleet is bigger — a portable framework for fully-autonomous coding runs across orchestration tools:
 
@@ -85,12 +86,13 @@ Why two repos? Different purposes deserve different identities. Same author, sam
 >
 > **🟦 `agent-skills` (`github.com/ravidsrk/agent-skills`)**
 >
-> Five battle-tested capability skills that solve specific high-value tasks:
+> Six battle-tested capability skills that solve specific high-value tasks:
 > • `cloudflare-dns` — migrate DNS from any registrar to Cloudflare
+> • `namecheap-dns` — manage Namecheap records via the XML API
 > • `fly-to-aws-migration` — full Fly → AWS playbook
 > • `deep-research` — parallel research across 8 sources
 > • `terminal-poster` — viral infographic generation
-> • `ai-image-generation` — best-image-per-task routing
+> • `clean-sweep` — autonomous multi-agent issue clean-sweep (one PR per finding)
 >
 > **🟧 `autonomous-fleet` (`github.com/ravidsrk/autonomous-fleet`)**
 >
@@ -125,15 +127,16 @@ AI coding agents (Claude Code, Cursor, Codex, Grok Build, Orca) are getting good
 
 So I built two repos.
 
-## `agent-skills` — capability toolkit (5 skills)
+## `agent-skills` — capability toolkit (6 skills)
 
 Reach-for-when-needed skills that solve specific high-value tasks. Each skill is a self-contained capability with `SKILL.md` (agent-facing spec), a README (human-facing), references for progressive disclosure, and scripts.
 
 - **`cloudflare-dns`** — migrate DNS from Namecheap (or any registrar) to Cloudflare
+- **`namecheap-dns`** — manage Namecheap DNS records via the XML API
 - **`fly-to-aws-migration`** — end-to-end Fly.io → AWS playbook
 - **`deep-research`** — parallel research across X, Reddit, HN, GitHub, YouTube, Exa
 - **`terminal-poster`** — generate dense viral infographics via Nano Banana Pro
-- **`ai-image-generation`** — best-image-per-task routing
+- **`clean-sweep`** — autonomous multi-agent issue clean-sweep on the Orca runtime
 
 [`github.com/ravidsrk/agent-skills`](https://github.com/ravidsrk/agent-skills)
 

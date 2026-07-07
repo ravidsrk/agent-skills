@@ -17,7 +17,7 @@ done
 
 # Verify
 ls ~/.claude/skills/
-# cloudflare-dns  deep-research  fly-to-aws-migration  namecheap-dns  terminal-poster
+# clean-sweep  cloudflare-dns  deep-research  fly-to-aws-migration  namecheap-dns  terminal-poster
 ```
 
 🟢 **Why this approach:** edits to your clone instantly reflect in Claude Code. Skills update via `git pull`. No reinstall step.
@@ -33,7 +33,7 @@ cp -r /tmp/agent-skills/skills/* ~/.claude/skills/
 
 # 🟢 Path 3: Plugin manifest (when you want full repo discovery)
 
-The repo ships a `plugin.json` at the root, so Claude Code can treat the whole repo as a plugin bundle.
+The repo ships a `.claude-plugin/plugin.json` manifest, so Claude Code can treat the whole repo as a plugin bundle.
 
 ```bash
 git clone https://github.com/ravidsrk/agent-skills.git ~/.claude/plugins/agent-skills
@@ -52,6 +52,7 @@ Each skill needs different secrets. Set them in your shell or in Claude Code's e
 | `fly-to-aws-migration` | `AWS_PROFILE`, `FLY_API_TOKEN`, `CLOUDFLARE_API_KEY` |
 | `deep-research` | `MONID_API_KEY` |
 | `terminal-poster` | `OPENROUTER_API_KEY` |
+| `clean-sweep` | none — requires Orca runtime + `gh` CLI on PATH |
 
 ```bash
 # Example: add to ~/.zshrc or ~/.bashrc

@@ -11,7 +11,7 @@ If you're new to the [Agent Skills spec](https://agentskills.io/specification), 
 1. Fork → branch off `main`
 2. Add `skills/<your-skill>/SKILL.md` (+ optional `README.md`, `scripts/`, `references/`, `assets/`)
 3. Run `python3 scripts/validate-skills.py` → must pass
-4. Add a row to the **Skills** table in [`README.md`](README.md)
+4. Add a row to the appropriate category table in [`README.md`](README.md) (🌐 Infrastructure / 🔍 Research / 🎨 Creative / 🛠️ Dev workflow)
 5. Open a PR with a short demo (screenshot, log, or example output)
 
 ---
@@ -94,7 +94,7 @@ Must pass. CI runs the same check.
 
 # 2. Test end-to-end
 
-Install your skill into at least one agent runtime (Claude Code, Cursor, OpenClaw, Codex, Mogra, etc.) and verify the agent picks it up from a natural prompt — not just a "use the X skill" command. Include a short verification note in the PR (screenshot, transcript, or log).
+Install your skill into at least one agent runtime (Claude Code, Cursor, OpenCode, Codex, Mogra, etc.) and verify the agent picks it up from a natural prompt — not just a "use the X skill" command. Include a short verification note in the PR (screenshot, transcript, or log).
 
 # 3. Scan for leaks — 🔴 ZERO TOLERANCE
 
@@ -129,13 +129,14 @@ All skills must be MIT-compatible. If your skill bundles external scripts, libra
 # Adding a new skill — full checklist
 
 ```
-[ ] skills/<your-skill>/SKILL.md         ← Required, valid frontmatter
-[ ] skills/<your-skill>/README.md        ← Recommended, human-facing docs
-[ ] skills/<your-skill>/scripts/         ← Optional, executable helpers
-[ ] skills/<your-skill>/references/      ← Optional, progressive-disclosure docs
-[ ] skills/<your-skill>/assets/          ← Optional, examples / templates
-[ ] python3 scripts/validate-skills.py   ← Must pass
-[ ] Row added to README.md skills table  ← Include trigger phrases column
+[ ] skills/<your-skill>/SKILL.md                 ← Required, valid frontmatter
+[ ] skills/<your-skill>/README.md                ← Required, human-facing docs
+[ ] skills/<your-skill>/scripts/                 ← Optional, executable helpers
+[ ] skills/<your-skill>/references/              ← Optional, progressive-disclosure docs
+[ ] skills/<your-skill>/assets/                  ← Optional, examples / templates
+[ ] skills/<your-skill>/assets/banner.{jpg,png}  ← Optional but strongly encouraged; ship banner-prompt.txt beside it (see AGENTS.md Imagery & Banners)
+[ ] python3 scripts/validate-skills.py           ← Must pass
+[ ] Row added to the correct category table in README.md
 [ ] Leak scan run (paths, secrets, names)
 [ ] Tested in ≥1 runtime, evidence in PR
 [ ] PR description explains the workflow + cost + when to use

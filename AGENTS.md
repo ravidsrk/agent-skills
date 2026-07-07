@@ -25,6 +25,7 @@ When working in this repo:
 | "Migrate from Fly to AWS" / "leave Fly" / "ECS migration" / "AWS migration" | [`fly-to-aws-migration`](skills/fly-to-aws-migration/SKILL.md) |
 | "Research X" / "deep dive on Y" / "what's the discourse on Z" | [`deep-research`](skills/deep-research/SKILL.md) |
 | "Generate a viral poster" / "terminal aesthetic infographic" / "agent stack visualization" | [`terminal-poster`](skills/terminal-poster/SKILL.md) |
+| "Clean sweep the issues" / "fix everything in this audit doc" / "close out this review" / "autonomous multi-agent fix-everything pass" | [`clean-sweep`](skills/clean-sweep/SKILL.md) |
 
 # Execution Model
 
@@ -61,7 +62,9 @@ For every request:
 
 # Imagery & Banners
 
-Every skill ships with a **per-skill banner** at `skills/<name>/assets/banner.{jpg,png}`, plus a matching `banner-prompt.txt` reproducer next to it. The main `assets/banner.jpg` is the repo hero (clean typography on warm cream paper).
+Most skills ship a **per-skill banner** at `skills/<name>/assets/banner.{jpg,png}`, plus a matching `banner-prompt.txt` reproducer next to it. The main `assets/banner.jpg` is the repo hero (clean typography on warm cream paper).
+
+🟡 **Exceptions today:** `clean-sweep` (coordinator playbook — no banner yet) and `terminal-poster` (its `assets/examples/` are the visual proof-of-work; no separate banner needed). New skills should still include one.
 
 **Design language (keep new skills consistent):**
 

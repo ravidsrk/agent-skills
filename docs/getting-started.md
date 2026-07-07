@@ -28,7 +28,7 @@ cd agent-skills
 
 ```bash
 ls skills/
-# cloudflare-dns  deep-research  fly-to-aws-migration  namecheap-dns  terminal-poster
+# clean-sweep  cloudflare-dns  deep-research  fly-to-aws-migration  namecheap-dns  terminal-poster
 ```
 
 Read its `README.md` for what it does and what env vars it needs.
@@ -45,7 +45,7 @@ The pattern depends on the runtime. Pick the one matching your setup:
 
 # 4. Set the env vars
 
-Each skill's `README.md` lists what it needs. Quick reference for all 5:
+Each skill's `README.md` lists what it needs. Quick reference for all 6:
 
 ```bash
 # cloudflare-dns
@@ -67,6 +67,9 @@ export MONID_API_KEY=...
 
 # terminal-poster
 export OPENROUTER_API_KEY=...
+
+# clean-sweep
+# none — requires Orca multi-agent runtime + gh CLI on PATH
 ```
 
 🔴 **Never commit `.env` files.** All skills read env vars at runtime — they're never written to disk.
@@ -82,6 +85,7 @@ In your agent, ask something the skill should respond to:
 | `fly-to-aws-migration` | *"Migrate my Fly project to AWS"* |
 | `deep-research` | *"Do a deep dive on AI agent harness engineering"* |
 | `terminal-poster` | *"Generate a terminal-style poster for our agent stack"* |
+| `clean-sweep` | *"Clean sweep the issues in this repo"* / *"fix everything in this audit doc"* |
 
 The agent should announce that it's loading the matching skill before proceeding.
 

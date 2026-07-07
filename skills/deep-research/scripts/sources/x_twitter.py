@@ -9,8 +9,8 @@ catalog endpoint `tikhub /api/v1/twitter/web/fetch_search_timeline`. Reasons:
 
 tikhub returns ~20 tweets/page (Top or Latest) and supports cursor paging for
 `deep` depth. Date filtering is applied client-side from `created_at` because
-the endpoint has no date param. There is no LLM "why_relevant" field anymore —
-the orchestrator ranks by engagement instead.
+the endpoint has no date param. Ranking is by engagement (likes + reposts +
+replies) — no LLM annotation.
 
 Required env: MONID_API_KEY (workspace-wide).
 """
@@ -57,7 +57,6 @@ def _normalize(t: dict) -> dict:
         "quotes": t.get("quotes", 0) or 0,
         "views": t.get("views", 0) or 0,
         "bookmarks": t.get("bookmarks", 0) or 0,
-        "why_relevant": "",  # no LLM annotation on the raw tikhub path
     }
 
 

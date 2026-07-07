@@ -4,52 +4,18 @@ The public reddit.com JSON endpoints return 403 from datacenter IPs (verified
 2026-05-13). The Apify scraper paths through Reddit at $0.0057/result and
 returns the same shape as the public JSON, including comments.
 
+Routes through the shared `_monid.run_monid` runner so transient Apify errors
+(rate-limit HTML pages, upstream timeouts) get the same exponential-backoff
+retry treatment as every other source.
+
 Required env: MONID_API_KEY (already set workspace-wide).
 """
 from __future__ import annotations
 import json
-import os
-import subprocess
 import sys
-import time
-from typing import Optional
 
 
-from ._monid import MONID_BIN
-
-
-def _run_monid(provider: str, endpoint: str, body: dict, wait: int = 90) -> Optional[dict]:
-    """Run monid and return the parsed JSON result."""
-    cmd = [
-        MONID_BIN, "run",
-        "-p", provider,
-        "-e", endpoint,
-        "-i", json.dumps(body),
-        "-w", str(wait),
-        "--json",
-    ]
-    env = {**os.environ, "NO_COLOR": "1"}
-    try:
-        result = subprocess.run(cmd, env=env, capture_output=True, text=True, timeout=wait + 30)
-        if result.returncode != 0:
-            sys.stderr.write(f"[reddit/monid] non-zero exit: {result.stderr[:500]}\n")
-            return None
-        # Parse — strip ANSI just in case
-        out = result.stdout
-        try:
-            return json.loads(out)
-        except json.JSONDecodeError:
-            # Sometimes the CLI emits a leading status line; find first '{'
-            i = out.find("{")
-            if i == -1:
-                return None
-            return json.loads(out[i:])
-    except subprocess.TimeoutExpired:
-        sys.stderr.write(f"[reddit/monid] timeout\n")
-        return None
-    except Exception as e:
-        sys.stderr.write(f"[reddit/monid] error: {e}\n")
-        return None
+from ._monid import run_monid
 
 
 def _normalize_post(p: dict) -> dict:
@@ -86,18 +52,18 @@ def _normalize_post(p: dict) -> dict:
     }
 
 
-def search(topic: str, time_filter: str = "month", limit: int = 25, include_comments: bool = True) -> list[dict]:
+def search(topic: str, days: int = 30, limit: int = 25, include_comments: bool = True) -> list[dict]:
     """Global Reddit search for the topic.
 
     Args:
         topic: search term
-        time_filter: kept for API compatibility — Apify scraper uses postDateLimit
+        days: time window in days for postDateLimit (default 30)
         limit: max posts to return
         include_comments: pull top comments per post for direct quote material
     """
     from datetime import datetime, timedelta, timezone
     # postDateLimit format is YYYY-MM-DD
-    since = (datetime.now(timezone.utc) - timedelta(days=30)).strftime("%Y-%m-%d")
+    since = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d")
     body = {
         "searches": [topic],
         "type": "posts",
@@ -110,8 +76,8 @@ def search(topic: str, time_filter: str = "month", limit: int = 25, include_comm
         "skipCommunity": True,
         "postDateLimit": since,
     }
-    sys.stderr.write(f"[reddit] search via monid: {topic!r} since={since} limit={limit}\n")
-    result = _run_monid("apify", "/trudax/reddit-scraper-lite", body, wait=120)
+    sys.stderr.write(f"[reddit] search via monid: {topic!r} since={since} (days={days}) limit={limit}\n")
+    result = run_monid("apify", "/trudax/reddit-scraper-lite", body=body, wait=120, tag="reddit")
     if not result:
         return []
     items = result.get("output") or []

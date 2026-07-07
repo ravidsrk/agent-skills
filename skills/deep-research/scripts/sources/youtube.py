@@ -4,49 +4,58 @@ Two phases:
 1. Search YouTube for the topic (apify//streamers/youtube-scraper, $0.0045/result)
 2. Pull full transcripts for the top N results (apify//starvibe/youtube-video-transcript, $0.0075/result)
 
+Routes through the shared `_monid.run_monid` runner so transient Apify errors
+(rate-limit HTML pages, upstream timeouts) get the same exponential-backoff
+retry treatment as every other source.
+
 The transcript endpoint often returns 8K+ word transcripts — game-changer
 for any research where a podcast or interview is the primary source.
 """
 from __future__ import annotations
 import json
-import os
-import subprocess
+import re
 import sys
-from typing import Optional
 
 
-from ._monid import MONID_BIN
+from ._monid import run_monid
 
 
-def _run_monid(endpoint: str, body: dict, wait: int = 180) -> Optional[dict]:
-    cmd = [
-        MONID_BIN, "run",
-        "-p", "apify",
-        "-e", endpoint,
-        "-i", json.dumps(body),
-        "-w", str(wait),
-        "--json",
-    ]
-    env = {**os.environ, "NO_COLOR": "1"}
-    try:
-        result = subprocess.run(cmd, env=env, capture_output=True, text=True, timeout=wait + 30)
-        if result.returncode != 0:
-            sys.stderr.write(f"[youtube/monid] non-zero exit on {endpoint}: {result.stderr[:400]}\n")
-            return None
-        out = result.stdout
+_VIEW_MAGNITUDES = {"K": 1_000, "M": 1_000_000, "B": 1_000_000_000}
+_VIEW_RE = re.compile(r"([0-9]+(?:\.[0-9]+)?)\s*([KMBkmb])?")
+
+
+def _parse_view_count(raw) -> int:
+    """Turn a viewCount / viewCountText into an int.
+
+    Handles bare ints/floats, plain numeric strings ("12345"), comma-separated
+    strings ("12,345"), suffixed strings ("1.2M views", "4.5K"), and empty/None.
+    """
+    if raw is None:
+        return 0
+    if isinstance(raw, (int, float)):
         try:
-            return json.loads(out)
-        except json.JSONDecodeError:
-            i = out.find("{")
-            if i == -1:
-                return None
-            return json.loads(out[i:])
-    except subprocess.TimeoutExpired:
-        sys.stderr.write(f"[youtube/monid] timeout on {endpoint}\n")
-        return None
-    except Exception as e:
-        sys.stderr.write(f"[youtube/monid] error on {endpoint}: {e}\n")
-        return None
+            return int(raw)
+        except (ValueError, OverflowError):
+            return 0
+    if not isinstance(raw, str):
+        return 0
+    s = raw.strip().replace(",", "")
+    if not s:
+        return 0
+    # Fast path: bare integer
+    try:
+        return int(s)
+    except ValueError:
+        pass
+    m = _VIEW_RE.search(s)
+    if not m:
+        return 0
+    try:
+        base = float(m.group(1))
+    except ValueError:
+        return 0
+    suffix = (m.group(2) or "").upper()
+    return int(base * _VIEW_MAGNITUDES.get(suffix, 1))
 
 
 def search(topic: str, limit: int = 8, max_transcripts: int = 3) -> list[dict]:
@@ -66,19 +75,21 @@ def search(topic: str, limit: int = 8, max_transcripts: int = 3) -> list[dict]:
         "maxResultStreams": 0,
         "downloadSubtitles": False,
     }
-    search_result = _run_monid("/streamers/youtube-scraper", search_body, wait=180)
+    search_result = run_monid("apify", "/streamers/youtube-scraper", body=search_body, wait=180, tag="youtube")
     if not search_result:
         return []
     videos = search_result.get("output") or []
     if not isinstance(videos, list):
         return []
 
-    # Sort by view count + filter low-quality
+    # Sort by view count. Prefer numeric viewCount when present; fall back to
+    # parsing viewCountText ("1.2M views", "4.5K") for scrapes that only return
+    # the display string.
     def view_sort(v):
-        try:
-            return int(v.get("viewCount") or v.get("viewCountText", "0").replace(",", "").replace(" views", "") or 0)
-        except (ValueError, AttributeError):
-            return 0
+        raw = v.get("viewCount")
+        if raw not in (None, "", 0):
+            return _parse_view_count(raw)
+        return _parse_view_count(v.get("viewCountText", ""))
 
     videos = sorted(videos, key=view_sort, reverse=True)
     sys.stderr.write(f"[youtube] got {len(videos)} videos from search\n")
@@ -106,7 +117,7 @@ def search(topic: str, limit: int = 8, max_transcripts: int = 3) -> list[dict]:
         for url in top_urls:
             sys.stderr.write(f"[youtube] fetching transcript for {url}\n")
             tr_body = {"youtube_url": url, "language": "en"}
-            tr_result = _run_monid("/starvibe/youtube-video-transcript", tr_body, wait=240)
+            tr_result = run_monid("apify", "/starvibe/youtube-video-transcript", body=tr_body, wait=240, tag="youtube")
             if not tr_result:
                 continue
             tr_items = tr_result.get("output") or []

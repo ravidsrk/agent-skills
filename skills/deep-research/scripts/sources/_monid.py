@@ -20,8 +20,50 @@ import re
 import shutil
 import subprocess
 import sys
+import threading
 import time
 from typing import Optional, Union
+
+
+# --- Per-run cost accumulator ----------------------------------------------
+# monid returns a `price` field on every run envelope (USD, string or number).
+# We sum that across every call in the process so `research.py` can print a
+# `Total cost: $X.XX` line at the end. Thread-safe because sources fan out via
+# a ThreadPoolExecutor.
+_cost_lock = threading.Lock()
+_total_cost_usd = 0.0
+_priced_calls = 0
+
+
+def _add_cost(envelope: Optional[dict]) -> None:
+    """Add the `price` field from a monid envelope to the running total."""
+    if not isinstance(envelope, dict):
+        return
+    raw = envelope.get("price")
+    if raw is None:
+        return
+    try:
+        amt = float(raw)
+    except (TypeError, ValueError):
+        return
+    global _total_cost_usd, _priced_calls
+    with _cost_lock:
+        _total_cost_usd += amt
+        _priced_calls += 1
+
+
+def get_total_cost() -> tuple[float, int]:
+    """Return (total_usd, priced_call_count) for the current process."""
+    with _cost_lock:
+        return _total_cost_usd, _priced_calls
+
+
+def reset_total_cost() -> None:
+    """Reset the running total (test helper)."""
+    global _total_cost_usd, _priced_calls
+    with _cost_lock:
+        _total_cost_usd = 0.0
+        _priced_calls = 0
 
 
 def _resolve_bin() -> str:
@@ -104,6 +146,10 @@ def _run_once(cmd: list[str], wait: int, tag: str) -> tuple[Optional[dict], bool
     if parsed is None:
         sys.stderr.write(f"[{tag}/monid] unparseable output: {out[:200]}\n")
         return None, True
+
+    # Bill for every parsed envelope, whether the upstream ultimately succeeds
+    # or fails — monid charges for the call either way.
+    _add_cost(parsed)
 
     # A 200-exit envelope can still wrap a transient upstream error.
     if _is_transient(parsed):
@@ -189,7 +235,7 @@ _JSON_FENCE = re.compile(r"```(?:json)?\s*(.*?)\s*```", re.S)
 
 
 def _unwrap_json(content: str) -> Optional[Union[dict, list]]:
-    """Parse JSON from a text blob — raw first, then fenced, then balanced span."""
+    """Parse JSON from a text blob — raw first, then fenced, then widest span."""
     if not content:
         return None
     # 1) raw — content IS json (the exa/contents common case)
@@ -204,7 +250,12 @@ def _unwrap_json(content: str) -> Optional[Union[dict, list]]:
             return json.loads(m.group(1))
         except json.JSONDecodeError:
             pass
-    # 3) first balanced {...} or [...] span
+    # 3) widest single-object span — first `{`/`[` to last matching `}`/`]`.
+    # NOT a balanced-brace walk: if the blob has "{...}garbage{...}" both
+    # objects get concatenated and parse fails. Fine for our use because
+    # exa/contents payloads that reach step 3 are already malformed and this
+    # is a last-ditch heuristic; upgrade to a real depth walker only if we
+    # start seeing multiple JSON blobs glued together in the wild.
     for opener, closer in (("{", "}"), ("[", "]")):
         start = content.find(opener)
         end = content.rfind(closer)

@@ -85,14 +85,28 @@ Get one at [openrouter.ai/keys](https://openrouter.ai/keys). The skill uses `goo
 # macOS
 brew install yq
 
-# Linux
+# Linux (needs sudo to write to /usr/local/bin, or drop into ~/.local/bin)
+sudo curl -L https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 \
+  -o /usr/local/bin/yq && sudo chmod +x /usr/local/bin/yq
+
+# Linux, no sudo:
+mkdir -p ~/.local/bin
 curl -L https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 \
-  -o /usr/local/bin/yq && chmod +x /usr/local/bin/yq
+  -o ~/.local/bin/yq && chmod +x ~/.local/bin/yq
+export PATH="$HOME/.local/bin:$PATH"
 ```
+
+`make-poster.sh` will also auto-install yq on Linux if it's missing. On macOS the script refuses to auto-install and tells you to run `brew install yq` instead.
 
 # 3. Generate a poster
 
 ```bash
+# --dry-run first: writes ./my-first-poster.prompt.txt without hitting OpenRouter (no credit burn).
+bash scripts/make-poster.sh \
+  scripts/example-specs/cluster-a-stack.yaml \
+  ./my-first-poster.png --dry-run
+
+# Happy with the prompt? Drop --dry-run to render.
 bash scripts/make-poster.sh \
   scripts/example-specs/cluster-a-stack.yaml \
   ./my-first-poster.png
@@ -179,13 +193,16 @@ terminal-poster/
 ├── README.md                              ← this file
 ├── SKILL.md                               ← agent-readable skill specification
 ├── scripts/
-│   ├── make-poster.sh                     ← high-level CLI (YAML spec → PNG)
+│   ├── make-poster.sh                     ← high-level CLI (YAML spec → PNG); supports --dry-run
 │   ├── generate.sh                        ← low-level helper (prompt.txt → PNG)
 │   └── example-specs/
 │       ├── cluster-a-stack.yaml           ← Cluster A engineer-poet zine
 │       ├── cluster-b-maturity.yaml        ← Cluster B color-coded ladder
-│       ├── cluster-d-playbook.yaml        ← Cluster D blueprint playbook
-│       └── c2-smoketest.yaml              ← Cluster C2 whimsical pixel hero
+│       ├── cluster-c1-hero.yaml           ← Cluster C1 painterly hero
+│       ├── c2-smoketest.yaml              ← Cluster C2 whimsical pixel hero
+│       ├── cluster-d-playbook.yaml        ← Cluster D1 blueprint playbook
+│       ├── cluster-d2-thought-piece.yaml  ← Cluster D2 terminal-window
+│       └── cluster-e-brandbook.yaml       ← Cluster E editorial brand book
 ├── references/
 │   ├── design-dna.md                      ← palette, fonts, layout rules
 │   ├── worked-examples.md                 ← iteration log, scores, failure modes

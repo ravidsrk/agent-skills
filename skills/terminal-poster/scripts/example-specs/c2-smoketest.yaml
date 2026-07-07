@@ -15,14 +15,14 @@ eyebrow: GOOD-BOY APPROVED
 brand: WALKBOT
 subtitle: AGENT FOR YOUR DOG
 
-# Flat pixel hero — must be visible square pixels, NO painterly
+# hero_subject is a full scene description. The CLI does NOT prepend a
+# "A FLAT PIXEL-ART scene of ..." wrapper; it appends flat-pixel style
+# constraints separately, so state the scene itself here.
 hero_subject: >
-  a flat 8-bit pixel-art scene of a chunky golden retriever sitting beside
-  three small vintage CRT monitors. The monitors show: a weather forecast,
-  a calendar grid with X marks, and a route map with paw prints. Behind the
-  dog: a stepped pixel-art bone-shape outlined in orange. Pure pixel-art
-  game-asset style with clearly visible square pixels and 1-bit shading.
-  NO painterly. NO smooth gradients. NO radial glow.
+  a chunky golden retriever sitting beside three small vintage CRT monitors.
+  The monitors show: a weather forecast, a calendar grid with X marks, and
+  a route map with paw prints. Behind the dog, a stepped pixel-art bone-shape
+  outlined in orange.
 
 cards:
   - header: WEATHER WATCHER

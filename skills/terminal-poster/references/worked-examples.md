@@ -61,19 +61,21 @@ v1 = 95.6%  →  v2 = 94.8%  →  v3 = 80%  →  v4 = 90.7%
 
 # All 5 clusters validated
 
-After applying audit fixes + consistency review, ran a smoke test on every cluster. **All 5 hit ≥90% on first generation** — no iteration needed.
+Real measured first-generation scores for the specs in `scripts/example-specs/`. The rendered PNGs live in `assets/examples/`.
 
-| Cluster | First-gen score |
-|---|---|
-| **A** ASCII Terminal | 🟢 **99%** |
-| **B** Color-Coded | 🟢 **97%** |
-| **C1** Painterly Hero | 🟢 **95.6%** |
-| **C2** Pixel Hero | 🟢 **94%** |
-| **D1** Step Pipeline | 🟢 **97%** |
-| **D2** Terminal-Window | 🟢 **96%** |
-| **E** Editorial | 🟢 **90%** |
+> ⚠️ **Pre-fix scores were suppressed by the Cluster-B/D "null-corruption" bug** in `make-poster.sh` (the CLI read spec keys that the example YAML didn't provide, and mikefarah yq returned the literal string `"null"` — the model then rendered "HEROIC null / one-liner: null" in the prompt). That bug is now fixed; scores below should be **re-measured after regeneration** and this table updated.
 
-**Average across all templates: ~95% on first generation.**
+| Cluster | Measured first-gen score (as-shipped) | Notes |
+|---|---|---|
+| **A** ASCII Terminal | 🟡 **68%** (`assets/examples/cluster-a-stack.png`) | On-spec structure; model bled in yellow accents. A second pass would correct it. |
+| **B** Color-Coded | 🟡 **78%** (`assets/examples/cluster-b-maturity.png`) | Score depressed by the null-corruption bug and by palette drift (model substituted its own). Re-measure after fix. |
+| **C1** Painterly Hero | ⚪ not yet rendered | New spec `cluster-c1-hero.yaml` added. |
+| **C2** Pixel Hero | 🟢 **92%** (`assets/examples/cluster-c2-walkbot.jpg`) | Held palette, held 3×2 grid, one typo in card 6 ("en-ounters"). |
+| **D1** Step Pipeline | ⚪ not yet rendered | Spec `cluster-d-playbook.yaml` re-keyed to match CLI. |
+| **D2** Terminal-Window | ⚪ not yet rendered | New spec `cluster-d2-thought-piece.yaml` added. |
+| **E** Editorial | ⚪ not yet rendered | New spec `cluster-e-brandbook.yaml` added. |
+
+**Interpretation:** Cluster A and C2 are demonstrated-reliable at ≥68-92% on first generation. B/C1/D1/D2/E first-gen scores are unverified after the null-corruption fix. Do not trust the earlier "all clusters ≥90%" claim until each rendered PNG is scored again.
 
 # Why the CLI matters
 

@@ -213,3 +213,56 @@ per-dispatch boilerplate across dozens of stages. Always reconcile via non-consu
 **case-insensitive** subject match (worker subjects are usually upper-cased, e.g. `FU-07` not `fu-07`) so a lost/duplicated wait output
 never drops a completion. Coordinator-merge the clean units (freeze-check shows no bot commits, no conflict);
 dispatch a merge worker only when there's bot churn or a conflict (see #24).
+
+---
+
+## More learnings (from a large parallel run with a heavy non-convergent PR bot)
+
+### 33. Recover a stalled worker with EITHER a re-Enter OR a fresh terminal — NEVER both
+A `codex`/`claude` worker that shows `HB=None` may be (a) alive but slow to first heartbeat, or (b) truly
+dead (the injected prompt never submitted). If you both re-Enter the "dead" one AND spawn a fresh terminal
+for the same task, the original often wakes up too — now TWO workers build the same branch and you get
+**duplicate/stacked commits**. Rule: first try re-Enter only (up to ~3×, ~2 min); only if it still never
+heartbeats, recover with a fresh terminal — and do NOT keep re-Entering the old handle once you've spawned
+the fresh one. (This bit twice in one run: two fix-units got built twice.)
+
+### 34. A PR bot's Autofix can be *terminally* non-convergent — inspect late riders, don't blind-merge them
+Beyond #24: with Autofix ON, even your **author-normalization force-pushes** re-trigger the bot, so the
+branch can never settle on its own — 4+ rounds, each autofix commit spawning a finding in the *previous*
+autofix. Two things that actually end it: **(a) disable the bot's Autofix at its dashboard** (root cause —
+this is the user's lever, ask for it), or **(b) win a force-push-then-immediately-`gh pr merge` race**
+(merging deletes the branch, so there's nothing left to push to). CRUCIAL: a late rider is **not always a
+trivial autofix** — one was a real, *unreviewed* safety-LOGIC change (it removed a guard to re-validate
+consent unconditionally). The merge-worker must READ each late rider: if it's mechanical, normalize+merge;
+if it's unreviewed logic, DISCARD it (reset to the reviewed+green head) and re-land it as a separate reviewed
+PR. Never merge unreviewed logic just because the bot wrote it. Confirm the merge's second parent == the
+reviewed SHA afterward.
+
+### 35. The `ask`/`decision_gate` reply channel can be flaky — reply to the CURRENT gate id + grant standing authority
+A worker's blocking `ask` can time out and **re-emit as a NEW message id** before your `reply` lands,
+producing a re-ask loop (you reply to the old id; it's already moved on). Fixes: the worker's heartbeat
+subject usually names the id it's blocked on (`blocked on decision_gate <id>`) — reply to THAT id; and put
+**"standing authorization: proceed with option X now, do not re-ask; if the reply races, keep going"** in the
+reply body so the worker acts even if delivery is unreliable. Keep gate options crisp (A/B/C) so a one-word
+answer resolves it.
+
+### 36. Run the format-sweep LAST (right before the gate), not once early
+Extends #18: every fix-unit that forks *before* a format-sweep merges can introduce **new** formatter drift
+on the files IT touches, which an early sweep never saw. A single early format-sweep therefore leaves
+residual drift that the E2E gate's whole-repo `oxfmt --check` flags on some later unit's file. Schedule the
+format-sweep as the LAST fix-unit before the gate (or expect a one-file format follow-up after the gate).
+Integrators should also revert a bot autofix's stray whole-repo format edits to keep each PR's diff scoped.
+
+### 37. A test that passes in isolation but fails in the full suite is a REAL gate blocker (test pollution)
+Per-PR reviews run "affected tests only" and pass; the E2E gate's **forced full-suite run** exposes
+order-dependent pollution — classic cause: fake timers + `vi.waitFor` around real I/O, plus module-mock
+state not reset between suites, so a sibling suite's leftover state advances time before an assertion. Fix
+it **hermetically** (reset/unmock modules in `beforeEach`, `await` an explicit promise instead of
+`vi.waitFor` over real I/O) WITHOUT weakening the assertion — verify the fixed test still fails when the
+production fix is reverted. This is exactly the class of break the anti-inflation gate exists to catch (#14).
+
+### 38. Validated: the promotion-PR `Closes` trick (see #29) auto-closed 16/16 — zero manual closing
+On promotion to the default branch, every `Closes #N` in the promotion PR body fired. Also: builders doing
+verify-first (#21) can legitimately report **done-no-change** when a prior run already fixed a finding —
+include those issue numbers in the promotion `Closes` list too (they're fixed on the branch, just not by a
+new commit this run).

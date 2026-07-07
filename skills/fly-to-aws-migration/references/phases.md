@@ -219,15 +219,20 @@ docker push $ECR_URI:initial
 | `$PROJECT/$ENV/email` | RESEND_API_KEY, SENDGRID_API_KEY |
 | `$PROJECT/$ENV/social` | TWITTER_*, DISCORD_*, etc. |
 | `$PROJECT/$ENV/payments` | STRIPE_*, PAYPAL_* |
-| `$PROJECT/$ENV/data-providers` | DATA_API_KEY_1, DATA_API_KEY_2, etc. |
+| `$PROJECT/$ENV/data` | DATA_API_KEY_1, DATA_API_KEY_2, generic `*_API_KEY` / `*_TOKEN` / `*_SECRET` not caught by another group |
 | `$PROJECT/$ENV/auth` | JWT_SECRET, OAUTH_SECRETS |
 | `$PROJECT/$ENV/telemetry` | SENTRY_DSN, POSTHOG_API_KEY |
 
 ```bash
 # 1. Migrate secrets — script maps flyctl secrets → 8 grouped entries.
-#    Dry-run first, then --apply.
-scripts/secrets-migrate.sh <fly-api-app> --dry-run
-scripts/secrets-migrate.sh <fly-api-app> --apply
+#    Required env: PROJECT (Secrets Manager path prefix), ENV (prod/staging/…).
+#    Optional env: AWS_REGION (defaults to AWS_DEFAULT_REGION or ap-southeast-1),
+#                  FLY_ENV_FILE (defaults to .migration/fly-env.txt; must contain
+#                  KEY=VALUE lines — capture via `flyctl ssh console -a <app> -C env`).
+#    Dry-run is the default; add --apply to write.
+export PROJECT=myproject ENV=prod
+scripts/secrets-migrate.sh <fly-api-app>            # dry-run — no writes
+scripts/secrets-migrate.sh <fly-api-app> --apply    # writes 8 grouped secrets
 ```
 
 In your ECS task definition, reference an env var out of a grouped secret's JSON key:
@@ -246,6 +251,14 @@ In your ECS task definition, reference an env var out of a grouped secret's JSON
 ```bash
 # Load schema from Fly (no data) into Aurora.
 # db-migrate.sh --schema-only is the default mode.
+#
+# Required env: FLY_DB_USER (Postgres role on the Fly source; typically 'postgres').
+# Optional env: FLY_DB_NAME (defaults to FLY_DB_USER), PROXY_LOCAL_PORT (default
+# 5433), FLY_DB_PASSWORD (else prompted interactively).
+# The aurora-secret must contain DATABASE_URL_LIBPQ (libpq-compatible) — the
+# Aurora Terraform template ships both DATABASE_URL (Prisma-shaped) and
+# DATABASE_URL_LIBPQ (sslmode=require) for exactly this reason.
+export FLY_DB_USER=postgres
 scripts/db-migrate.sh --schema-only \
   --fly-app <fly-db-app> \
   --aurora-secret $PROJECT/$ENV/db
@@ -380,8 +393,10 @@ done
 **Verification:**
 
 ```bash
-# Run parity check
-./scripts/verify-parity.sh https://api.yourdomain.com
+# Run parity check — signature: <new-aws-url> <old-fly-url> [endpoints-file].
+# Fly is still up because we only stopped writes / scaled to 0; the fly.dev
+# hostname continues serving until you destroy the app in Phase T+48h.
+./scripts/verify-parity.sh https://api.yourdomain.com https://<fly-api>.fly.dev
 
 # Watch ECS logs for 5 min
 aws logs tail /ecs/$PROJECT-$ENV-api --follow

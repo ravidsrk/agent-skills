@@ -2,7 +2,7 @@
 name: terminal-poster
 description: "Generate dense, retro-cyberpunk infographic posters in a terminal-aesthetic style — dark charcoal background, vivid orange accents, pixel-bitmap headlines, ASCII box-drawing diagrams, monospace fonts, line-art icons. Use when the user wants to summarize a product, architecture, agent stack, framework, or concept as a viral X/Twitter image; create a Shann-Holmberg-style image summary; produce a terminal-style infographic; visualize a system architecture as a Unicode-boxed diagram; generate a dev-tools aesthetic poster; or build a hero image for a technical product launch. Trigger phrases: 'terminal poster', 'dev infographic', 'shann-style', 'cyberpunk infographic', 'pixel-bitmap poster', 'ascii architecture diagram', 'agent stack visualization', 'image summary', 'retro terminal aesthetic', 'make this look like a viral X post'. Five reusable templates: Cluster A (ASCII Terminal), B (Color-Coded Levels), C (Cyborg Hero), D (Blueprint), E (Editorial). Uses Nano Banana Pro via OpenRouter (~$0.002 per image, ~30s)."
 license: MIT
-compatibility: Requires bash, curl, yq (v4+), and an OPENROUTER_API_KEY env var. Calls google/gemini-3-pro-image-preview via OpenRouter.
+compatibility: Requires bash, curl, yq (v4+), and an OPENROUTER_API_KEY env var. Calls google/gemini-3-pro-image via OpenRouter.
 metadata:
   version: "1.0.0"
   author: "@ravidsrk"
@@ -170,7 +170,7 @@ cards:
   - {header: AGENT ONE,   icon: clipboard,        body: "..."}
   - {header: AGENT TWO,   icon: magnifying-glass, body: "..."}
   # ... exactly 6 cards
-tagline_separator: star      # star | pipe | period — [MASCOT] is placed inline in all three
+tagline_separator: star      # star | pipe | period — the tagline string is JUST the phrases; the mascot is a separate graphic centered on the bar (do NOT put [MASCOT] in the phrases)
 tagline_phrases:
   - SHIP A BRAIN NOT A PROMPT
   - PROOF OVER PROMISES
@@ -260,7 +260,7 @@ bash scripts/generate.sh \
 
 The script handles: JSON escaping → OpenRouter POST → base64 decode → save PNG.
 
-**Always use Nano Banana Pro** (`google/gemini-3-pro-image-preview`) as default. Don't downgrade silently — Nano Banana 2 hallucinates duplicate cards on Cluster C.
+**Always use Nano Banana Pro** (`google/gemini-3-pro-image`) as default. Don't downgrade silently — Nano Banana 2 hallucinates duplicate cards on Cluster C.
 
 ## Step 5 — Verify with vision
 

@@ -89,13 +89,13 @@ This is read-only — it just snapshots current state. Output goes to `./.dns-st
 
 # Usage
 
-# Full migration (interactive)
+# Full migration (create + import + verify, stops before flip)
 
 ```bash
 scripts/migrate.sh example.com full
 ```
 
-Walks through every step with prompts. Use this the first few times.
+Runs `create` → `import` → `verify`, then STOPS with a confirmation banner. Never auto-flips nameservers. Review the output, then run `scripts/migrate.sh example.com flip` yourself (add `--dry-run` first to preview).
 
 # Step-by-step (scriptable)
 
@@ -178,7 +178,7 @@ For the account-scoped `CLOUDFLARE_API_KEY`:
 | `Zone Settings:Edit` | Toggle proxy, SSL mode, etc. |
 | `Page Rules:Edit` | If using `harden.sh` |
 | `Zone WAF:Edit` | Rate-limiting rules in `harden.sh` |
-| `Origin CA:Write` | If using `origin-ca.sh` |
+| `Origin CA:Edit` | If using `origin-ca.sh` |
 
 # Known gotchas
 

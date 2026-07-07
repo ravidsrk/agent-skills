@@ -31,7 +31,7 @@ Drafted post copy for the dual-launch of `agent-skills` + `autonomous-fleet`. At
 >
 > So I built two:
 >
-> 1. `agent-skills` → 5 production capability skills
+> 1. `agent-skills` → 6 production capability skills
 > 2. `autonomous-fleet` → 24-skill framework, runs on Claude Code / Codex / Grok / Orca
 >
 > One author. Two identities. Both open-source.

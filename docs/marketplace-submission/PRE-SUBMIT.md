@@ -78,19 +78,23 @@ PY
 
 # 4. Verify the announcement banner image
 
-`docs/marketplace-submission/announcement-banner.jpg` was generated from
-`announcement-banner-prompt.txt` — the prompt currently hard-codes the text
-"6 capability skills" (post-clean-sweep) but the on-disk JPG was rendered from
-the pre-clean-sweep "5 capability skills" prompt.
-
-Before attaching the banner to any launch post:
+`docs/marketplace-submission/announcement-banner.jpg` was regenerated from
+`announcement-banner-prompt.txt` after the clean-sweep addition and now shows
+"6 capability skills" on the agent-skills half of the sibling banner. Confirm
+before attaching to any launch post:
 
 ```bash
 # Confirm the prompt file is current
 grep -n "capability skills" docs/marketplace-submission/announcement-banner-prompt.txt
 # → must say "6 capability skills", not "5"
 
-# Regenerate the image (requires $OPENROUTER_API_KEY, ~$0.002, ~30 s)
+# Confirm the image is at least as new as the prompt
+stat -f "%Sm %N" docs/marketplace-submission/announcement-banner-prompt.txt \
+                 docs/marketplace-submission/announcement-banner.jpg
+# → the .jpg mtime should be ≥ the .txt mtime
+
+# If either check fails (or the prompt/spec changes again), regenerate:
+# (requires $OPENROUTER_API_KEY, ~$0.002, ~30 s)
 bash skills/terminal-poster/scripts/generate.sh \
   docs/marketplace-submission/announcement-banner-prompt.txt \
   docs/marketplace-submission/announcement-banner.jpg
@@ -98,9 +102,6 @@ bash skills/terminal-poster/scripts/generate.sh \
 # Vision-audit before shipping — Nano Banana Pro sometimes garbles labels
 # (See AGENTS.md → Known gotchas)
 ```
-
-If you skip regeneration, the launch post will show the wrong skill count in
-the hero image while the copy says six.
 
 # 5. Run the validator
 

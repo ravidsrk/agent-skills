@@ -156,7 +156,9 @@ export NAMECHEAP_API_USER=your-account
 # fly-to-aws-migration
 export AWS_PROFILE=migration
 export FLY_API_TOKEN=...
-# (also uses CLOUDFLARE_API_KEY for the DNS cutover phase)
+export CLOUDFLARE_API_TOKEN=...    # scoped Zone:DNS:Edit token — for the DNS cutover phase
+export CLOUDFLARE_ZONE_ID=...
+# (legacy: CLOUDFLARE_EMAIL + CLOUDFLARE_GLOBAL_API_KEY still accepted but deprecated)
 
 # deep-research
 export MONID_API_KEY=...
@@ -295,7 +297,7 @@ Output:
 🟢 All 6 skills valid against agentskills.io spec.
 ```
 
-The validator enforces the spec rules (frontmatter shape, name/directory matching, description length). Non-zero exit code if any skill fails — perfect for CI.
+The validator enforces the spec rules — frontmatter shape, name/directory matching, `name` (1-64 chars, hyphen-lowercase), `description` (1-1024 chars, warns on missing "use when" trigger phrasing), `compatibility` (1-500 chars if present), a sibling `README.md`, and no dangling `scripts/` / `references/` / `templates/` / `assets/` references. Non-zero exit if any skill fails. CI (`.github/workflows/validate.yml`) runs the same script on every push and PR.
 
 ---
 

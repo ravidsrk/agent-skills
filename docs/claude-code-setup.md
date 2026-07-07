@@ -49,7 +49,7 @@ Each skill needs different secrets. Set them in your shell or in Claude Code's e
 |---|---|
 | `cloudflare-dns` | `CLOUDFLARE_API_KEY` (account token), `CLOUDFLARE_GLOBAL_API_KEY` + `CLOUDFLARE_EMAIL` (only for new-zone creation) |
 | `namecheap-dns` | `NAMECHEAP_API_KEY`, `NAMECHEAP_API_USER` |
-| `fly-to-aws-migration` | `AWS_PROFILE`, `FLY_API_TOKEN`, `CLOUDFLARE_API_KEY` |
+| `fly-to-aws-migration` | `AWS_PROFILE`, `FLY_API_TOKEN`, `CLOUDFLARE_API_TOKEN` (scoped Zone:DNS:Edit — legacy `CLOUDFLARE_EMAIL` + `CLOUDFLARE_GLOBAL_API_KEY` still accepted), `CLOUDFLARE_ZONE_ID` |
 | `deep-research` | `MONID_API_KEY` |
 | `terminal-poster` | `OPENROUTER_API_KEY` |
 | `clean-sweep` | none — requires Orca runtime + `gh` CLI on PATH |

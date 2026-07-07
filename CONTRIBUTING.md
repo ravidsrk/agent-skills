@@ -18,16 +18,18 @@ If you're new to the [Agent Skills spec](https://agentskills.io/specification), 
 
 # Spec compliance
 
-Every skill must conform to the [Agent Skills specification](https://agentskills.io/specification). Hard requirements:
+Every skill must conform to the [Agent Skills specification](https://agentskills.io/specification). Hard requirements (the ones marked *validator* fail CI):
 
 | Rule | Why |
 |---|---|
 | One directory per skill, under `skills/` | Spec requirement |
-| Folder name matches the `name` field in frontmatter | Spec requirement — validator enforces this |
-| `name`: 1–64 chars, lowercase letters/digits/hyphens, no leading/trailing hyphen, no consecutive `--` | Spec requirement |
-| `description`: 1–1024 chars, describes **what** + **when** with real trigger phrases | The agent reads this to decide whether to activate the skill |
-| `SKILL.md` body kept under 500 lines | Progressive disclosure — push detail into `references/` |
-| `compatibility` (if present): 1–500 chars | Spec requirement |
+| Folder name matches the `name` field in frontmatter | *validator* — spec requirement |
+| `name`: 1–64 chars, lowercase letters/digits/hyphens, no leading/trailing hyphen, no consecutive `--` | *validator* — spec requirement |
+| `description`: 1–1024 chars, describes **what** + **when** with real trigger phrases | *validator* checks length; the "when" phrasing is a warning. The agent reads this to decide whether to activate the skill. |
+| `README.md` present alongside `SKILL.md` | *validator* — required per [`docs/skill-anatomy.md`](docs/skill-anatomy.md) |
+| Every inline-code or markdown-link reference under `scripts/`, `references/`, `templates/`, `assets/` resolves on disk | *validator* — catches dangling references |
+| `SKILL.md` body kept under 500 lines | Progressive disclosure — push detail into `references/` (style rule, not validator-enforced) |
+| `compatibility` (if present): 1–500 chars | *validator* — spec requirement |
 
 Run the validator before every commit:
 

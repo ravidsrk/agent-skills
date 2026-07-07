@@ -160,7 +160,20 @@ Before committing:
 python3 scripts/validate-skills.py
 ```
 
-This catches frontmatter errors, name/directory mismatches, and over-long descriptions. CI will also run this.
+Hard failures (non-zero exit):
+
+- Missing / malformed frontmatter (must open + close with `---`)
+- `name` missing, out of the 1–64 char range, containing invalid characters, or not matching the folder name
+- `description` missing or outside the 1–1024 char range
+- `compatibility` (if present) outside 1–500 chars
+- `README.md` missing next to `SKILL.md`
+- Any inline-code (`` `scripts/foo.py` ``) or markdown-link (`](references/bar.md)`) reference to a path under `scripts/`, `references/`, `templates/`, or `assets/` that doesn't resolve on disk
+
+Warnings (not fatal, but flagged):
+
+- `description` missing "use when" / "when the user" / "when you" / "trigger" phrasing
+
+CI (`.github/workflows/validate.yml`) runs the same script on every push and PR against `main`.
 
 # Anti-patterns
 

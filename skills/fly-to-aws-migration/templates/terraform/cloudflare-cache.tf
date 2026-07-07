@@ -1,5 +1,5 @@
 # Cloudflare cache layer for static sites — Phase 7 perf tuning.
-# Cuts TTFB ~4.8x for repeat visitors. $0/mo.
+# Cuts TTFB ~4.6x for repeat visitors (300ms → 65ms). $0/mo.
 #
 # 🟡 Cloudflare quirk: entrypoint ruleset MUST be named "default"
 

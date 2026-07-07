@@ -90,9 +90,9 @@ Top-left of each card: a filled orange square badge with white numeral inside sq
 
 Between rows: a thin orange arrow chain `→ → →` showing flow.
 
-BOTTOM TAGLINE BAR (full width, last ~8%): A solid orange #F26B1F band. Inside it, ALL CAPS letter-spaced cream-colored text. Choose ONE separator style:
-  • Period style: "[TAGLINE 1].  [MASCOT]  [TAGLINE 2].  [TAGLINE 3]."
-  • Pipe style:   "[TAGLINE 1]  |  [MASCOT]  |  [TAGLINE 2]  |  [TAGLINE 3]"
+BOTTOM TAGLINE BAR (full width, last ~8%): A solid orange #F26B1F band. Inside it, ALL CAPS letter-spaced cream-colored text — the tagline STRING contains ONLY the three phrases (no token placeholders). Choose ONE separator style:
+  • Period style: "[TAGLINE 1].  [TAGLINE 2].  [TAGLINE 3]."
+  • Pipe style:   "[TAGLINE 1]  |  [TAGLINE 2]  |  [TAGLINE 3]"
   • Star style:   "★ [TAGLINE 1]   ★ [TAGLINE 2]   ★ [TAGLINE 3]"
 
 ⚠️ CRITICAL TEXT RULES — read carefully before rendering letters:
@@ -101,8 +101,9 @@ BOTTOM TAGLINE BAR (full width, last ~8%): A solid orange #F26B1F band. Inside i
 • Each sentence ends with a single period character "." — not the word PERIOD.
 • Render the dot as a small square pixel, not as letters.
 • Avoid any duplicate or stuttered words.
+• The bar must contain ONLY the three phrases and the robot icon — no labels, no bracketed tokens, no words like "Tagline" or "Mascot".
 
-[MASCOT] is a LARGE prominent pixel-art robot icon, CENTERED on the tagline bar — square head, two glowing rectangular orange eyes, two tiny antenna nubs on top, no body. Sized at ~14% of the tagline bar height so it reads as a co-star, NOT a tiny accessory. Render it CLEAN, BOLD, and ICONIC with crisp 8-bit pixel edges. Do NOT attempt subtle damage / scratches / dents / bent antennae — the model handles "clean iconic" well and fails at "weathered detail". Skip the damage asks.
+CENTERED on the tagline bar, between the phrases, sits a LARGE prominent pixel-art robot icon as a SEPARATE GRAPHIC (not text, not a token in the string) — square head, two glowing rectangular orange eyes, two tiny antenna nubs on top, no body. Sized at ~14% of the tagline bar height so it reads as a co-star, NOT a tiny accessory. Render it CLEAN, BOLD, and ICONIC with crisp 8-bit pixel edges. Do NOT attempt subtle damage / scratches / dents / bent antennae — the model handles "clean iconic" well and fails at "weathered detail". Skip the damage asks.
 
 Overall style references: hacker zine, Bloomberg Terminal, Pip-Boy interface, outrun synthwave restraint, 1990s computer manual diagrams. Hero painterly + body cards flat + chrome ENGINEERED. Like Pip-Boy meets graphic novel.
 ```
@@ -144,9 +145,9 @@ Top-left of each card: a filled orange square badge with white numeral inside sq
 
 Between rows: a thin orange arrow chain `→ → →` showing flow.
 
-BOTTOM TAGLINE BAR (full width, last ~8%): A solid orange #F26B1F band. Inside it, ALL CAPS letter-spaced cream-colored text. Choose ONE separator style:
-  • Period style: "[TAGLINE 1].  [MASCOT]  [TAGLINE 2].  [TAGLINE 3]."
-  • Pipe style:   "[TAGLINE 1]  |  [MASCOT]  |  [TAGLINE 2]  |  [TAGLINE 3]"
+BOTTOM TAGLINE BAR (full width, last ~8%): A solid orange #F26B1F band. Inside it, ALL CAPS letter-spaced cream-colored text — the tagline STRING contains ONLY the three phrases (no token placeholders). Choose ONE separator style:
+  • Period style: "[TAGLINE 1].  [TAGLINE 2].  [TAGLINE 3]."
+  • Pipe style:   "[TAGLINE 1]  |  [TAGLINE 2]  |  [TAGLINE 3]"
   • Star style:   "★ [TAGLINE 1]   ★ [TAGLINE 2]   ★ [TAGLINE 3]"
 
 ⚠️ CRITICAL TEXT RULES — read carefully before rendering letters:
@@ -155,8 +156,9 @@ BOTTOM TAGLINE BAR (full width, last ~8%): A solid orange #F26B1F band. Inside i
 • Each sentence ends with a single period character "." — not the word PERIOD.
 • Render the dot as a small square pixel, not as letters.
 • Avoid any duplicate or stuttered words.
+• The bar must contain ONLY the three phrases and the robot icon — no labels, no bracketed tokens, no words like "Tagline" or "Mascot".
 
-[MASCOT] is a LARGE pixel-art robot icon, CENTERED on the tagline bar — square head, two glowing rectangular orange eyes, two tiny antenna nubs on top, no body. Sized at ~14% of the tagline bar height. CLEAN BOLD ICONIC pixel edges. Do NOT ask for damage details.
+CENTERED on the tagline bar, between the phrases, sits a LARGE pixel-art robot icon as a SEPARATE GRAPHIC (not text, not a token in the string) — square head, two glowing rectangular orange eyes, two tiny antenna nubs on top, no body. Sized at ~14% of the tagline bar height. CLEAN BOLD ICONIC pixel edges. Do NOT ask for damage details.
 
 Overall style references: hacker zine, Bloomberg Terminal, Pip-Boy interface, 8-bit game manual cover. Everything pixel-art and chunky.
 ```

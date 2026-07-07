@@ -47,7 +47,7 @@ psql "$AURORA_URL/postgres" -c "CREATE DATABASE $DB_NAME"
 
 # Secrets: leave them in Secrets Manager; cost $3.20/mo to retain 8 groups
 # OR delete:
-for SECRET in db llm email social payments data-providers auth telemetry; do
+for SECRET in db llm email social payments data auth telemetry; do
   aws secretsmanager delete-secret --secret-id "$PROJECT/$ENV/$SECRET" --force-delete-without-recovery
 done
 ```

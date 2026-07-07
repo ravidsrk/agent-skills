@@ -50,7 +50,7 @@ User says any of:
 
 🟢 **Phase 3 = schema only, Phase 4 = data delta.** This is the recommended strategy end to end (SKILL, README, phases.md, `scripts/db-migrate.sh`). Doing the full data dump in Phase 3 is documented in phases.md as an **Alternative** — it collapses two phases into one but blows the ≤9 min downtime budget on any DB larger than a few hundred MB.
 
-Read `references/phases.md` for the detailed step-by-step. Read `references/gotchas.md` BEFORE running any phase — there are at least 12 traps that cost real time on a production migration.
+Read `references/phases.md` for the detailed step-by-step. Read `references/gotchas.md` BEFORE running any phase — 23 traps documented, each with symptom → root cause → fix, most cost real time on a production migration.
 
 # Critical inputs to collect before starting
 
@@ -125,7 +125,7 @@ Phase 7  → Cloudflare Tiered Cache + cache rule for HTML (~4.6x TTFB win: 300m
 
 - `references/phases.md` — Every phase with exact commands, AWS resource counts, verification steps
 - `references/gotchas.md` — Every trap with symptom → root cause → fix
-- `references/cost-model.md` — Real pricing from a production migration (Singapore region, ~$667/mo as-built, ~$265/mo right-sized)
+- `references/cost-model.md` — Real pricing from a production migration (Singapore region, ~$667/mo as-built, ~$291/mo right-sized)
 - `references/rollback.md` — Per-phase rollback procedures (each <5 min)
 
 # Templates
@@ -171,7 +171,7 @@ Production state post-migration:
 - 🟢 API: 104ms p50 TTFB (was ~500ms on Fly)
 - 🟢 Static sites: 65ms p50 TTFB (was ~300ms on Fly with CDN)
 - 🟢 Database: identical row counts, parity verified via `verify-parity.sh`
-- 🟡 Cost: $667/mo as-built (Fly was ~$150/mo). Right-sized to ~$265/mo possible.
+- 🟡 Cost: $667/mo as-built (Fly was ~$150/mo). Right-sized to ~$291/mo possible (see `references/cost-model.md` for the itemized breakdown).
 
 # Final reminder
 

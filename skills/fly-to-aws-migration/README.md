@@ -108,7 +108,7 @@ cd ./.migration/terraform
 terraform init && terraform plan && terraform apply
 ```
 
-Provisions VPC (2 AZs), IAM roles, Aurora Serverless v2 cluster, ECR repo, ALB, and S3+CloudFront for any static sites. **~80+ AWS resources** for a typical web app + DB + 2 static sites.
+Provisions VPC (3 AZs, 3 public + 3 private subnets), IAM roles, Aurora Serverless v2 cluster, ECR repo, ALB, and S3+CloudFront for any static sites. **~80+ AWS resources** for a typical web app + DB + 2 static sites.
 
 🔴 **Use `terraform state` from S3 + DynamoDB lock from day 1.** The `main.tf` template has the block commented out — uncomment and configure before the second `terraform apply`.
 
@@ -124,11 +124,21 @@ Common Dockerfile fixes for Fly→ECS:
 # Phase 3 — Secrets + DB schema
 
 ```bash
-# 1. Map Fly secrets into 8 grouped AWS Secrets Manager entries (dry-run first!)
-scripts/secrets-migrate.sh your-fly-api --dry-run
-scripts/secrets-migrate.sh your-fly-api --apply
+# Env required by secrets-migrate.sh: PROJECT (path prefix), ENV (prod/staging/…)
+export PROJECT=your-app
+export ENV=prod
+# Also expected: .migration/fly-env.txt with KEY=VALUE lines
+# (override path with FLY_ENV_FILE=...). See the script header for details.
+
+# 1. Map Fly secrets into 8 grouped AWS Secrets Manager entries (dry-run is the default!)
+scripts/secrets-migrate.sh your-fly-api            # dry-run — no writes
+scripts/secrets-migrate.sh your-fly-api --apply    # writes the grouped secrets
 
 # 2. Schema-only DB migration (default mode)
+#    Requires env: FLY_DB_USER (Postgres user on Fly source).
+#    Optional env: FLY_DB_NAME (defaults to FLY_DB_USER), FLY_DB_PASSWORD
+#    (else prompted), PROXY_LOCAL_PORT (default 5433).
+export FLY_DB_USER=postgres
 scripts/db-migrate.sh --schema-only \
   --fly-app your-app-db \
   --aurora-secret your-app/prod/db
@@ -160,10 +170,15 @@ In production, this phase typically takes **6–9 minutes of actual user-facing 
 # Phase 6 — Static sites
 
 ```bash
-scripts/cutover-dns.sh docs.example.com
+# cutover-dns.sh takes: <hostname> <new-target> [--dry-run]
+# Preview first, then flip. Both hostname and CloudFront target are required.
+scripts/cutover-dns.sh docs.example.com d1234abcd.cloudfront.net --dry-run
+scripts/cutover-dns.sh docs.example.com d1234abcd.cloudfront.net
 ```
 
 Static sites are simpler — there's no state to migrate. Sync the build artifacts to S3, invalidate CloudFront, flip the CNAME at Cloudflare. **Zero downtime** if you do it in that order.
+
+🔴 The target record must already be **proxied** (orange cloud) at Cloudflare — `cutover-dns.sh` refuses to flip a DNS-only record because the <5s propagation guarantee only holds through Cloudflare's proxy.
 
 # Phase 7 — Cache layer (optional)
 
@@ -172,7 +187,16 @@ Static sites are simpler — there's no state to migrate. Sync the build artifac
 # Verifying parity
 
 ```bash
-scripts/verify-parity.sh https://api.example.com https://your-app.fly.dev /health /api/version /api/me
+# Signature: verify-parity.sh <new-aws-url> <old-fly-url> [endpoints-file]
+# Default endpoints (when no file passed): /health and /health/full.
+# For a custom set, pass a newline-separated file of paths:
+cat > ./parity-endpoints.txt <<'EOF'
+/health
+/api/version
+/api/me
+EOF
+
+scripts/verify-parity.sh https://api.example.com https://your-app.fly.dev ./parity-endpoints.txt
 ```
 
 Hits the same endpoints on both old (Fly) and new (AWS) origins side-by-side; flags any non-matching responses. Run this *before* the DNS flip to catch ECS misconfigs while users are still on Fly.
@@ -190,7 +214,9 @@ Real numbers from a production migration (Singapore region, 2026):
 | S3 + CloudFront × 2 sites | $35 | $20 |
 | Secrets Manager + CloudWatch | $20 | $10 |
 | Data transfer | $70 | $35 |
-| **Total** | **~$640/mo** | **~$330/mo** |
+| **Total** | **~$667/mo** | **~$291/mo** |
+
+The rows above are coarse rounded groupings and don't sum exactly to the totals — the authoritative line-item breakdown lives in [references/cost-model.md](references/cost-model.md) ($667 as-built, $291.40 right-sized).
 
 🟡 **The "right-sized" column is what to target on month 2** after watching real metrics. Most as-built numbers are conservative defaults — actual usage is much lower.
 
@@ -206,7 +232,7 @@ Critical traps documented in [`references/gotchas.md`](references/gotchas.md). T
 - 🟡 **Scheduler / cron jobs** need their own ECS service with `desired_count=1` (or EventBridge Scheduler). Don't try to fit them in the API service.
 - 🟡 **`fly proxy` is the friendliest way to do data migration**, but it'll time out on databases >50GB. Use ECS one-shot task with S3 dump-and-restore instead (full recipe in gotchas.md).
 
-[`references/gotchas.md`](references/gotchas.md) has **12 more** — read it before starting any phase.
+[`references/gotchas.md`](references/gotchas.md) has **18 more** (23 total) — read it before starting any phase.
 
 # Rollback
 
@@ -227,7 +253,7 @@ fly-to-aws-migration/
 ├── README.md                                 ← This file (humans)
 ├── references/
 │   ├── phases.md                             ← Detailed step-by-step for each phase
-│   ├── gotchas.md                            ← 12+ traps with fixes
+│   ├── gotchas.md                            ← 23 traps with symptom → root cause → fix
 │   ├── rollback.md                           ← Per-phase rollback procedures
 │   └── cost-model.md                         ← AWS pricing breakdown
 ├── scripts/

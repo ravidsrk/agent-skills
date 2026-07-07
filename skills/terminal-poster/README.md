@@ -52,11 +52,11 @@ Spec: [`scripts/example-specs/c2-smoketest.yaml`](scripts/example-specs/c2-smoke
 
 # Cluster B — Color-Coded Levels (maturity ladder)
 
-> Semantic palette per level (red → orange → yellow → green by default). Best for "L1 → L4" maturity ladders, comparison ladders, before/after frameworks.
+> Semantic palette per level (canonical ramp: L1 amber → L2 teal → L3 magenta → L4 rust → L5 gray). Best for "L1 → L4" maturity ladders, comparison ladders, before/after frameworks.
 
 <img src="assets/examples/cluster-b-maturity.png" alt="Cluster B — the engineering maturity ladder" width="600">
 
-🟡 **Score: 78/100** — All structure correct (4 cards, badges, taglines, bullets) and clean typography, but the model substituted its own palette (amber → teal → purple → orange) instead of the requested red → green ramp. A regeneration with explicit hex codes would lock it. Useful as a "honest model drift" example.
+🟢 **Score: ~95/100** — Regenerated 2026-07-07 after the CLI's null-corruption fix (see `references/worked-examples.md`). Labels, one-liners, and bullets all correct; canonical per-level palette held (amber / teal / magenta / rust). First generation.
 
 Generated with:
 ```bash
@@ -77,7 +77,7 @@ Spec: [`scripts/example-specs/cluster-b-maturity.yaml`](scripts/example-specs/cl
 export OPENROUTER_API_KEY="sk-or-..."
 ```
 
-Get one at [openrouter.ai/keys](https://openrouter.ai/keys). The skill uses `google/gemini-3-pro-image-preview` (a.k.a. Nano Banana Pro) at ~$0.002/image.
+Get one at [openrouter.ai/keys](https://openrouter.ai/keys). The skill uses `google/gemini-3-pro-image` (a.k.a. Nano Banana Pro) at ~$0.002/image.
 
 # 2. Install yq (one-time)
 
@@ -182,7 +182,7 @@ The `.prompt.txt` is your audit trail. If something looks wrong, you can edit th
 | Typical session (3 iterations) | ~$0.006 |
 | First-generation success rate | 68–99% depending on cluster |
 
-Cluster A and C2 are the most reliable. Cluster B requires explicit hex codes if you want the red→green ramp held. See [`references/worked-examples.md`](references/worked-examples.md) for the full iteration log + failure modes catalogued.
+Cluster A and C2 are the most reliable. Cluster B holds the canonical amber/teal/magenta/rust ramp because the CLI hard-codes the per-L hex codes into the prompt. See [`references/worked-examples.md`](references/worked-examples.md) for the full iteration log + failure modes catalogued.
 
 ---
 
@@ -213,7 +213,7 @@ terminal-poster/
 │       ├── cluster-d-blueprint.md
 │       └── cluster-e-editorial.md
 └── assets/
-    └── examples/                          ← the three sample posters above
+    └── examples/                          ← 7 rendered posters + their .prompt.txt trails (one per cluster/sub-mode)
 ```
 
 ---

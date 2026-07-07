@@ -36,13 +36,16 @@ Mogra auto-injects env vars from `/workspace/.mogra/.env` and `~/.env`. Add the 
 
 ```bash
 # Append to /workspace/.mogra/.env (DON'T commit this file)
-CLOUDFLARE_API_KEY=cfat_...
+CLOUDFLARE_API_KEY=cfat_...        # cloudflare-dns: account token
 NAMECHEAP_API_KEY=...
 NAMECHEAP_API_USER=your-account
-OPENROUTER_API_KEY=...
-MONID_API_KEY=...
-AWS_PROFILE=migration
-FLY_API_TOKEN=...
+OPENROUTER_API_KEY=...              # terminal-poster
+MONID_API_KEY=...                   # deep-research
+AWS_PROFILE=migration               # fly-to-aws-migration
+FLY_API_TOKEN=...                   # fly-to-aws-migration
+CLOUDFLARE_API_TOKEN=...            # fly-to-aws-migration: scoped Zone:DNS:Edit token
+CLOUDFLARE_ZONE_ID=...              # fly-to-aws-migration
+# clean-sweep needs no env vars — it requires the Orca runtime + gh CLI on PATH
 ```
 
 🔴 **`.env` files are read-only to skills.** The Mogra agent never modifies them. If a skill needs a new env var, add it manually.

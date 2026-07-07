@@ -60,7 +60,9 @@ export NAMECHEAP_API_USER=your-account
 # fly-to-aws-migration
 export AWS_PROFILE=migration
 export FLY_API_TOKEN=...
-# (also uses CLOUDFLARE_API_KEY for the DNS cutover phase)
+export CLOUDFLARE_API_TOKEN=...        # scoped Zone:DNS:Edit token (for the DNS cutover phase)
+export CLOUDFLARE_ZONE_ID=...
+# (legacy: CLOUDFLARE_EMAIL + CLOUDFLARE_GLOBAL_API_KEY still accepted but deprecated)
 
 # deep-research
 export MONID_API_KEY=...
@@ -99,9 +101,11 @@ python3 scripts/validate-skills.py
 
 The validator checks:
 - Frontmatter has required `name` + `description` fields
-- `name` is valid (lowercase, hyphenated, matches directory)
-- `description` is 1-1024 chars
-- Skill folder structure is sane
+- `name` is valid (lowercase, hyphenated, 1-64 chars, matches directory)
+- `description` is 1-1024 chars (and warns if it lacks a "use when" / "when the user" trigger phrase)
+- `compatibility` (if present) is 1-500 chars
+- A sibling `README.md` exists next to `SKILL.md`
+- Every inline-code or markdown-link reference under `scripts/`, `references/`, `templates/`, `assets/` resolves on disk
 
 # Next steps
 

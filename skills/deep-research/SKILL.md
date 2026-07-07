@@ -83,7 +83,7 @@ The markdown groups results by source (X, Reddit, HN, GitHub repos, GitHub issue
 
 🟢 **Total per-run cost: ~$0.10-0.20** at default depth. No monthly subscription.
 
-🟡 **Worst-case cost:** each `exa/contents` proxy call retries up to 2× on transient livecrawl 504s, so the effective per-call cost for HN/GitHub/Polymarket is up to 3× the base ($0.0022 × 3 ≈ $0.0066). Under sustained flakiness a default run can reach ~$0.30. The orchestrator prints an exact `Total cost: $X.XX` at the end of every run and stores it in `research-<date>.json` under `cost_usd` — trust that number, not the estimate.
+🟡 **Worst-case cost:** each `exa/contents` proxy call retries up to 2× on transient livecrawl 504s, so the effective per-call cost for HN/GitHub/Polymarket is up to 3× the base ($0.0022 × 3 ≈ $0.0066). Under sustained flakiness a default run can reach ~$0.30. The orchestrator prints an exact `Total cost: $X.XXXX` (4 decimals) at the end of every run and stores it in `research-<date>.json` under `cost_usd` — trust that number, not the estimate.
 
 🟢 **EVERY source routes through monid** — one auth (`MONID_API_KEY`), one balance, zero per-vendor keys. Paid sources (X, Reddit, YouTube, Exa) use native monid endpoints; sources with no native monid endpoint (HN Algolia, GitHub REST, Polymarket Gamma) are proxied through `blockrun.ai/api/v1/exa/contents`, which returns the upstream JSON body **verbatim** (raw bytes, no markdown cleaning) for ~$0.0022/call.
 
@@ -169,7 +169,7 @@ export MONID_API_KEY=your_key_here
 | 🟡 **Reddit can return 0 results** for low-volume topics | Try a broader query, then filter manually. |
 | 🔴 **GitHub /search/issues requires `is:issue` or `is:pr`** (returns 422 otherwise as of 2026-05) | Already handled in `github.py` — module appends `is:issue` automatically. |
 | 🟡 **HN: web/fetch-style cleaners mangle Algolia `story_text`/`_highlightResult`** (legacy note; exa/contents avoids this) | `hackernews.py` still requests `attributesToHighlight=["none"]` + a tight field whitelist to keep payloads small and URL-free — defensive even with the raw path. |
-| 🟡 **HN: obscure topics may return zero results** — `hackernews.py` drops stories with `points<5 AND num_comments<3` to filter spam. Legitimate but low-engagement niches get filtered too. | If HN returns 0 for a topic you expected coverage on, lower the floor by editing `hackernews.py:65` or accept that HN just doesn't discuss it. |
+| 🟡 **HN: obscure topics may return zero results** — `hackernews.py` drops stories with `points<5 AND num_comments<3` to filter spam. Legitimate but low-engagement niches get filtered too. | If HN returns 0 for a topic you expected coverage on, lower the floor at `hackernews.py:67` (the `if points < 5 and n_comments < 3: continue` line) or accept that HN just doesn't discuss it. |
 | 🔴 **tikhub (X) intermittently returns an HTML error page** (`Unexpected token '<'`) under rate-limiting — ~1 in 3 calls | Already handled: `_monid.py` detects transient HTML/UNKNOWN errors and retries with exponential backoff (2 retries default). If X still returns 0, re-run or lower depth. |
 | 🟡 **tikhub (X) has no date param** — date filtering is client-side from each tweet's `created_at` | `x_twitter.py` parses `created_at` and filters to the `--days` window; undated tweets are kept rather than dropped. Use short keywords (1-2 words), not sentences. |
 | 🟡 **Polymarket Gamma keyword search ignores very short terms** (e.g. "AI") | Use longer queries ("artificial intelligence"); the orchestrator passes the full topic. |

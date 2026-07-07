@@ -47,7 +47,9 @@ Both feed the same review pipeline. Use the Console form unless you already have
 
 > Portable multi-agent engineering framework for fully-autonomous coding runs. One tool-agnostic core engine, per-runtime adapters (Claude Code, Codex, Grok, Orca), and 14 mission skills (doc-sync, test-coverage, dependency-update, cleanup, bug-batch, adversarial-review-and-fix, targeted-migration, design-integration, landing-page-convergence, legacy-rebuild, take-product-to-completion, contract-first-build, scaffold-align, inference-cost) that compose into multi-step engineering campaigns via fleet-program DAGs.
 
-**Marketplace entry** (ready-to-paste JSON): see [`autonomous-fleet.marketplace-entry.json`](./autonomous-fleet.marketplace-entry.json)
+**Marketplace entry** (ready-to-paste JSON): lives in the sibling repo at
+[`ravidsrk/autonomous-fleet` → `docs/marketplace-submission/marketplace-entry.json`](https://github.com/ravidsrk/autonomous-fleet/blob/main/docs/marketplace-submission/marketplace-entry.json)
+— this packet does not carry a local copy.
 
 # Submission packet for `agent-skills`
 
@@ -60,7 +62,7 @@ Both feed the same review pipeline. Use the Console form unless you already have
 
 > Production-grade capability skills for AI coding agents. Six battle-tested skills: cloudflare-dns (migrate DNS from any registrar to Cloudflare with bulk record import and registrar nameserver flip), namecheap-dns (manage Namecheap DNS records via the XML API — handles IP-allowlist and wholesale-replace quirks), fly-to-aws-migration (end-to-end Fly.io → AWS migration playbook covering Postgres → Aurora, Machines → ECS Fargate, secrets, DNS cutover), deep-research (parallel multi-source research across X, Reddit, HackerNews, GitHub, Polymarket, YouTube, and Exa neural search), terminal-poster (dense retro-cyberpunk viral infographics via Nano Banana Pro), and clean-sweep (autonomous multi-agent issue clean-sweep — one-PR-per-finding pipeline on the Orca runtime). MIT licensed.
 
-**Marketplace entry** (ready-to-paste JSON): see [`agent-skills.marketplace-entry.json`](./agent-skills.marketplace-entry.json)
+**Marketplace entry** (ready-to-paste JSON): see [`marketplace-entry.json`](./marketplace-entry.json)
 
 # After submission
 
@@ -91,7 +93,11 @@ The Community marketplace is by far the highest-value submission. Everything els
 # Files in this packet
 
 - `README.md` — this file
-- `autonomous-fleet.marketplace-entry.json` — ready-to-paste marketplace.json entry
-- `agent-skills.marketplace-entry.json` — same, for agent-skills
+- `PRE-SUBMIT.md` — mandatory checklist to run immediately before opening the form
+- `marketplace-entry.json` — ready-to-paste marketplace.json entry for `agent-skills`
 - `announcement-banner.jpg` — side-by-side banner for X/LinkedIn announcement
+- `announcement-banner-prompt.txt` — Nano Banana Pro prompt used to regenerate the banner
 - `announcement-copy.md` — drafted post copy for X + LinkedIn + dev.to
+
+The autonomous-fleet marketplace entry lives in the sibling repo (see the link above); this
+packet only ships the agent-skills entry.

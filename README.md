@@ -49,6 +49,7 @@
 | Skill | What it does | Cost / latency |
 |---|---|---|
 | 🧹 **[clean-sweep](skills/clean-sweep/)** | Autonomous **multi-agent issue clean-sweep**. Drives a one-PR-per-finding pipeline — build → open-PR + bot-reconcile → **build-blind review** → conflict-aware commit-preserving merge → cleanup — then an anti-inflation E2E gate (fresh install, real DB push, critical-path assertions). Three-lane discipline; ledger as external brain. Triggers: "clean sweep the issues", "fix everything in this audit doc", "autonomous fix-everything pass". **Requires the Orca multi-agent runtime + the `orchestration` skill.** | agent-time + LLM tokens (scales with backlog) |
+| 🚀 **[spec-to-ship](skills/spec-to-ship/)** | Autonomous **spec → shipped product** build. Turns a frozen doc/spec set into a working product via a PR-per-task pipeline — THINK → PLAN(freeze) → foundation → parallel slices → integration → hardening → **e2e gate with teeth** → **adversarial red-team** → ship → reflect. Build-blind review; merge-chain serialization on hot mount-point files; ledger as external brain. Triggers: "the docs are ready, build the whole thing", "turn this spec into a shipped product", "autonomous end-to-end build". **Requires the Orca multi-agent runtime + the `orchestration` skill.** | agent-time + LLM tokens (scales with scope) |
 
 ---
 
@@ -184,6 +185,8 @@ Skills auto-activate based on the `description` field in their `SKILL.md`. Just 
 > 💬 *"Do a deep dive on AI agent harness engineering"* → activates `deep-research`
 >
 > 💬 *"Generate a terminal-style poster for our deployment pipeline"* → activates `terminal-poster`
+>
+> 💬 *"The docs are ready — build the whole product end-to-end"* → activates `spec-to-ship`
 
 ---
 
@@ -262,7 +265,8 @@ agent-skills/
     ├── fly-to-aws-migration/     ← 🌐 Fly → AWS playbook (7 phases)
     ├── deep-research/            ← 🔍 8-source parallel research
     ├── terminal-poster/          ← 🎨 Retro-cyberpunk image posters
-    └── clean-sweep/              ← 🛠️ Autonomous multi-agent issue clean-sweep
+    ├── clean-sweep/              ← 🛠️ Autonomous multi-agent issue clean-sweep
+    └── spec-to-ship/             ← 🚀 Autonomous spec → shipped product build
 ```
 
 Each skill folder contains:
@@ -292,6 +296,7 @@ Output:
 ✅ deep-research
 ✅ fly-to-aws-migration
 ✅ namecheap-dns
+✅ spec-to-ship
 ✅ terminal-poster
 
 🟢 All 6 skills valid against agentskills.io spec.

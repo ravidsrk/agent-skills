@@ -19,12 +19,13 @@ compatibility: >-
   Optional: `gitleaks` and a PR review bot (e.g. Cursor BugBot). The coordination layer is Orca-specific; on
   another harness only the strategy half (references/) carries over.
 metadata:
-  author: ravidsrk
+  author: "@ravidsrk"
   version: "1.0.0"
   origin: >-
     distilled from a full autonomous product build — THINK→PLAN→10-task foundation, ~20 parallel slices,
     integration, NFR hardening, and an adversarial red-team phase; ~18 real bugs caught including P0
     cross-tenant authz bypasses, a wrong-base merge, and hollow (non-durable) persistence.
+allowed-tools: Bash Read Write Edit
 ---
 
 # Spec to Ship

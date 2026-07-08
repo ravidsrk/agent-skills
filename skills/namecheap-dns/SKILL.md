@@ -33,6 +33,17 @@ quirks that bite first-time users:
 `scripts/setHosts.py` wraps both quirks safely — prefer it over hand-rolled
 curl for anything more than a one-off inline test.
 
+## When to use
+
+- Set up subdomains / link a custom domain to Fly, Vercel, S3, etc.
+- Add or rotate MX / SPF / DKIM / DMARC while Namecheap still hosts DNS
+- List or surgically change records without the Namecheap dashboard
+
+## When NOT to use
+
+- **Migrating DNS hosting to Cloudflare** (or flipping nameservers away from Namecheap as the primary goal) — use [`cloudflare-dns`](../cloudflare-dns/) for the full migration + hardening workflow.
+- **Domain registration, transfers, or renewals** — DNS records only. For registrar ops use [`clasen/skills@namecheap-domains`](https://skills.sh/clasen/skills/namecheap-domains).
+
 ## Required environment
 
 | Env var | What it is |

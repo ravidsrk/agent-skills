@@ -57,11 +57,18 @@ step_create() {
   fi
 
   echo "  resolving account ID via global key..."
-  local acct_id
-  acct_id=$(curl -sS "https://api.cloudflare.com/client/v4/accounts" \
+  local acct_resp acct_id
+  acct_resp=$(curl -sS "https://api.cloudflare.com/client/v4/accounts?per_page=1" \
     -H "X-Auth-Key: ${CLOUDFLARE_GLOBAL_API_KEY}" \
-    -H "X-Auth-Email: ${CLOUDFLARE_EMAIL}" \
-    | python3 -c "import json,sys; print(json.load(sys.stdin)['result'][0]['id'])")
+    -H "X-Auth-Email: ${CLOUDFLARE_EMAIL}")
+  cf_assert_success "$acct_resp" "list accounts (global key)"
+  acct_id=$(echo "$acct_resp" | python3 -c "
+import json, sys
+r = json.load(sys.stdin).get('result') or []
+if not r:
+    sys.exit('ERROR: Cloudflare returned zero accounts')
+print(r[0]['id'])
+")
   echo "  account: ${acct_id:0:8}***"
 
   local resp

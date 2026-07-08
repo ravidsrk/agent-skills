@@ -21,6 +21,18 @@ allowed-tools: Bash Read Write Edit
 End-to-end automation for moving domains from any DNS host to Cloudflare,
 plus ongoing record management. Designed to be reusable across many domains.
 
+## When to use
+
+- "Move DNS to Cloudflare" / "add a domain to Cloudflare"
+- "Manage Cloudflare DNS records" / "harden my Cloudflare zone"
+- Automating DNS setup across multiple sites with rollback
+
+## When NOT to use
+
+- **Only need one CNAME/MX/A at Namecheap** (or another registrar still hosting DNS) — use [`namecheap-dns`](../namecheap-dns/) instead; do not start a full zone migration.
+- **Already on Cloudflare and only need a single record edit** — still use this skill's record helpers, but skip the migration workflow (`migrate.sh`).
+- **Registrar-only ops** (domain transfer, registration, renewal) — out of scope; this skill owns DNS hosting + zone hardening, not the registrar lifecycle.
+
 ## Required environment
 
 Cloudflare auth needs **two** credentials:

@@ -151,6 +151,7 @@ echo "🟢 DNS flipped. Verifying propagation..."
 echo ""
 echo "=== Verifying (30s window) ==="
 START_TIME=$(date +%s)
+CUTOVER_OK=0
 for _ in $(seq 1 30); do
   STATUS=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 5 "https://$HOSTNAME/health" || echo "FAIL")
   ELAPSED=$(( $(date +%s) - START_TIME ))
@@ -158,13 +159,12 @@ for _ in $(seq 1 30); do
 
   if [ "$STATUS" = "200" ]; then
     echo "🟢 Cutover successful at T+${ELAPSED}s"
+    CUTOVER_OK=1
     break
   fi
   sleep 1
 done
 
-echo ""
-echo "=== Done. ==="
 echo ""
 echo "🔴 ROLLBACK COMMAND (save this):"
 cat <<ROLLBACK
@@ -174,5 +174,15 @@ curl -sSf -X PATCH \\
   "$API/dns_records/$RECORD_ID" \\
   -d '{"content":"$OLD_TARGET","proxied":true}'
 ROLLBACK
+
+if [ "$CUTOVER_OK" -ne 1 ]; then
+  echo "" >&2
+  echo "🔴 Cutover verification FAILED — https://$HOSTNAME/health never returned HTTP 200 within 30s." >&2
+  echo "   DNS was flipped to $NEW_TARGET. Use the rollback command above if needed." >&2
+  exit 1
+fi
+
+echo ""
+echo "=== Done. ==="
 echo ""
 echo "🟢 Monitor for 10 min minimum before destroying Fly resources."

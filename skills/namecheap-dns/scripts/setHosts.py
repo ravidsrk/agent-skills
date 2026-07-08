@@ -17,8 +17,8 @@ Usage:
 
 Modes:
     --add-json <file>        JSON list of records to add: [{"name","type","address","ttl","mxpref"}]
-    --add <spec>             Add one record: 'name=docs&type=CNAME&address=x.fly.dev.&ttl=300'
-                             Repeat --add for multiple.
+    --add <spec>             Upsert one record: 'name=docs&type=CNAME&address=x.fly.dev.&ttl=300'
+                             Same (name, type) replaces the existing address. Repeat --add for multiple.
     --remove <spec>          Remove records matching (name AND type). Repeat.
     --email-type             Override EmailType (defaults to whatever getHosts returned)
     --dry-run                Print the exact form fields that WOULD be sent. No API call.
@@ -161,11 +161,11 @@ def merge(existing: list[dict], adds: list[dict], removes: list[dict]) -> list[d
 
     kept = [r for r in existing if not any(matches_remove(r, rm) for rm in removes)]
 
-    # Add (overwrite if same name+type+address exists — treat as update)
+    # Add / upsert: same (name, type) is an update (new address replaces old).
+    # Matching on address too would leave duplicate CNAMEs when retargeting.
     def same_key(a: dict, b: dict) -> bool:
         return (a["name"].lower() == b["name"].lower()
-                and a["type"].upper() == b["type"].upper()
-                and a["address"] == b["address"])
+                and a["type"].upper() == b["type"].upper())
 
     out = list(kept)
     for add in adds:

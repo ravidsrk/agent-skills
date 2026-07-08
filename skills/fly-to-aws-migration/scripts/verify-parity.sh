@@ -99,7 +99,8 @@ while read -r ENDPOINT; do
     DIFF=$((AWS_LEN - FLY_LEN))
     DIFF_PCT=$(python3 -c "print(abs($DIFF) / max($FLY_LEN, 1) * 100)" 2>/dev/null || echo "999")
 
-    if (( $(echo "$DIFF_PCT < 5" | bc -l 2>/dev/null || echo "0") )); then
+    # Prefer python3 over bc (bc is not always installed).
+    if [ "$(python3 -c "print(1 if float('$DIFF_PCT') < 5 else 0)" 2>/dev/null || echo 0)" = "1" ]; then
       echo "  🟢 Body size within 5% ($AWS_LEN vs $FLY_LEN)" | tee -a "$REPORT"
       PASSES=$((PASSES + 1))
     else

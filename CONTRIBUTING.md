@@ -9,7 +9,7 @@ If you're new to the [Agent Skills spec](https://agentskills.io/specification), 
 # TL;DR
 
 1. Fork → branch off `main`
-2. Add `skills/<your-skill>/SKILL.md` (+ optional `README.md`, `scripts/`, `references/`, `assets/`)
+2. Add `skills/<your-skill>/SKILL.md` + `README.md` (required), plus optional `scripts/`, `references/`, `assets/`
 3. Run `python3 scripts/validate-skills.py` → must pass
 4. Add a row to the appropriate category table in [`README.md`](README.md) (🌐 Infrastructure / 🔍 Research / 🎨 Creative / 🛠️ Dev workflow)
 5. Open a PR with a short demo (screenshot, log, or example output)

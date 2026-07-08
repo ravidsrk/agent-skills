@@ -57,11 +57,21 @@ else
 fi
 
 echo "$resp" > "${DIR}/rollback.log"
-if echo "$resp" | grep -q 'Status="OK"'; then
-  echo "  (OK) rollback applied"
-  echo "  Note: public resolvers may cache Cloudflare NS for up to 30 min. Verify with:"
-  echo "    curl -sH 'accept: application/dns-json' 'https://1.1.1.1/dns-query?name=${DOMAIN}&type=NS' | python3 -m json.tool"
-else
+# Namecheap setCustom returns Status="OK" for API-auth success AND Updated="true"
+# only when the change landed (same as migrate.sh flip). setDefault may omit
+# Updated — require it when present, accept Status=OK alone when absent.
+if ! echo "$resp" | grep -q 'Status="OK"'; then
   echo "  Namecheap error — see ${DIR}/rollback.log" >&2
+  grep -oE '<Error[^>]*>[^<]+</Error>' "${DIR}/rollback.log" | head -5 >&2 || true
   exit 1
 fi
+if echo "$resp" | grep -q 'Updated='; then
+  if ! echo "$resp" | grep -q 'Updated="true"'; then
+    echo "  Namecheap returned Status=OK but Updated=false — rollback did not land" >&2
+    grep -oE '<Error[^>]*>[^<]+</Error>' "${DIR}/rollback.log" | head -5 >&2 || true
+    exit 1
+  fi
+fi
+echo "  (OK) rollback applied"
+echo "  Note: public resolvers may cache Cloudflare NS for up to 30 min. Verify with:"
+echo "    curl -sH 'accept: application/dns-json' 'https://1.1.1.1/dns-query?name=${DOMAIN}&type=NS' | python3 -m json.tool"

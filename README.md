@@ -2,7 +2,7 @@
 
 <p align="center">
   <strong>Production-grade capability skills for AI agents.</strong><br/>
-  DNS migration, AWS migration, deep research, and viral image generation — battle-tested in production, portable across runtimes.
+  DNS migration, AWS migration, deep research, viral image generation, and autonomous multi-agent workflows — battle-tested in production, portable across runtimes.
 </p>
 
 <p align="center">
@@ -185,6 +185,8 @@ Skills auto-activate based on the `description` field in their `SKILL.md`. Just 
 > 💬 *"Do a deep dive on AI agent harness engineering"* → activates `deep-research`
 >
 > 💬 *"Generate a terminal-style poster for our deployment pipeline"* → activates `terminal-poster`
+>
+> 💬 *"Clean sweep the issues in this audit doc"* → activates `clean-sweep`
 >
 > 💬 *"The docs are ready — build the whole product end-to-end"* → activates `spec-to-ship`
 

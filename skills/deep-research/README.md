@@ -151,6 +151,9 @@ Every source routes through the [`monid`](https://monid.dev) CLI for one auth + 
 deep-research/
 ├── SKILL.md                          ← Skill manifest (agentskills.io spec)
 ├── README.md                         ← This file
+├── assets/
+│   ├── banner.jpg                    ← Skill banner
+│   └── banner-prompt.txt             ← Banner reproducer
 └── scripts/
     ├── research.py                   ← CLI entry point
     └── sources/
@@ -174,6 +177,10 @@ deep-research/
 4. Wire it into `research.py`'s source dispatcher
 
 Treat `SKILL.md` and this README as living specs — bump the gotchas table when an upstream schema changes.
+
+# Pairs with
+
+- [`terminal-poster`](../terminal-poster/) — turn research findings into a shareable terminal-aesthetic poster.
 
 # Credits
 

@@ -238,6 +238,10 @@ Full list in [`SKILL.md`](SKILL.md) under "Critical pitfalls".
 
 Visual pattern reverse-engineered from [@shannholmberg](https://x.com/shannholmberg) on X. He didn't design this skill — he designed the look. This skill just makes the look reproducible across topics.
 
+# Pairs with
+
+- [`deep-research`](../deep-research/) — research a topic, then render the findings as a poster.
+
 # License
 
 MIT. See the repo-level [LICENSE](../../LICENSE).

@@ -9,11 +9,16 @@ description: >-
   issues/findings, close out an audit/adversarial-review document, or run an autonomous
   multi-agent fix-everything pass over a codebase. Coordinator-only: it spawns builder / reviewer /
   integrator workers and holds a file-ledger; it never reviews, codes, opens PRs, or merges itself.
+license: MIT
 compatibility: >-
   Requires the Orca multi-agent runtime (running, orchestration experimental feature on) and the companion
   `orchestration` skill — a HARD dependency; the coordination layer is Orca-specific and does not port to
   other agent harnesses (the strategy in references/ + assets/ does). Worker CLIs `codex` + `claude` on
   PATH; `git` + `gh`; `python3`; bash/zsh. Optional: `gitleaks` and a PR review bot (e.g. Cursor BugBot).
+metadata:
+  version: "1.0.0"
+  author: "@ravidsrk"
+allowed-tools: Bash Read Write Edit
 ---
 
 # Clean-Sweep — autonomous multi-agent issue clean-sweep

@@ -25,8 +25,8 @@ When working in this repo:
 | "Migrate from Fly to AWS" / "leave Fly" / "ECS migration" / "AWS migration" | [`fly-to-aws-migration`](skills/fly-to-aws-migration/SKILL.md) |
 | "Research X" / "deep dive on Y" / "what's the discourse on Z" | [`deep-research`](skills/deep-research/SKILL.md) |
 | "Generate a viral poster" / "terminal aesthetic infographic" / "agent stack visualization" | [`terminal-poster`](skills/terminal-poster/SKILL.md) |
-| "Clean sweep the issues" / "fix everything in this audit doc" / "close out this review" / "autonomous multi-agent fix-everything pass" | [`clean-sweep`](skills/clean-sweep/SKILL.md) |
-| "The docs are ready — build the whole thing" / "turn this spec into a shipped product" / "autonomous end-to-end build from specs" | [`spec-to-ship`](skills/spec-to-ship/SKILL.md) |
+| "Clean sweep the issues" / "fix everything in this audit doc" / "close out this review" / "autonomous multi-agent fix-everything pass" | [`clean-sweep`](skills/clean-sweep/SKILL.md) (requires Orca + `orchestration` skill) |
+| "The docs are ready — build the whole thing" / "turn this spec into a shipped product" / "autonomous end-to-end build from specs" | [`spec-to-ship`](skills/spec-to-ship/SKILL.md) (requires Orca + `orchestration` skill) |
 
 # Execution Model
 

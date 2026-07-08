@@ -39,14 +39,14 @@ owner (legal/pricing/naming — never fabricated), **Lane 0** refuse + surface (
 
 # Install
 
-Drop the folder into your agent's skills directory:
+Link the folder into your agent's skills directory (symlink tracks `git pull`):
 
 ```bash
 # Claude Code (user-level, cross-project)
-cp -R skills/clean-sweep ~/.claude/skills/clean-sweep
+ln -s "$(pwd)/skills/clean-sweep" ~/.claude/skills/clean-sweep
 
 # or project-level
-cp -R skills/clean-sweep .claude/skills/clean-sweep
+ln -s "$(pwd)/skills/clean-sweep" .claude/skills/clean-sweep
 ```
 
 Then invoke it with `/clean-sweep`, or just say *"clean sweep the issues in this repo"* — the description
@@ -98,6 +98,12 @@ Requires the **Orca** multi-agent runtime (running, orchestration experimental f
 companion `orchestration` skill. Worker CLIs `codex` and `claude` on PATH; `git` + `gh`; `python3`; bash/zsh.
 Optional: `gitleaks` (scoped secret scans) and a PR review bot if the repo uses one. The coordination layer
 is Orca-specific; on another harness only the strategy half (`references/`, `assets/`) carries over.
+
+# Pairs with
+
+- [`spec-to-ship`](../spec-to-ship/) — the sibling for *greenfield* builds from a frozen spec set. Same
+  coordinator / build-blind-review / PR-per-unit pipeline; `clean-sweep` fixes brownfield, `spec-to-ship`
+  ships new products.
 
 # Credits
 

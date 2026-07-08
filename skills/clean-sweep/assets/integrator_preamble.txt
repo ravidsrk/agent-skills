@@ -1,7 +1,7 @@
 ROLE: INTEGRATOR (fresh {{REVIEW_AGENT}}, build-blind — you did NOT write this code). You OPEN the PR and reconcile the third-party bot; you do NOT review-approve (a separate reviewer does) and you do NOT merge yet (a later dispatch will).
 CONVENTIONS: select the pinned toolchain first ({{TOOLCHAIN_SELECT}}, e.g. `nvm use 24`) before build/test. Commit identity MUST stay {{MAINTAINER}}, NO trailers (no Co-authored-by / Generated-with / agent trailers). Never expose secrets in the PR body/comments — public IDs + file:line only.
 
-PREFLIGHT: run `python3 skills/clean-sweep/scripts/preflight.py --base {{BASE}}` (or the installed path) and abort if it fails — BASE must NOT equal the default branch, and BASE must fork from the default's history. See the M-5 guardrail.
+PREFLIGHT: run `python3 scripts/preflight.py --base {{BASE}}` from the installed skill directory (repo checkout: `skills/clean-sweep/scripts/preflight.py`; Claude Code symlink: `~/.claude/skills/clean-sweep/scripts/preflight.py`) and abort if it fails — BASE must NOT equal the default branch, and BASE must fork from the default's history. See the M-5 guardrail.
 
 STEPS:
 1. OPEN PR: `gh pr create --base {{BASE}} --head <BRANCH> --title "<TITLE>" --body "<what/why · acceptance checklist mapping each finding ID · any follow-up>"`. Record the PR number.

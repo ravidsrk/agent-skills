@@ -45,14 +45,14 @@ the change is greppable on the base branch, never a worker's word.
 
 # Install
 
-Drop the folder into your agent's skills directory:
+Link the folder into your agent's skills directory (symlink tracks `git pull`):
 
 ```bash
 # Claude Code (user-level, cross-project)
-cp -R skills/spec-to-ship ~/.claude/skills/spec-to-ship
+ln -s "$(pwd)/skills/spec-to-ship" ~/.claude/skills/spec-to-ship
 
 # or project-level
-cp -R skills/spec-to-ship .claude/skills/spec-to-ship
+ln -s "$(pwd)/skills/spec-to-ship" .claude/skills/spec-to-ship
 ```
 
 Then invoke it with `/spec-to-ship`, or just say *"the docs are ready — build the whole product

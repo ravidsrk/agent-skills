@@ -5,7 +5,7 @@ Production-grade skills for AI agents — DNS migration, AWS migration, deep res
 # Project Structure
 
 ```
-skills/                       → 7 capability skills (each with SKILL.md + README.md + scripts/ references/ templates/)
+skills/                       → 7 capability skills (each with SKILL.md + README.md; optional scripts/ references/ templates/ assets/)
 docs/                         → Per-runtime setup guides + skill-anatomy spec
 scripts/                      → Repo-level helpers (validate-skills.py)
 assets/                       → Banner image, screenshots

@@ -28,6 +28,7 @@ Structurally healthy: every skill has valid frontmatter, `README.md`, and resolv
 |---|---|---|
 | High | Terraform templates: hardcoded container port 3000; `primary_domain` required with no default; `cloudflare-cache.tf` depends on `static-sites.tf` locals | Template coupling is documented in migration phases; needs a dedicated Terraform pass |
 | Medium | `deep-research` banner visually labels MONID as an 8th source (auth/router in code) | **Fixed** in follow-up: MONID is center router; 8 cards are real sources |
+| Medium | `deep-research` banner visually labels MONID as an 8th source (auth/router in code) | Needs image regen + vision audit (`OPENROUTER_API_KEY`) |
 | Medium | `spawn_worker.sh` swallows Orca dispatch failures (`\|\| true`) | Intentional retry/heartbeat pattern; tighten carefully |
 | Medium | `make-poster.sh` installs `yq` from GitHub `latest` without checksum | Documented convenience path |
 | Low | `fly-restrict-origin.md` lives under `scripts/` | Harmless; move to `references/` in a cleanup PR |

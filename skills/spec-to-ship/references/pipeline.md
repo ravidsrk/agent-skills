@@ -109,6 +109,26 @@ verification.md`) will surface *missing* work — a durable store that was never
 HTTP path, tool-wiring that was assumed done. Each discovered gap becomes its **own dispatched task**, not
 a silent patch. Expect scope to grow at the verification boundary and budget waves for it.
 
+## Lightweight mode — bounded disjoint work → parallel subagents, not the full pipeline
+
+Not every wave needs the full spawn/dispatch/integrate/merge machinery. When the remaining scope is a
+**bounded set of DISJOINT changes** — each a new file or a small edit in its own area (e.g. closing a
+backlog: three new adapters behind existing ports + a couple of hardening edits) — a lighter loop is faster
+and just as safe:
+
+- Fan the disjoint tasks out to **parallel sub-agents** (plain task agents, no worktree-per-task), each with
+  an airtight spec: the exact interface to implement, the reference/template to mirror, and a hard rule to
+  create ONLY its own new files.
+- **The coordinator owns the shared spine** — the DI/wiring file, the barrel/index, migration *numbering*,
+  and the one integration point. Forbid every subagent from touching those (parallel edits collide); you
+  wire it all up once, in one place, after they finish.
+- Then **integrate + verify + land yourself**: full typecheck, the hermetic suite, AND the live-service
+  integration suite the subagents couldn't run (verification.md §7), review each subagent's diff
+  (verify-never-trust — one *will* have a bug its own check missed), then land as ONE PR.
+
+This is "coordinator owns the spine, subagents build the leaves." Reach for the full PR-per-task pipeline
+when tasks are interdependent, touch hot mount-point files, or each needs its own build-blind review.
+
 ## Waiting
 
 Block on `orca orchestration check --wait --types worker_done,escalation,decision_gate --timeout-ms <n>`,

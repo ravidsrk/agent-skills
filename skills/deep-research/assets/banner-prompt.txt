@@ -11,35 +11,43 @@ PALETTE:
 
 COMPOSITION:
 
-  CENTER: a small isometric cube floating in space, painted coral #E45D40, with a thin glow ring around it. Beside the cube in clean monospace caps: "DEEP-RESEARCH".
+  CENTER: a small isometric cube floating in space, painted coral #E45D40, with a thin glow ring around it. This cube is the AUTH/ROUTER layer — not a research source. Beside the cube in clean monospace caps, exactly once: "MONID". Below that, smaller monospace: "router".
 
-  RADIATING out from the cube: EIGHT thin lines fanning to EIGHT small floating cards. Each card is positioned at a clean radial angle (think of a clock face — cards at 12, 1:30, 3, 4:30, 6, 7:30, 9, 10:30 positions). All 8 cards same size.
+  RADIATING out from the cube: EIGHT thin lines fanning to EIGHT small floating cards. Each card is positioned at a clean radial angle (clock-face positions: 12, 1:30, 3, 4:30, 6, 7:30, 9, 10:30). All 8 cards same size.
 
-  EACH CARD CONTAINS ONLY a small abstract iconic glyph (a circle, dot, triangle, square, etc.) — NO TEXT INSIDE THE CARD. 
+  EACH CARD CONTAINS ONLY a small abstract iconic glyph (a circle, dot, triangle, square, etc.) — NO TEXT INSIDE THE CARD.
 
-  BELOW EACH CARD: one clean monospace label in dark slate. The 8 labels, ONE per card, ALL UNIQUE, spelled exactly:
+  BELOW EACH CARD: one clean monospace label in dark slate. The 8 labels are the research SOURCES. ALL UNIQUE, spelled exactly:
     LABEL 1: X
     LABEL 2: REDDIT
     LABEL 3: HACKER NEWS
-    LABEL 4: GITHUB
-    LABEL 5: POLYMARKET
-    LABEL 6: YOUTUBE
-    LABEL 7: EXA
-    LABEL 8: MONID
+    LABEL 4: GITHUB REPOS
+    LABEL 5: GITHUB ISSUES
+    LABEL 6: POLYMARKET
+    LABEL 7: YOUTUBE
+    LABEL 8: EXA
 
-  CRITICAL: All 8 labels must appear EXACTLY ONCE. Do not duplicate any label. Do not skip any label. The word "EXA" must appear in the image. The word "GITHUB" must appear in the image only one time. The word "MONID" must appear in the image only one time.
+  CRITICAL SPELLING RULES:
+  - All 8 source labels must appear EXACTLY ONCE below cards. Do not duplicate. Do not skip.
+  - "MONID" appears EXACTLY ONCE, only beside the center cube — NEVER as a card label.
+  - Do NOT render a ninth source card. Do NOT put MONID on a card.
+  - The words "EXA", "POLYMARKET", "YOUTUBE", "REDDIT" must each appear exactly once.
+  - "GITHUB REPOS" and "GITHUB ISSUES" are two different labels — both required, each once.
+  - Spell "HACKER NEWS" correctly (not "HACKER NUDS" or any garble).
+  - Do not render fake domain names.
 
   Two cards are teal-tinted, the other six are cream/white. Each card has subtle drop shadow.
 
   TOP-LEFT corner: small monospace exactly "skills/deep-research"
-  BOTTOM-CENTER: a thin horizontal line with ink text exactly: "8-source parallel research orchestrator"
+  BOTTOM-CENTER: a thin horizontal line with ink text exactly: "8-source parallel research via monid"
 
 ABSOLUTELY DO NOT:
-  - Duplicate any of the 8 labels
-  - Omit any of the 8 labels (especially "EXA" and "MONID" — these are essential)
+  - Treat MONID as a source card (it is the center router only)
+  - Duplicate or omit any of the 8 source labels
   - Render text inside the cards (only icons inside; labels are below)
   - Render any brand logos
   - Render any garbled letters or made-up words
   - Use photorealism, emoji, neon, cyberpunk, or terminal aesthetics
 
-The 8 labels are non-negotiable: X, REDDIT, HACKER NEWS, GITHUB, POLYMARKET, YOUTUBE, EXA, MONID.
+The 8 source labels are non-negotiable: X, REDDIT, HACKER NEWS, GITHUB REPOS, GITHUB ISSUES, POLYMARKET, YOUTUBE, EXA.
+Center router label is non-negotiable: MONID (exactly once, beside the cube).

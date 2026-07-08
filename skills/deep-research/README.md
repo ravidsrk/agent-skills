@@ -1,7 +1,7 @@
 # deep-research
 
 <p align="center">
-  <img src="assets/banner.jpg" alt="deep-research — 8-source parallel research orchestrator" width="100%">
+  <img src="assets/banner.jpg" alt="deep-research — 8-source parallel research via monid router" width="100%">
 </p>
 
 A parallel multi-source deep-research orchestrator. Fans out across **8 data sources** in parallel and dumps quotable evidence as JSON + human-readable markdown in a single command.

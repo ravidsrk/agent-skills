@@ -32,7 +32,7 @@ grep -n "BUMP-TO-HEAD-AT-SUBMIT" docs/marketplace-submission/
 
 ```bash
 ls -d skills/*/ | wc -l
-# → must equal the count named in the description ("Six battle-tested skills")
+# → must equal the count named in the description ("Seven battle-tested skills")
 ```
 
 If the counts disagree, the description is stale — update the enumeration in

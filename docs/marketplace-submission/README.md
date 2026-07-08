@@ -56,11 +56,11 @@ Both feed the same review pipeline. Use the Console form unless you already have
 **Repository:** https://github.com/ravidsrk/agent-skills
 **Pinned SHA:** `<BUMP-TO-HEAD-AT-SUBMIT>` — refresh with `git rev-parse HEAD` immediately before opening the form (see [`PRE-SUBMIT.md`](./PRE-SUBMIT.md))
 **Category:** development
-**One-line pitch:** Production-grade capability skills for AI coding agents. 6 battle-tested skills covering cloud infrastructure, research, viral image generation, and autonomous multi-agent codebase clean-sweep.
+**One-line pitch:** Production-grade capability skills for AI coding agents. 7 battle-tested skills covering cloud infrastructure, research, viral image generation, and autonomous multi-agent dev workflow (clean-sweep + spec-to-ship).
 
 **Description** (paste into form):
 
-> Production-grade capability skills for AI coding agents. Six battle-tested skills: cloudflare-dns (migrate DNS from any registrar to Cloudflare with bulk record import and registrar nameserver flip), namecheap-dns (manage Namecheap DNS records via the XML API — handles IP-allowlist and wholesale-replace quirks), fly-to-aws-migration (end-to-end Fly.io → AWS migration playbook covering Postgres → Aurora, Machines → ECS Fargate, secrets, DNS cutover), deep-research (parallel multi-source research across X, Reddit, HackerNews, GitHub, Polymarket, YouTube, and Exa neural search), terminal-poster (dense retro-cyberpunk viral infographics via Nano Banana Pro), and clean-sweep (autonomous multi-agent issue clean-sweep — one-PR-per-finding pipeline on the Orca runtime). MIT licensed.
+> Production-grade capability skills for AI coding agents. Seven battle-tested skills: cloudflare-dns (migrate DNS from any registrar to Cloudflare with bulk record import and registrar nameserver flip), namecheap-dns (manage Namecheap DNS records via the XML API — handles IP-allowlist and wholesale-replace quirks), fly-to-aws-migration (end-to-end Fly.io → AWS migration playbook covering Postgres → Aurora, Machines → ECS Fargate, secrets, DNS cutover), deep-research (parallel multi-source research across X, Reddit, HackerNews, GitHub, Polymarket, YouTube, and Exa neural search), terminal-poster (dense retro-cyberpunk viral infographics via Nano Banana Pro), clean-sweep (autonomous multi-agent issue clean-sweep — one-PR-per-finding pipeline on the Orca runtime), and spec-to-ship (autonomous frozen-spec → shipped product build — PR-per-task pipeline on the Orca runtime). MIT licensed.
 
 **Marketplace entry** (ready-to-paste JSON): see [`marketplace-entry.json`](./marketplace-entry.json)
 

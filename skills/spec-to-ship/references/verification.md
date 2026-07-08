@@ -72,6 +72,13 @@ revert the one-line guard, watch the suite go red, restore it, watch it go green
 both with and without the fix is worthless. Bake this into the fix task's acceptance: "show the suite reds
 when the guard is removed." This is what converts a one-time catch into a permanent invariant.
 
+**Your own later edits must respect the ratchet, too.** A behavior-preserving *refactor* can newly EXPOSE a
+pattern a refuse-surface scanner flags — e.g. pulling a `/${x}` path fragment out of a nested template makes
+it a standalone, scannable path literal that the "public-surface-only" scan rejects (even though the runtime
+behavior is identical). Fix by not introducing the flagged shape (concatenate a bare `'/'` — keep it
+un-scannable), **never** by widening the scanner's allowlist. The ratchet constrains *how* you write the
+code, not only what it does.
+
 ## 5. Where these live in the lifecycle
 
 ```
@@ -94,3 +101,20 @@ These suites are subprocess-heavy (they shell out to gitleaks/scanners in loops)
   planted violation text (`imports "@vendor" — allowed only in …`, `schema-drift … body: number`) on the
   happy path. Those lines sit inside tests marked ✓. Triage a failing log by the real `FAIL <file>` /
   `Tests N failed` / final `##[error]` markers, and identify the owning test id before you "fix" anything.
+
+## 7. Run the tests the builders (and the default suite) couldn't
+
+Integration tests gated behind a **live service** — a database, a queue — skip when its URL is unset, so
+they do NOT run in the default hermetic suite, and a builder/subagent literally *cannot* run them (it
+reports "typecheck clean" and moves on). That is a blind spot: a freshly-generated adapter can typecheck
+perfectly and still be wrong.
+
+- **Stand up the real service locally and run the gated suite before you land.** A throwaway container + the
+  service URL + the migrate step + the integration runner takes minutes and catches what nothing else will
+  — in one run it surfaced a real `UPDATE … FROM` SQL bug in a generated adapter that both typecheck and the
+  builder's own self-check passed. "Typecheck clean + CI will catch it" is not verification; *running it* is.
+  verify-never-trust extends to **running the tests the builder skipped**.
+- **Verify each adapter against its OWN reference, not a sibling's.** When you parallelize "port this store
+  to the real backend" across builders, sibling stores can legitimately have *different* contracts — one may
+  THROW on a duplicate idempotency key while another RETURNS the original. Each builder must mirror the
+  behavior of *its* in-memory reference; confirm that, don't assume one contract across the family.

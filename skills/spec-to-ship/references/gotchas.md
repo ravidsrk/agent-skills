@@ -297,3 +297,24 @@ grepping for alarming words. Confirm which test id owns the failure before "fixi
 **Rule.** Planted-violation output ≠ a failure. Identify the real failing test by its FAIL marker; don't
 chase the negative-control fixtures' intentional noise (a whole class of them is by design — see
 `references/verification.md`).
+
+## 23. Backlog items go stale or are architecturally wrong — investigate before you build
+
+**Symptom.** You set out to "close the backlog" and two items resist: one names a symbol/field that no
+longer exists (a later refactor removed it — grep finds nothing); another asks for a change that, on
+inspection, is inappropriate or pointless.
+
+**Root cause.** A backlog is a point-in-time note. Code moved since it was written (the target is a
+*phantom*), or the suggestion was never right — e.g. "type-brand this value like the human-only capability"
+when the value is actually **deserialized from request input** (a parsed DTO cannot carry a module-private
+brand, and branding buys nothing because a runtime guard already enforces the invariant — non-exploitable).
+
+**Fix.** Before building a backlog item: confirm the **target still exists** (grep the current tree), and
+confirm the **fix is appropriate for the value's provenance** — server-*minted* values can be branded,
+input-*parsed* ones cannot. If it's a phantom or architecturally wrong, **decline it with a written
+rationale** in the backlog. Build the real gaps; don't gold-plate or chase ghosts. (And distinguish a real
+code gap from the human/OPS tail — closing every code item does not move a launch that is gated on live
+provisioning + certification + time.)
+
+**Rule.** Investigate every backlog item against the CURRENT tree before building. Decline-with-rationale
+(documented) is a first-class outcome — it beats building the wrong thing, or a thing that isn't there.

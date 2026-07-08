@@ -92,6 +92,10 @@ phase; never re-open a frozen one. Mark the current phase at the top of the ledg
   `go-live-runbook.md` + `backlog.md`, and **open** the promotion PR (integration → default) for human
   review — the swarm never self-merges the promotion *unprompted* or deploys. On explicit human
   authorization it may drive the promotion merge (fix-CI → verify-green → `--admin` → verify), then stop.
+  **Whenever the release state changes** (promotion, a follow-up gap-closing PR), refresh the status docs in
+  the same breath: rewrite live-status docs (runbook, ops-actions) to the new truth, and **banner-close**
+  historical ledgers/reports with a dated pointer forward. A stale handoff doc misleads OPS worse than a
+  missing one (naming the wrong release candidate, listing shipped work as "deferred").
 
 ## The PR-per-task pipeline (one task = one branch = one PR = one merge-commit)
 
@@ -119,7 +123,10 @@ ledger — a task advances only when the flags read true **in the file**:
 - **Commit hygiene:** author = the maintainer, no `Co-authored-by`/agent trailers, small logical commits,
   gitleaks before every push; no NUL-byte/binary source files (a recurring builder failure — gotcha #18).
 
-Full spawn sequences, merge rules, and the bot-reconcile loop: `references/pipeline.md`.
+Full spawn sequences, merge rules, and the bot-reconcile loop: `references/pipeline.md`. For a **bounded set
+of disjoint changes** (e.g. closing a backlog), a lighter loop — parallel subagents build the new files, the
+coordinator owns the shared spine (wiring/migration-numbers/barrels) and integrates + verifies — often beats
+the full pipeline; see `references/pipeline.md` (Lightweight mode).
 The ledger template + boolean-gate discipline: `references/ledger-template.md`.
 
 ## The gotchas that actually bite (read `references/gotchas.md`)
@@ -196,4 +203,8 @@ These are silent or expensive failures observed in a real run. The headlines:
   BASE→default promotion for human review and merges it **only on explicit human authorization** (then
   fix-CI → verify-green → `--admin` → verify `state=MERGED`+base, like any merge). Apply/provision stays
   human/OPS, surfaced not faked.
+- Building every backlog "gap" without checking it's real and appropriate — some are *phantoms* (the target
+  was refactored away) or architecturally wrong (branding a value that's parsed from request input). Grep
+  the current tree first; a documented **decline-with-rationale** is first-class (gotcha #23). And closing
+  every *code* gap doesn't move a launch gated on live provisioning + certification + time — say so plainly.
 - Grinding on in a degraded/bloated context instead of writing a handoff block and shift-changing.

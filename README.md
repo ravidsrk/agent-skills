@@ -2,7 +2,7 @@
 
 <p align="center">
   <strong>Production-grade capability skills for AI agents.</strong><br/>
-  DNS migration, AWS migration, deep research, and viral image generation — battle-tested in production, portable across runtimes.
+  DNS, AWS migration, deep research, terminal posters, and Orca multi-agent playbooks — battle-tested in production.
 </p>
 
 <p align="center">
@@ -55,6 +55,15 @@
 
 # Quick Start
 
+## Install matrix
+
+| Track | Skills | Extra runtime |
+|---|---|---|
+| **A — Capability** (any agent harness) | `cloudflare-dns`, `namecheap-dns`, `fly-to-aws-migration`, `deep-research`, `terminal-poster` | Env keys only (see below) |
+| **B — Orca multi-agent** | `clean-sweep`, `spec-to-ship` | **Orca runtime + Orca `orchestration` skill** (from the Orca CLI install — **not** shipped in this repo). Peers of each other; neither depends on the other. |
+
+🟡 **Name collision:** this repo's `deep-research` is the **monid 8-source** orchestrator. Other skill packs (e.g. makerskills) may ship a different skill with the same name. Symlinking this repo's copy will replace the other under `~/.claude/skills/deep-research`. Keep makerskills under `~/.agents/skills/` if you need both.
+
 <details>
 <summary><b>🟢 Claude Code (recommended)</b></summary>
 
@@ -63,13 +72,20 @@ git clone https://github.com/ravidsrk/agent-skills.git
 cd agent-skills
 
 mkdir -p ~/.claude/skills
-for s in skills/*/; do
-  name=$(basename "$s")
-  ln -sf "$(pwd)/$s" "$HOME/.claude/skills/$name"
+# Track A only (safe default if you already have another deep-research):
+for name in cloudflare-dns namecheap-dns fly-to-aws-migration terminal-poster; do
+  ln -sfn "$(pwd)/skills/$name" "$HOME/.claude/skills/$name"
+done
+# monid deep-research (overwrites any other skill at this path):
+ln -sfn "$(pwd)/skills/deep-research" "$HOME/.claude/skills/deep-research"
+
+# Track B — only if Orca is installed and orchestration skill is available:
+for name in clean-sweep spec-to-ship; do
+  ln -sfn "$(pwd)/skills/$name" "$HOME/.claude/skills/$name"
 done
 ```
 
-✅ All 7 skills are now available. Symlinks mean `git pull` keeps them up to date.
+Symlinks mean `git pull` in this clone keeps skills up to date. Scripts are executable (`chmod +x` already set in-repo).
 
 📖 **Full guide:** [docs/claude-code-setup.md](docs/claude-code-setup.md)
 
@@ -164,6 +180,9 @@ export MONID_API_KEY=...
 
 # terminal-poster
 export OPENROUTER_API_KEY=...
+
+# clean-sweep / spec-to-ship — no API keys; need Orca runtime + orchestration skill (from Orca CLI)
+# orca status --json   # must show running; enable orchestration in Experimental settings
 ```
 
 🔴 **All skills read env vars at runtime — they're never written to disk.** Don't commit `.env` files.
@@ -180,9 +199,13 @@ Skills auto-activate based on the `description` field in their `SKILL.md`. Just 
 >
 > 💬 *"Migrate my Fly project to AWS"* → activates `fly-to-aws-migration`
 >
-> 💬 *"Do a deep dive on AI agent harness engineering"* → activates `deep-research`
+> 💬 *"Do a deep dive on AI agent harness engineering"* → activates `deep-research` (monid)
 >
 > 💬 *"Generate a terminal-style poster for our deployment pipeline"* → activates `terminal-poster`
+>
+> 💬 *"The docs are ready — build the whole product"* → activates `spec-to-ship` (Orca)
+>
+> 💬 *"Clean sweep the issues in this audit"* → activates `clean-sweep` (Orca)
 
 ---
 

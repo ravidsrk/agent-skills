@@ -1,10 +1,10 @@
 {
   "name": "agent-skills",
-  "description": "Production-grade capability skills for AI coding agents. Five battle-tested skills: cloudflare-dns (migrate DNS from any registrar to Cloudflare with bulk record import and registrar nameserver flip), fly-to-aws-migration (end-to-end Fly.io → AWS migration playbook covering Postgres → Aurora, Machines → ECS Fargate, secrets, DNS cutover), deep-research (parallel multi-source research across X, Reddit, HackerNews, GitHub, Polymarket, YouTube, and Exa neural search), terminal-poster (dense retro-cyberpunk viral infographics via Nano Banana Pro), and ai-image-generation (best-in-class image generation routing). MIT licensed.",
+  "description": "Production-grade capability skills for AI coding agents. Seven battle-tested skills: cloudflare-dns, namecheap-dns, fly-to-aws-migration, deep-research (monid 8-source), terminal-poster, plus Orca multi-agent peers clean-sweep and spec-to-ship (require Orca + orchestration from the Orca CLI). MIT licensed.",
   "source": {
     "source": "url",
     "url": "https://github.com/ravidsrk/agent-skills.git",
-    "sha": "813d097d0fe9fba2c30287a116034ef5ebdf3595"
+    "sha": "main"
   },
   "homepage": "https://github.com/ravidsrk/agent-skills"
 }

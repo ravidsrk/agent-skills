@@ -1,6 +1,8 @@
 ---
 name: namecheap-dns
 description: Manage DNS records at Namecheap programmatically — list, add, update, or delete A / AAAA / CNAME / TXT records via the Namecheap XML API. Use when the user wants to set up subdomains, link a custom domain to a Fly app / Vercel / S3 / etc., add MX records, or rotate DNS without going through the Namecheap UI.
+license: MIT
+compatibility: Requires bash, curl, python3; NAMECHEAP_API_KEY + NAMECHEAP_API_USER; client IP must be allowlisted at Namecheap API Access.
 ---
 
 # Namecheap DNS
@@ -20,9 +22,12 @@ quirks that bite first-time users:
 
 ## Required environment
 
-- `NAMECHEAP_API_KEY` — present in sandbox env
-- `ApiUser` / `UserName` — the Namecheap account username (NOT the
-  API key). Set this to your Namecheap account username.
+| Env var | What it is |
+|---|---|
+| `NAMECHEAP_API_KEY` | API key from Namecheap → Profile → Tools → API Access |
+| `NAMECHEAP_API_USER` | Namecheap account username — used as both `ApiUser` and `UserName` |
+
+Optional: `NAMECHEAP_CLIENT_IP` (defaults to `curl -s https://api.ipify.org`), `NAMECHEAP_EMAIL_TYPE` (`FWD` or `MX`), `NAMECHEAP_API_BASE`.
 
 ## Endpoint
 
@@ -154,16 +159,17 @@ HostName=@  Type=MX  Address=eforward5.registrar-servers.com.  MXPref=20
 HostName=@  Type=TXT Address="v=spf1 include:spf.efwd.registrar-servers.com ~all"
 ```
 
-## File: scripts/setHosts.sh
-
-Reusable helper; takes JSON list of records on stdin, produces the
-form-encoded request:
+## Scripts
 
 ```bash
-#!/bin/bash
-# Usage: cat records.json | ./setHosts.sh your-app ai
-# records.json: [{"name":"docs","type":"CNAME","address":"...","ttl":"300"}, ...]
+# List records (XML or JSON)
+scripts/getHosts.sh example com
+scripts/getHosts.sh example com --json
+
+# Replace ALL hosts with the JSON array on stdin (wholesale setHosts)
+scripts/getHosts.sh example com --json > /tmp/hosts.json
+# edit /tmp/hosts.json, then:
+cat /tmp/hosts.json | scripts/setHosts.sh example com
 ```
 
-(Build this if you need to do many records; for one-off CNAMEs the
-inline curl above is fine.)
+`setHosts` **replaces every record** — always start from `getHosts --json` and merge your changes into the full list.

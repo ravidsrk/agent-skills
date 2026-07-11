@@ -1,5 +1,9 @@
 # clean-sweep
 
+<p align="center">
+  <img src="assets/banner.jpg" alt="clean-sweep — autonomous multi-agent issue close-out" width="100%">
+</p>
+
 An autonomous **multi-agent issue clean-sweep** for a code repository. Given a backlog of confirmed
 findings (an audit doc, a review, or a triaged issue list), it drives a **one-PR-per-finding pipeline**
 — build → open-PR + bot-reconcile → build-blind review → conflict-aware commit-preserving merge → cleanup
@@ -95,7 +99,8 @@ Captured in full in `references/learnings.md`. The ones that bite first:
 # Compatibility
 
 Requires the **Orca** multi-agent runtime (running, orchestration experimental feature enabled) and the
-companion `orchestration` skill. Worker CLIs `codex` and `claude` on PATH; `git` + `gh`; `python3`; bash/zsh.
+companion **`orchestration` skill from the Orca CLI install** (not published in this repo). Worker CLIs
+`codex` and `claude` on PATH; `git` + `gh`; `python3`; bash/zsh.
 Optional: `gitleaks` (scoped secret scans) and a PR review bot if the repo uses one. The coordination layer
 is Orca-specific; on another harness only the strategy half (`references/`, `assets/`) carries over.
 

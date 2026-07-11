@@ -35,7 +35,7 @@ tasks, spawn workers, dispatch, wait, answer worker questions, sequence merges, 
 **durable file-ledger is your source of truth**, not your memory — so the run survives your own context
 resets and mis-reports.
 
-This skill is the distilled playbook + the gotchas that actually bite. Read `references/gotchas.md` before
+This skill is the distilled playbook + the gotchas that actually bite. Operational helpers live in `scripts/` (`preflight.py`, `spawn_worker.sh`, `pm.py`) and `assets/*_preamble.txt` — same Orca dispatch patterns as clean-sweep, without depending on that skill. Load Orca's `orchestration` skill for command grammar. Read `references/gotchas.md` before
 your first merge — several failures are silent (a merge that reports success but didn't land, or landed on
 the *wrong* branch) and will corrupt the run if you trust worker reports instead of verifying. Read
 `references/verification.md` before you call the build "done" — a green unit suite is the *start* of

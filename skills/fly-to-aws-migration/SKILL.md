@@ -1,6 +1,8 @@
 ---
 name: fly-to-aws-migration
 description: End-to-end playbook for migrating a Fly.io project to AWS — handles Fly Postgres → Aurora Serverless v2, Fly Machines → ECS Fargate, Fly static sites → S3+CloudFront, secrets migration via Secrets Manager, DNS cutover via Cloudflare. Use when the user says "migrate from Fly to AWS", "move my Fly app to AWS", "leave Fly", "AWS migration", "ECS migration", "switch to AWS", or pastes a Fly project structure (apps/, fly.toml files) and asks to move it. Covers 7 phases (audit → foundation → code prep → secrets → API cutover → static sites → cache layer), with rollback paths preserved at every step. Battle-tested on a production migration (2026) — migrated API + 2 static sites + 87-table Postgres with 9 min total downtime.
+license: MIT
+compatibility: Requires flyctl, aws CLI, terraform (phases), jq; AWS credentials; FLY_API_TOKEN as needed; CLOUDFLARE_API_KEY for DNS cutover. Production cutover needs a maintenance window.
 ---
 
 # Fly.io → AWS Migration Playbook

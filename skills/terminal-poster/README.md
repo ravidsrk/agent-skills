@@ -1,5 +1,9 @@
 # terminal-poster
 
+<p align="center">
+  <img src="assets/banner.jpg" alt="terminal-poster — terminal-aesthetic viral posters" width="100%">
+</p>
+
 Generate dense, retro-cyberpunk infographic posters in a terminal-aesthetic style — the kind of thing that goes viral on X/Twitter for technical product launches, agent architectures, and engineer-poet manifestos.
 
 Five reusable templates. ~$0.002 per image. ~30 seconds end-to-end.

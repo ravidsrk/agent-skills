@@ -14,6 +14,7 @@ compatibility: >-
   `orchestration` skill — a HARD dependency; the coordination layer is Orca-specific and does not port to
   other agent harnesses (the strategy in references/ + assets/ does). Worker CLIs `codex` + `claude` on
   PATH; `git` + `gh`; `python3`; bash/zsh. Optional: `gitleaks` and a PR review bot (e.g. Cursor BugBot).
+license: MIT
 ---
 
 # Clean-Sweep — autonomous multi-agent issue clean-sweep

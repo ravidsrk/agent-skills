@@ -1,6 +1,8 @@
 ---
 name: cloudflare-dns
 description: Migrate DNS hosting from Namecheap (or any registrar) to Cloudflare and manage records via API — handles zone creation, bulk record import, nameserver flip at the registrar, propagation watch, and rollback. Use when the user wants to "move DNS to Cloudflare", "add a domain to Cloudflare", "manage Cloudflare DNS records", or "automate DNS setup for multiple sites".
+license: MIT
+compatibility: Requires bash, curl, python3; CLOUDFLARE_API_KEY (account token). Zone creation also needs CLOUDFLARE_GLOBAL_API_KEY + CLOUDFLARE_EMAIL. Registrar flip via namecheap-dns env (NAMECHEAP_API_KEY + NAMECHEAP_API_USER).
 ---
 
 # Cloudflare DNS Migration & Management
@@ -115,7 +117,7 @@ NS_IP=$(curl -s "https://1.1.1.1/dns-query?name=$NS&type=A" \
 # OR run kdig if available, OR use python:
 python3 -c "
 import socket, struct
-# (truncated — see scripts/dns-query.py for full impl)
+# (truncated — see scripts/dns-direct-query.py for full impl)
 "
 ```
 
@@ -196,227 +198,34 @@ Sets nameservers at Namecheap back to `dns1/2.registrar-servers.com`
 scripts/rollback.sh example.com
 ```
 
-## File: scripts/harden.sh
 
-Production-grade hardening for any zone in Cloudflare. Idempotent.
+## Progressive disclosure — load only when needed
+
+Keep this `SKILL.md` for auth, migration workflow, endpoints, and gotchas.
+Deep script docs live under `references/`:
+
+| When you need… | Read |
+|---|---|
+| Zone hardening (SSL/WAF/CAA/DNSSEC tiers) | `references/harden.md` |
+| DNSSEC DS paste at registrar | `references/dnssec-instructions.md` |
+| Cloudflare Origin CA certs | `references/origin-ca.md` |
+| Export zone as YAML/JSON/TF | `references/dns-export.md` |
+| Restrict Fly origin to Cloudflare only | `references/fly-restrict-origin.md` (also under `scripts/`) |
+| Shared shell helpers | `scripts/lib.sh` |
+
+Run the scripts from `scripts/`; the reference files are the human/agent deep-dive for each.
+
+## Script index (quick)
 
 ```bash
-scripts/harden.sh <domain>                                    # full Tier 1+2+3 with proxy ON
-scripts/harden.sh <domain> --enable-proxy=false               # Tier 1+3 only
-scripts/harden.sh <domain> --rate-limit-path=/admin/*         # custom rate-limit path
-scripts/harden.sh <domain> --rate-limit-rpm=600               # custom limit
-scripts/harden.sh <domain> --no-dnssec                        # skip DNSSEC
-scripts/harden.sh <domain> --proxy-records=@,www              # only proxy specific records
-```
-
-### Tier 1 — SSL/TLS (always applied, no proxy needed)
-
-| Setting | Value |
-|---|---|
-| SSL | `Full (strict)` — origin cert must be valid |
-| Always Use HTTPS | ON |
-| Auto HTTPS Rewrites | ON (fixes mixed content) |
-| Min TLS Version | 1.2 |
-| TLS 1.3 | ON |
-| Opportunistic Encryption | ON |
-| 0-RTT | ON |
-| HTTP/3 (QUIC) | ON |
-| WebSockets | ON (essential for SSE / live apps) |
-| IPv6 | ON |
-| Email Address Obfuscation | ON |
-| Browser Integrity Check | ON |
-| Server-Side Excludes | ON |
-| HSTS | `max-age=31536000; includeSubDomains; preload; nosniff` |
-
-### Tier 2 — WAF + Bot + Rate Limit (proxy must be ON)
-
-| Setting | Value |
-|---|---|
-| Proxy on @, www, api, docs (configurable) | ON |
-| `_acme-challenge.*` records | KEPT DNS-only (Fly cert renewal) |
-| WAF Managed Free Ruleset | Auto-deployed by Cloudflare for free zones |
-| Bot Fight Mode + JS Detection | ON (free tier) |
-| Security Level | medium |
-| Challenge TTL | 30 min |
-| Privacy Pass | ON |
-| Rate Limit | 1 rule (free tier max), default `50 req/10s/IP` on `/api/*` |
-
-🔴 **Free tier rate-limit constraints (verified 2026-05-02):**
-
-- `period` must be exactly **10** seconds (60 returns "not entitled to period 60")
-- `mitigation_timeout` must be exactly **10** seconds
-- `matches` regex operator NOT allowed (paid plan required); use `starts_with(...)` or `eq`
-- Maximum **1 ratelimit ruleset per zone** on free; the script detects existing ones and skips re-creation
-- Approximate "rpm" target: `requests_per_period = max(1, rpm / 6)`
-
-### Tier 3 — DNS-level (zone-wide)
-
-| Record | Value |
-|---|---|
-| CAA `issue` | `letsencrypt.org` |
-| CAA `issue` | `pki.goog` |
-| CAA `issue` | `digicert.com` (only if proxy ON, since CF Universal SSL uses DigiCert) |
-| CAA `issuewild` | `;` (disallow wildcards unless explicitly added) |
-| CAA `iodef` | `mailto:postmaster@<domain>` (incident reports) |
-| TXT `_dmarc` | `v=DMARC1; p=none; rua=mailto:postmaster@<domain>; ...` (monitor mode — switch to `p=quarantine` then `p=reject` after 2-4 weeks of clean reports) |
-| DNSSEC | Enabled at Cloudflare; **DS record needs manual paste at Namecheap** (their public API doesn't support DS submission) |
-
-### DNSSEC: the manual step
-
-Cloudflare signs the zone immediately, but the parent zone (`.ai`, `.com`, etc.) needs the **DS record** at the registrar to complete the chain of trust. Namecheap's public API doesn't expose DNSSEC endpoints (we tested every undocumented `domains.dnssec.*` command — `add` exists but rejects all parameter shapes from the public API).
-
-After running `harden.sh`, run:
-
-```bash
+scripts/audit.sh <domain>
+scripts/migrate.sh <domain> full|create|import|verify|flip|watch
+scripts/rollback.sh <domain>
+scripts/harden.sh <domain> [--enable-proxy=false] [...]
 scripts/dnssec-instructions.sh <domain>
-```
-
-This prints the exact values to paste at Namecheap → Domain List → Manage → Advanced DNS → DNSSEC.
-
-Verify after ~60 min with:
-
-```bash
-curl -sH 'accept: application/dns-json' \
-  'https://1.1.1.1/dns-query?name=<domain>&type=DS' | python3 -m json.tool
-```
-
-And the chain at <https://dnsviz.net/d/<domain>/dnssec/>.
-
-### ⚠️ Namecheap DNSSEC submission MUST be done in the UI, not via API
-
-**Don't waste cycles trying to automate this.** Namecheap exposes
-`namecheap.domains.dnssec.getList`, `.add`, `.remove` endpoints, but the
-`add` parameter shape is undocumented and every reasonable guess returns
-`Error 2016166: No records, specify dnssec records.` — including:
-
-- `KeyTag=…&Algorithm=…&DigestType=…&Digest=…` (suffixed and unsuffixed)
-- `KeyTag1=…&Algorithm1=…&DigestType1=…&Digest1=…` (1-indexed)
-- `DnsSecData=…` / `DnsSecData1=…` / `DnsSecKeys=…` / `DSData=…`
-- `DnsSecKeys[0].KeyTag=…` (dotted/bracketed)
-- `Records.KeyTag=…` (named subobject)
-- `Flags=257&Algorithm=…&PublicKey=…` (DNSKEY shape instead of DS shape)
-
-Both GET and POST. None work. The API command is reseller-only or
-internal-only — no public SDK or open-source caller succeeds either.
-
-The known-working flow is the UI: Domain List → Manage → Advanced DNS →
-DNSSEC toggle ON → Add new record (KeyTag, Algorithm 13, DigestType 2,
-Digest hex). After ~60 min the chain of trust is live.
-
-If you find a working API parameter shape, **update this skill** so the
-next migration can automate it.
-
-### Why proxy is OFF on `_acme-challenge.*`
-
-Fly.io renews TLS certificates by responding to ACME challenges via the
-`_acme-challenge.<host>` CNAME, which delegates to a `flydns.net` zone Fly
-controls. If those records are proxied (orange cloud), Cloudflare intercepts
-the response and Fly's renewal fails silently 30 days later when the cert
-expires. **Always keep `_acme-challenge.*` records grey-cloud.**
-
-The harden script's `cf_set_proxy` helper only flips A/AAAA/CNAME records
-in the configured PROXY_RECORDS list — `_acme-challenge.*` are excluded.
-
-### Why some records (apex `@`) showed Fly server header after proxy flip
-
-The proxy flag was set immediately, but resolvers cached the old grey-cloud
-A/AAAA addresses (the Fly anycast IPs). Once those expire (~5 min), CF's
-proxy IPs take over and `Server: cloudflare` shows up. This is expected.
-
-### File: scripts/dnssec-instructions.sh
-
-Reads the saved DNSSEC details from `.dns-state/<domain>/dnssec.json` and
-prints copy-pasteable instructions for the Namecheap dashboard step.
-
-## File: scripts/origin-ca.sh
-
-Generate a Cloudflare Origin CA certificate (15-year validity, free, ECC P-256
-or RSA-2048). Writes the cert + private key to `.dns-state/<domain>/origin-ca/`.
-
-```bash
-scripts/origin-ca.sh example.com                       # ECC, 15-year, default
-scripts/origin-ca.sh example.com --rsa                  # RSA-2048 instead of ECC
-scripts/origin-ca.sh example.com --validity-days=365    # shorter cert
-scripts/origin-ca.sh other.com --hostnames=other.com,*.other.com,api.other.com
-```
-
-Why use Origin CA over Let's Encrypt:
-
-- 🟢 **15 years** vs 90 days — no renewal automation needed
-- 🟢 Trusted by Cloudflare's edge — perfect for the CF↔origin tunnel
-- 🟢 Compatible with `SSL: Full (strict)` mode (which we set in harden.sh)
-- 🟢 Eliminates the need for `_acme-challenge.*` DNS records
-- 🟡 NOT publicly trusted — only valid behind Cloudflare's proxy. If you
-  also need browsers to trust the origin directly (e.g. for direct API
-  access bypassing CF), keep Let's Encrypt as well.
-
-🔴 **The private key (`origin-key.pem`) must NEVER be committed to git or
-written to public configs.** Treat it as a secret. Mode 600 is set automatically.
-
-Install on Fly:
-
-```bash
-fly secrets set --app your-app \
-  TLS_CERT="$(cat .dns-state/example.com/origin-ca/origin-cert.pem)" \
-  TLS_KEY="$(cat  .dns-state/example.com/origin-ca/origin-key.pem)"
-```
-
-Then configure your app to load `TLS_CERT` / `TLS_KEY` from env at startup.
-
-## File: scripts/dns-export.sh
-
-Export a Cloudflare zone as DNS-as-code (YAML, JSON, BIND zonefile, or Terraform).
-
-```bash
-scripts/dns-export.sh example.com                            # YAML (default)
-scripts/dns-export.sh example.com --format=json              # raw JSON
-scripts/dns-export.sh example.com --format=zonefile          # BIND zonefile
-scripts/dns-export.sh example.com --format=terraform         # Terraform .tf
-scripts/dns-export.sh example.com --output=./your-app.yaml
-```
-
-Useful for:
-
-- 🟢 **Backup** before risky DNS changes
-- 🟢 **Source-controlling DNS** so changes go through PR review
-- 🟢 **Migration** to a different DNS provider (zonefile is portable)
-- 🟢 **Terraform import** scaffolding (manually curate before applying)
-
-YAML output captures: records, settings (SSL, HSTS, TLS versions, etc.),
-DNSSEC state, and rulesets summary.
-
-## File: scripts/cf-ips-fetch.sh
-
-Pull current Cloudflare IP ranges (v4 + v6) and save to JSON for use by
-app middleware that wants to allowlist origin traffic.
-
-```bash
+scripts/origin-ca.sh <domain>
+scripts/dns-export.sh <domain> [--format=yaml|json|zonefile|terraform]
 scripts/cf-ips-fetch.sh
-# → .dns-state/_shared/cloudflare-ips.json
+scripts/dns-direct-query.py   # UDP query against a specific NS IP
 ```
 
-Run weekly via cron — Cloudflare changes their ranges occasionally.
-
-## File: scripts/fly-restrict-origin.md
-
-**Reference doc, not a script.** Walks through the three approaches to
-restrict your Fly.io origin so it only accepts traffic from Cloudflare:
-
-1. 🟢 App-level middleware (Node/Bun/Python examples)
-2. 🟡 Caddy / nginx layer (if reverse-proxying)
-3. 🔴 Cloudflare Tunnel (gold standard, requires `cloudflared`)
-
-Includes gotchas (Fly health checks, third-party webhooks), test commands,
-and rollout strategy. Read this BEFORE flipping the lock — misconfiguration
-can lock you out of your own apps.
-
-## File: scripts/lib.sh
-
-Shared library — sourced by all the other scripts. Provides:
-
-- `cf_api()` — Cloudflare API call with automatic global-key fallback
-- `cf_global()` — explicit global-key call (for zone creation)
-- `nc_get_hosts()`, `nc_set_nameservers()`, etc. — Namecheap helpers
-- `cf_set_proxy()` — toggle orange/grey cloud
-- `cf_upsert_record()` — create or update DNS record
-- `state_dir()` — per-domain state directory under `.dns-state/`

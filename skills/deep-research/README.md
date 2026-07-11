@@ -36,6 +36,14 @@ Then it writes two files into `./research/<slug>/`:
 - When the user asks "what's the discourse on X" or "do a deep dive on Y"
 - When you need cross-source convergence to validate a thesis (if Reddit + HN + X all surface the same pattern, that's a real signal)
 
+
+# Name collision
+
+This skill is the **monid 8-source evidence orchestrator**. Other skill packs sometimes also ship a
+skill named `deep-research` with different behavior (e.g. multi-pass web research without monid).
+Installing both to the same path (`~/.claude/skills/deep-research`) is a last-write-wins conflict —
+keep this monid skill under a dedicated clone symlink, or rename one side if you need both.
+
 # Install
 
 # 1. Clone the repo (if you haven't already)

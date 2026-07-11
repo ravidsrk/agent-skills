@@ -118,3 +118,7 @@ Fixes:
 - [docs/skill-anatomy.md](docs/skill-anatomy.md) — Skill structure specification
 - [docs/getting-started.md](docs/getting-started.md) — Setup for any runtime
 - [CONTRIBUTING.md](CONTRIBUTING.md) — Contribution guidelines
+
+# Orca multi-agent skills
+
+`clean-sweep` and `spec-to-ship` require the **Orca** runtime and the companion **`orchestration` skill shipped with the Orca CLI** — it is **not** published under `skills/` in this repository. They are independent peers (neither skill depends on the other).

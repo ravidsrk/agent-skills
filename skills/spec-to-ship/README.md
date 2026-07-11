@@ -1,5 +1,9 @@
 # spec-to-ship
 
+<p align="center">
+  <img src="assets/banner.jpg" alt="spec-to-ship — frozen spec to shipped product" width="100%">
+</p>
+
 Turn a **frozen spec/doc set into a shipped, verified product** in one end-to-end autonomous run. Given a
 ready requirements set, a coordinator drives a fleet of AI coding agents through a strict **PR-per-task
 pipeline** — THINK → PLAN(freeze) → FOUNDATION → parallel SLICES → INTEGRATION → HARDENING → e2e TEST(with
@@ -71,12 +75,21 @@ promotion PR but never self-merges it unprompted.
 ```
 spec-to-ship/
 ├── SKILL.md                     # the coordinator playbook (loads on activation)
+├── scripts/
+│   ├── preflight.py             # BASE ≠ default branch + git/gh (and optional gitleaks)
+│   ├── spawn_worker.sh          # reliable Orca dispatch (claude Enter-after-inject fix)
+│   └── pm.py                    # tolerant parser for orchestration inbox/check JSON
+├── assets/                      # builder / integrator / reviewer / merge preambles
 └── references/
-    ├── pipeline.md              # spawn/dispatch/review/merge mechanics + merge chains + scope discovery
+    ├── pipeline.md              # spawn/dispatch/review/merge mechanics + merge chains
     ├── verification.md          # anti-inflation E2E gate + adversarial suites + drift ratchets
-    ├── gotchas.md               # the silent/expensive failures + fixes (read before your first merge)
-    └── ledger-template.md       # the boolean-gate ledger schema (the coordinator's external brain)
+    ├── gotchas.md               # silent/expensive failures + fixes (read before first merge)
+    └── ledger-template.md       # boolean-gate ledger schema (external brain)
 ```
+
+Operational helpers are **copied peer patterns** from the same Orca coordination style as
+`clean-sweep` — not a runtime dependency on that skill. Load Orca's `orchestration` skill for
+command grammar (`task-create`, `dispatch --inject`, …).
 
 # Known gotchas
 
@@ -93,7 +106,8 @@ Captured in full in `references/gotchas.md`. The ones that bite first:
 # Compatibility
 
 Requires the **Orca** multi-agent runtime (running, orchestration experimental feature enabled) and the
-companion `orchestration` skill. Worker CLIs `codex`/`claude` on PATH; `git` + `gh`; `python3`; bash/zsh.
+companion **`orchestration` skill from the Orca CLI install** (not published in this repo). Worker CLIs
+`codex`/`claude` on PATH; `git` + `gh`; `python3`; bash/zsh.
 Optional: `gitleaks` (scoped secret scans) and a PR review bot (e.g. Cursor BugBot). The coordination layer
 is Orca-specific; on another harness only the strategy half (`references/`) carries over.
 

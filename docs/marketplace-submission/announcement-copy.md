@@ -8,7 +8,7 @@ Drafted post copy for the dual-launch of `agent-skills` + `autonomous-fleet`. At
 
 > Two open-source agent toolkits live today, sharing one design philosophy:
 >
-> 🟦 `agent-skills` — 5 capability skills (DNS, AWS migration, research, image gen)
+> 🟦 `agent-skills` — 7 skills (DNS, AWS migration, research, image gen)
 > 🟧 `autonomous-fleet` — 24-skill multi-agent engineering framework
 >
 > github.com/ravidsrk/agent-skills
@@ -31,7 +31,7 @@ Drafted post copy for the dual-launch of `agent-skills` + `autonomous-fleet`. At
 >
 > So I built two:
 >
-> 1. `agent-skills` → 5 production capability skills
+> 1. `agent-skills` → 7 production skills
 > 2. `autonomous-fleet` → 24-skill framework, runs on Claude Code / Codex / Grok / Orca
 >
 > One author. Two identities. Both open-source.
@@ -41,7 +41,7 @@ Drafted post copy for the dual-launch of `agent-skills` + `autonomous-fleet`. At
 ```
 1/ Shipped two open-source AI-agent repos today:
 
-🟦 agent-skills — 5 capability skills that just work
+🟦 agent-skills — 7 skills that just work
 🟧 autonomous-fleet — multi-agent engineering framework with 24 skills
 
 Different purposes. Same philosophy: SKILL.md is the source of truth, agents read it, agents do the work.
@@ -52,7 +52,8 @@ Different purposes. Same philosophy: SKILL.md is the source of truth, agents rea
 • fly-to-aws-migration — full Fly.io → AWS playbook
 • deep-research — 8 sources in parallel (X, Reddit, HN, GitHub, YouTube, Exa…)
 • terminal-poster — viral infographics via Nano Banana Pro
-• ai-image-generation — best-image-per-task routing
+• namecheap-dns — Namecheap DNS via XML API
+• clean-sweep + spec-to-ship — Orca multi-agent (require Orca CLI)
 
 3/ autonomous-fleet is bigger — a portable framework for fully-autonomous coding runs across orchestration tools:
 
@@ -85,7 +86,7 @@ Why two repos? Different purposes deserve different identities. Same author, sam
 >
 > **🟦 `agent-skills` (`github.com/ravidsrk/agent-skills`)**
 >
-> Five battle-tested capability skills that solve specific high-value tasks:
+> Seven battle-tested capability skills that solve specific high-value tasks:
 > • `cloudflare-dns` — migrate DNS from any registrar to Cloudflare
 > • `fly-to-aws-migration` — full Fly → AWS playbook
 > • `deep-research` — parallel research across 8 sources

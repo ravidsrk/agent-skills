@@ -146,3 +146,18 @@ Single-file skill — the API surface is small enough that helper scripts would 
 # License
 
 MIT.
+
+# Scripts
+
+```bash
+export NAMECHEAP_API_KEY=...
+export NAMECHEAP_API_USER=...
+
+# List hosts as JSON
+./scripts/getHosts.sh example com --json > /tmp/hosts.json
+
+# Edit full list, then wholesale replace
+cat /tmp/hosts.json | ./scripts/setHosts.sh example com
+```
+
+`setHosts` replaces **every** record — always start from a full `getHosts` dump.

@@ -1,6 +1,8 @@
 ---
 name: deep-research
 description: Generic parallel multi-source deep-research orchestrator. Fans out across 8 data sources in parallel (X via monid/tikhub, Reddit via monid, Hacker News via Algolia, GitHub repos + issues, Polymarket Gamma, YouTube with transcripts via monid, Exa neural web search via monid) and dumps quotable evidence as JSON + human-readable markdown in a single command. Use whenever the user says "do deep research on X", "what's the discourse on Y", "research this topic", "give me a primer on Z", asks for cross-source validation of a thesis, or needs broad evidence before drafting any long-form piece (briefing, post, report, memo).
+license: MIT
+compatibility: Requires python3, monid CLI, MONID_API_KEY (funded monid balance). Optional MONID_BIN for non-PATH installs.
 ---
 
 # Deep Research — parallel multi-source orchestrator

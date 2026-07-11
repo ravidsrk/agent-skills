@@ -17,7 +17,7 @@ done
 
 # Verify
 ls ~/.claude/skills/
-# cloudflare-dns  clean-sweep  deep-research  fly-to-aws-migration  namecheap-dns  spec-to-ship  terminal-poster
+# cloudflare-dns  namecheap-dns  fly-to-aws-migration  deep-research  terminal-poster  clean-sweep  spec-to-ship
 ```
 
 🟢 **Why this approach:** edits to your clone instantly reflect in Claude Code. Skills update via `git pull`. No reinstall step.

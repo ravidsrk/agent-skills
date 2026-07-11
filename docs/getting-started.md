@@ -1,5 +1,14 @@
 # Getting Started
 
+## Two install tracks
+
+1. **Capability skills** — cloudflare-dns, namecheap-dns, fly-to-aws-migration, deep-research (monid), terminal-poster. Work on any harness; set the env vars listed in each README.
+2. **Orca multi-agent** — clean-sweep and spec-to-ship. Require the **Orca** runtime and the **`orchestration` skill from the Orca CLI** (not in this repo). They are peers; neither depends on the other.
+
+**deep-research name collision:** this repo's skill is monid-based. Other packs may use the same name for a different workflow — last symlink wins under `~/.claude/skills/`.
+
+
+
 This guide gets you from "I cloned the repo" to "the agent is using a skill" in 5 minutes, regardless of which AI runtime you use.
 
 # What's a skill?
@@ -28,7 +37,7 @@ cd agent-skills
 
 ```bash
 ls skills/
-# cloudflare-dns  clean-sweep  deep-research  fly-to-aws-migration  namecheap-dns  spec-to-ship  terminal-poster
+# cloudflare-dns  namecheap-dns  fly-to-aws-migration  deep-research  terminal-poster  clean-sweep  spec-to-ship
 ```
 
 Read its `README.md` for what it does and what env vars it needs.

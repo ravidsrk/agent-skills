@@ -99,6 +99,10 @@ companion `orchestration` skill. Worker CLIs `codex` and `claude` on PATH; `git`
 Optional: `gitleaks` (scoped secret scans) and a PR review bot if the repo uses one. The coordination layer
 is Orca-specific; on another harness only the strategy half (`references/`, `assets/`) carries over.
 
+**Not a dependency:** this skill is **not** built on [`spec-to-ship`](../spec-to-ship/). They are peers that
+each use Orca `orchestration` on their own. You can run clean-sweep without ever installing or loading
+spec-to-ship.
+
 # Credits
 
 Distilled from real autonomous multi-agent clean-sweep runs. MIT licensed.

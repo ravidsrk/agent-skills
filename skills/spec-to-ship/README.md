@@ -97,11 +97,12 @@ companion `orchestration` skill. Worker CLIs `codex`/`claude` on PATH; `git` + `
 Optional: `gitleaks` (scoped secret scans) and a PR review bot (e.g. Cursor BugBot). The coordination layer
 is Orca-specific; on another harness only the strategy half (`references/`) carries over.
 
-# Pairs with
+# Related (peer, not a dependency)
 
-- [`clean-sweep`](../clean-sweep/) — the sibling for an *existing* repo: find and close every issue with the
-  same coordinator/build-blind-review/PR-per-unit pipeline. `spec-to-ship` builds greenfield; `clean-sweep`
-  fixes brownfield.
+- [`clean-sweep`](../clean-sweep/) — brownfield peer: find and close issues. **Both** skills sit on
+  **Orca + `orchestration` independently**. `clean-sweep` does **not** depend on or invoke
+  `spec-to-ship` (they share coordinator / build-blind-review / PR-per-unit *patterns*, not a package
+  dependency).
 
 # Credits
 

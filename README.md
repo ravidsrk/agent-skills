@@ -48,8 +48,8 @@
 
 | Skill | What it does | Cost / latency |
 |---|---|---|
-| 🚢 **[spec-to-ship](skills/spec-to-ship/)** | Turn a **frozen spec** into a shipped, verified product in one autonomous run. Coordinator drives THINK → PLAN(freeze) → FOUNDATION → parallel SLICES → INTEGRATION → HARDENING → e2e TEST → ADVERSARIAL → SHIP with PR-per-task + build-blind review. Requires Orca + `orchestration`. | Agent-hours × worker fleet; human gates on promote/deploy |
-| 🧹 **[clean-sweep](skills/clean-sweep/)** | Find and **close** every real issue in a repo (reliability, security, authz, dead code, hollow tests, …). One PR per finding, file-ledger gates, anti-inflation E2E. Sibling to `spec-to-ship` for brownfield. Requires Orca + `orchestration`. | Agent-hours × findings wave |
+| 🚢 **[spec-to-ship](skills/spec-to-ship/)** | Turn a **frozen spec** into a shipped, verified product in one autonomous run. Coordinator drives THINK → PLAN(freeze) → FOUNDATION → parallel SLICES → INTEGRATION → HARDENING → e2e TEST → ADVERSARIAL → SHIP with PR-per-task + build-blind review. Built on **Orca + `orchestration` only** (not on other skills in this pack). | Agent-hours × worker fleet; human gates on promote/deploy |
+| 🧹 **[clean-sweep](skills/clean-sweep/)** | Find and **close** every real issue in a repo (reliability, security, authz, dead code, hollow tests, …). One PR per finding, file-ledger gates, anti-inflation E2E. Built on **Orca + `orchestration` only** — a peer of `spec-to-ship`, not layered on it. | Agent-hours × findings wave |
 
 ---
 

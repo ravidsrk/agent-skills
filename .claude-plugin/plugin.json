@@ -1,7 +1,7 @@
 {
   "name": "agent-skills",
-  "description": "Production-grade capability skills for AI coding agents (Claude Code, Cursor, Codex). Seven skills: cloudflare-dns, namecheap-dns, fly-to-aws-migration, deep-research (monid), terminal-poster, and Orca multi-agent peers clean-sweep + spec-to-ship. MIT licensed.",
-  "version": "1.1.0",
+  "description": "Production-grade agent skills: infra (DNS, Fly\u2192AWS), research, posters, Orca multi-agent (spec-to-ship, clean-sweep), and Matt\u00d7Orca orchestration (matt-ship, wayfinder-fleet, triage/review/diagnose fleets). MIT.",
+  "version": "1.2.0",
   "author": {
     "name": "Ravindra Kumar",
     "email": "ravindrakumar8088@gmail.com",
@@ -25,6 +25,11 @@
     "spec-to-ship",
     "clean-sweep",
     "multi-agent",
-    "orchestration"
+    "orchestration",
+    "matt-ship",
+    "wayfinder-fleet",
+    "triage-to-fleet",
+    "review-matrix",
+    "mattpocock"
   ]
 }

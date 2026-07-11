@@ -28,6 +28,18 @@ When working in this repo:
 | "the docs are ready — build the whole product" / "spec to ship" / autonomous greenfield build | [`spec-to-ship`](skills/spec-to-ship/SKILL.md) |
 | "clean sweep the issues" / "fix everything in this audit" / autonomous fix-everything pass | [`clean-sweep`](skills/clean-sweep/SKILL.md) |
 
+| "matt ship" / grill then fleet implement / idea to tickets to AFK agents | [`matt-ship`](skills/matt-ship/SKILL.md) |
+| "wayfinder fleet" / foggy multi-session map with parallel research | [`wayfinder-fleet`](skills/wayfinder-fleet/SKILL.md) |
+| "design it thrice" / radical interface options in isolation | [`design-it-thrice`](skills/design-it-thrice/SKILL.md) |
+| "review matrix" / dual-axis PR review under Orca | [`review-matrix`](skills/review-matrix/SKILL.md) |
+| "triage factory" / drain ready-for-agent | [`triage-to-fleet`](skills/triage-to-fleet/SKILL.md) / [`ready-agent-drain`](skills/ready-agent-drain/SKILL.md) |
+| "diagnose swarm" / hard intermittent bug multi-agent | [`diagnose-swarm`](skills/diagnose-swarm/SKILL.md) |
+| "architecture sprint" / deepen modules with a fleet | [`architecture-sprint`](skills/architecture-sprint/SKILL.md) |
+| "research then grill" | [`research-then-grill`](skills/research-then-grill/SKILL.md) |
+| "adversarial ticket" / red-team acceptance criteria | [`adversarial-ticket`](skills/adversarial-ticket/SKILL.md) |
+| "model jury" / multi-model implement compare | [`model-jury`](skills/model-jury/SKILL.md) |
+| course/content wayfinder full journey | [`content-wayfinder`](skills/content-wayfinder/SKILL.md) |
+
 # Execution Model
 
 For every request:

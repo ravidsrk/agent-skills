@@ -1,6 +1,6 @@
 {
   "name": "agent-skills",
-  "description": "Production-grade capability skills for AI coding agents. Seven battle-tested skills: cloudflare-dns, namecheap-dns, fly-to-aws-migration, deep-research (monid 8-source), terminal-poster, plus Orca multi-agent peers clean-sweep and spec-to-ship (require Orca + orchestration from the Orca CLI). MIT licensed.",
+  "description": "19 production skills: Cloudflare/Namecheap DNS, Fly\u2192AWS, monid deep-research, terminal-poster, Orca peers (spec-to-ship, clean-sweep), and 12 Matt\u00d7Orca orchestration skills (matt-ship, wayfinder-fleet, \u2026). MIT.",
   "source": {
     "source": "url",
     "url": "https://github.com/ravidsrk/agent-skills.git",

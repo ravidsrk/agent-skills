@@ -22,7 +22,7 @@
 
 # What's inside
 
-7 skills, organized by what they do — not by SDLC phase. These are **discrete capabilities** an agent reaches for when the task fits, not lifecycle steps that fire in sequence.
+19 skills, organized by what they do — not by SDLC phase. These are **discrete capabilities** an agent reaches for when the task fits, not lifecycle steps that fire in sequence.
 
 # 🌐 Infrastructure
 
@@ -44,12 +44,35 @@
 |---|---|---|
 | 🎨 **[terminal-poster](skills/terminal-poster/)** | Generates dense, retro-cyberpunk infographic posters in a terminal aesthetic — pixel-bitmap headlines, ASCII box-drawing, monospace fonts. Five reusable templates (Cluster A–E). Cluster A audited at 99% fidelity. | ~$0.002 + ~30s/image |
 
-# 🤖 Multi-agent orchestration
+# 🤖 Multi-agent orchestration (Orca)
 
-| Skill | What it does | Cost / latency |
-|---|---|---|
-| 🚢 **[spec-to-ship](skills/spec-to-ship/)** | Turn a **frozen spec** into a shipped, verified product in one autonomous run. Coordinator drives THINK → PLAN(freeze) → FOUNDATION → parallel SLICES → INTEGRATION → HARDENING → e2e TEST → ADVERSARIAL → SHIP with PR-per-task + build-blind review. Built on **Orca + `orchestration` only** (not on other skills in this pack). | Agent-hours × worker fleet; human gates on promote/deploy |
-| 🧹 **[clean-sweep](skills/clean-sweep/)** | Find and **close** every real issue in a repo (reliability, security, authz, dead code, hollow tests, …). One PR per finding, file-ledger gates, anti-inflation E2E. Built on **Orca + `orchestration` only** — a peer of `spec-to-ship`, not layered on it. | Agent-hours × findings wave |
+All require **Orca + `orchestration` skill (Orca CLI)**. Matt×Orca skills also need [mattpocock/skills](https://github.com/mattpocock/skills). Shared helpers: [`scripts/orca-coord/`](scripts/orca-coord/).
+
+### Product / audit peers
+
+| Skill | What it does |
+|---|---|
+| 🚢 **[spec-to-ship](skills/spec-to-ship/)** | Frozen spec → shipped product (PR-per-task). **Not** built on Matt skills. |
+| 🧹 **[clean-sweep](skills/clean-sweep/)** | Close every real finding (audit). Peer of spec-to-ship; **not** on Matt. |
+
+### Matt × Orca (engineering process on a fleet)
+
+Coding flow (Matt v1.1+): **`/wayfinder` → `/to-spec` → `/to-tickets` → `/implement`** (AFK fleet). Do not use wayfinder as the entire coding path.
+
+| Skill | What it does |
+|---|---|
+| 🧭 **[wayfinder-fleet](skills/wayfinder-fleet/)** | Parallel AFK wayfinder tickets; **coding exits to to-spec → tickets → implement** |
+| 🚢 **[matt-ship](skills/matt-ship/)** | Full Matt main flow on Orca: grill → to-spec → tickets → fleet implement → dual review |
+| 📬 **[triage-to-fleet](skills/triage-to-fleet/)** | Parallel triage verify → human gates → optional implement |
+| 📥 **[ready-agent-drain](skills/ready-agent-drain/)** | Drain `ready-for-agent` queue with capped workers |
+| 🧪 **[review-matrix](skills/review-matrix/)** | Parallel Standards + Spec (+ optional security/test) review wall |
+| ⚔️ **[adversarial-ticket](skills/adversarial-ticket/)** | Red-team ticket acceptance after implement |
+| 🐛 **[diagnose-swarm](skills/diagnose-swarm/)** | Repro → fix+tdd → review for hard bugs |
+| 🏗️ **[architecture-sprint](skills/architecture-sprint/)** | Deepening survey → tickets → implement |
+| 🪞 **[design-it-thrice](skills/design-it-thrice/)** | 3+ isolated radical interface designs |
+| 🔬 **[research-then-grill](skills/research-then-grill/)** | Parallel research pack → grounded grill |
+| ⚖️ **[model-jury](skills/model-jury/)** | Multi-model independent implement + pick |
+| 📚 **[content-wayfinder](skills/content-wayfinder/)** | Non-coding wayfinder full journey (courses) |
 
 ---
 
@@ -60,7 +83,8 @@
 | Track | Skills | Extra runtime |
 |---|---|---|
 | **A — Capability** (any agent harness) | `cloudflare-dns`, `namecheap-dns`, `fly-to-aws-migration`, `deep-research`, `terminal-poster` | Env keys only (see below) |
-| **B — Orca multi-agent** | `clean-sweep`, `spec-to-ship` | **Orca runtime + Orca `orchestration` skill** (from the Orca CLI install — **not** shipped in this repo). Peers of each other; neither depends on the other. |
+| **B — Orca multi-agent** | `clean-sweep`, `spec-to-ship` | Orca + `orchestration` (Orca CLI). Peers; neither depends on the other. |
+| **C — Matt × Orca** | `matt-ship`, `wayfinder-fleet`, `triage-to-fleet`, `ready-agent-drain`, `review-matrix`, `adversarial-ticket`, `diagnose-swarm`, `architecture-sprint`, `design-it-thrice`, `research-then-grill`, `model-jury`, `content-wayfinder` | Orca + `orchestration` + **mattpocock/skills** for worker playbooks. |
 
 🟡 **Name collision:** this repo's `deep-research` is the **monid 8-source** orchestrator. Other skill packs (e.g. makerskills) may ship a different skill with the same name. Symlinking this repo's copy will replace the other under `~/.claude/skills/deep-research`. Keep makerskills under `~/.agents/skills/` if you need both.
 
@@ -79,13 +103,20 @@ done
 # monid deep-research (overwrites any other skill at this path):
 ln -sfn "$(pwd)/skills/deep-research" "$HOME/.claude/skills/deep-research"
 
-# Track B — only if Orca is installed and orchestration skill is available:
+# Track B — Orca peers (no Matt dependency):
 for name in clean-sweep spec-to-ship; do
+  ln -sfn "$(pwd)/skills/$name" "$HOME/.claude/skills/$name"
+done
+
+# Track C — Matt × Orca (also: npx skills add mattpocock/skills -y):
+for name in matt-ship wayfinder-fleet design-it-thrice review-matrix triage-to-fleet \
+  diagnose-swarm architecture-sprint research-then-grill adversarial-ticket \
+  content-wayfinder model-jury ready-agent-drain; do
   ln -sfn "$(pwd)/skills/$name" "$HOME/.claude/skills/$name"
 done
 ```
 
-Symlinks mean `git pull` in this clone keeps skills up to date. Scripts are executable (`chmod +x` already set in-repo).
+Symlinks mean `git pull` in this clone keeps skills up to date. Shared coordinator helpers: `scripts/orca-coord/`.
 
 📖 **Full guide:** [docs/claude-code-setup.md](docs/claude-code-setup.md)
 
@@ -206,6 +237,10 @@ Skills auto-activate based on the `description` field in their `SKILL.md`. Just 
 > 💬 *"The docs are ready — build the whole product"* → activates `spec-to-ship` (Orca)
 >
 > 💬 *"Clean sweep the issues in this audit"* → activates `clean-sweep` (Orca)
+>
+> 💬 *"Grill this idea then fleet-implement the tickets"* → activates `matt-ship` (Matt×Orca)
+>
+> 💬 *"Chart a wayfinder map then research in parallel"* → activates `wayfinder-fleet`
 
 ---
 
@@ -313,7 +348,7 @@ Output:
 ✅ namecheap-dns
 ✅ terminal-poster
 
-🟢 All 7 skills valid against agentskills.io spec.
+🟢 All 19 skills valid against agentskills.io spec.
 ```
 
 The validator enforces the spec rules (frontmatter shape, name/directory matching, description length). Non-zero exit code if any skill fails — perfect for CI.

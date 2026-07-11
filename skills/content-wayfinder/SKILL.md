@@ -34,6 +34,10 @@ creation). This skill is that path under Orca.
 
 **Full handoff** ("give this to another agent") → `orca-cli`, not supervised `dispatch --inject`, unless the user asked to supervise / wait for `worker_done`.
 
+## We have Orca — we do not replace it
+
+This skill **uses** the Orca multi-agent runtime and the `orchestration` skill. It is a strategy layer on top of Orca, not a substitute harness. Never reimplement task/dispatch/worker_done with in-process subagents.
+
 ## Contrast with coding
 
 | | Coding | Content (this skill) |
@@ -65,3 +69,16 @@ CHART map (destination = ship content X)
 ## Related
 
 - `wayfinder-fleet` — coding-oriented wayfinder that exits to to-spec
+
+## Scripts & assets (local to this skill)
+
+Use paths relative to this skill directory (works inside worktrees when the skill is installed/linked):
+
+- `scripts/spawn_worker.sh` — Orca terminal + `dispatch --inject` (does **not** replace Orca)
+- `scripts/preflight.py` — BASE ≠ default branch
+- `scripts/pm.py` — inbox/check helper
+- `assets/*_preamble.txt` — builder / reviewer / researcher / redteam role text
+- `references/ledger-template.md` — copy to `docs/<skill>-progress.md` for the run
+
+Load the Orca **`orchestration`** skill for command grammar. This skill only supplies *what/when/why*.
+

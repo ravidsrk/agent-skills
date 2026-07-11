@@ -1,41 +1,22 @@
-# HARD BASE: Orca orchestration
-
-All consumers of these helpers are **Orca orchestration coordinators**. Without a running Orca runtime + the `orchestration` skill, do not use them.
-
 # Shared Orca coordinator helpers
 
-Used by Matt×Orca orchestration skills (`matt-ship`, `wayfinder-fleet`, …).
+**We use Orca orchestration — we do not replace it.**
+
+These helpers wrap common `orca orchestration` / terminal flows for skills in this repo.
+Each Matt×Orca skill also vendors copies under `skills/<name>/scripts/` for worktree-local paths.
 
 | File | Purpose |
-|---|---|
-| `spawn_worker.sh` | Reliable `terminal create` → settle → `dispatch --inject` → Enter (claude) |
-| `preflight.py` | BASE ≠ default branch, git/gh present, BASE forks from default |
-| `pm.py` | Tolerant parser for orchestration inbox/check JSON |
+|------|---------|
+| `spawn_worker.sh` | terminal create → settle → dispatch --inject → Enter (claude) |
+| `preflight.py` | BASE ≠ default, git/gh, optional gitleaks |
+| `pm.py` | tolerant inbox/check JSON |
+| `ledger-template.md` | boolean-gate ledger schema |
 
 ## Hard dependencies
+- Orca runtime running
+- Orchestration experimental feature enabled
+- **`orchestration` skill from the Orca CLI** (command grammar)
+- Worker CLIs as needed (`codex`, `claude`)
 
-- **Orca runtime** running (`orca status --json`)
-- Experimental **orchestration** enabled
-- Companion **`orchestration` skill from the Orca CLI** (not this repo)
-- Worker CLIs: `codex`, `claude` (as needed)
-- Matt skills installed for worker prompts (`npx skills add mattpocock/skills`)
-
-## Conventions all coordinator skills share
-
-1. Coordinator is **thin** — never implements, never dual-role reviews.
-2. HITL skills (`grill-*`, domain-modeling, triage state apply) stay on the **coordinator terminal**.
-3. AFK work (`implement`, research, dual review, prototype) is **dispatched** to workers.
-4. Matt **Blocked-by** edges → Orca `task-create --deps`.
-5. One ticket ≈ one worktree ≈ one dispatch (clear context).
-6. Full ownership handoff uses **`orca-cli`**, not `dispatch --inject`.
-7. Verify merges: `state=MERGED` + `baseRefName==BASE` + change greppable on base.
-
-## Coding main flow (Matt v1.1+ clarification)
-
-```
-/wayfinder → /to-spec → /to-tickets → /implement   # coding (prefer AFK implement)
-```
-
-Do **not** treat wayfinder as the entire coding delivery path. After the map is complete, freeze a **spec**, ticket it, then fleet implement.
-
-Non-coding (course content, etc.) may keep work inside wayfinder / content-wayfinder.
+## Install Orca first
+Without Orca, do not run multi-agent skills from this pack. Strategy docs alone are not a harness.

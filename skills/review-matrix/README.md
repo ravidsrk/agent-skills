@@ -1,26 +1,53 @@
 # review-matrix
 
-**Parallel Standards + Spec (+ optional security/test) review wall.**
+<p align="center">
+  <img src="assets/banner.jpg" alt="review-matrix" width="100%">
+</p>
 
-🟢 **Hard dependency:** Orca runtime + `orchestration` skill (from Orca CLI — not this repo) + [mattpocock/skills](https://github.com/mattpocock/skills) for worker playbooks.
+Parallel build-blind Standards + Spec (+ optional security/test) review wall on Orca.
 
-# When to use
+## Hard base: Orca (we use it — we don’t replace it)
 
-Triggers: *PR review matrix*
+| Need | Source |
+|------|--------|
+| Runtime + task/dispatch/`worker_done` | **Orca** |
+| Command grammar / lifecycle | **`orchestration` skill (Orca CLI)** — not this repo |
+| This playbook | `SKILL.md` in this folder |
+| Worker playbooks | [mattpocock/skills](https://github.com/mattpocock/skills) |
 
-# Install
+If Orca is down or orchestration experimental is off, **stop** — do not fake multi-agent with subagents.
+
+## When to use
+
+*review matrix, dual-axis review*
+
+## Install
 
 ```bash
 git clone https://github.com/ravidsrk/agent-skills.git
-ln -sfn "$(pwd)/agent-skills/skills/review-matrix" ~/.claude/skills/review-matrix
-# Also install Matt skills for workers:
+cd agent-skills
+ln -sfn "$(pwd)/skills/review-matrix" ~/.claude/skills/review-matrix
+
+# Workers need Matt skills:
 npx skills add mattpocock/skills -y
+
+# Orca: install app/CLI, enable orchestration experimental, ensure `orchestration` skill is available
+orca status --json
 ```
 
-Shared helpers: [`scripts/orca-coord/`](../../scripts/orca-coord/).
+## Layout
 
-# See also
+```
+review-matrix/
+├── SKILL.md
+├── README.md
+├── scripts/          # spawn_worker, preflight, pm (call Orca)
+├── assets/           # role preambles
+└── references/       # ledger template + skill-specific refs
+```
 
-- SKILL.md — full coordinator playbook
-- Sibling orchestration skills in this repo (matt-ship, wayfinder-fleet, …)
-- Peers: `spec-to-ship` (frozen greenfield), `clean-sweep` (audit close-out)
+## Related
+
+matt-ship, adversarial-ticket
+
+Also: `spec-to-ship` / `clean-sweep` (Orca peers, not Matt-based).

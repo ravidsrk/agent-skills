@@ -33,6 +33,10 @@ You are the coordinator. **Workers design; you compare; human picks.**
 
 **Full handoff** ("give this to another agent") → `orca-cli`, not supervised `dispatch --inject`, unless the user asked to supervise / wait for `worker_done`.
 
+## We have Orca — we do not replace it
+
+This skill **uses** the Orca multi-agent runtime and the `orchestration` skill. It is a strategy layer on top of Orca, not a substitute harness. Never reimplement task/dispatch/worker_done with in-process subagents.
+
 ## Why Orca
 
 In-process subagents share residual context and drift toward similar designs. Each worker
@@ -96,3 +100,16 @@ Do **not** pick a winner for the human unless they asked you to recommend with r
 - Three workers producing the same CRUD service with different names
 - Coordinator rewriting designs mid-flight
 - Implementing the chosen design inside a design worktree without a new ticket
+
+## Scripts & assets (local to this skill)
+
+Use paths relative to this skill directory (works inside worktrees when the skill is installed/linked):
+
+- `scripts/spawn_worker.sh` — Orca terminal + `dispatch --inject` (does **not** replace Orca)
+- `scripts/preflight.py` — BASE ≠ default branch
+- `scripts/pm.py` — inbox/check helper
+- `assets/*_preamble.txt` — builder / reviewer / researcher / redteam role text
+- `references/ledger-template.md` — copy to `docs/<skill>-progress.md` for the run
+
+Load the Orca **`orchestration`** skill for command grammar. This skill only supplies *what/when/why*.
+

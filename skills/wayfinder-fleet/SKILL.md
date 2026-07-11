@@ -10,7 +10,7 @@ description: >-
   complete, freeze a spec and fleet-implement (Matt v1.1+ clarification).
 license: MIT
 compatibility: >-
-  Requires Orca + orchestration skill (Orca CLI). Matt skills: wayfinder,
+  HARD dependency: Orca runtime + orchestration skill (Orca CLI) skill (Orca CLI). Matt skills: wayfinder,
   grilling, domain-modeling, research, prototype, handoff, to-spec, to-tickets,
   implement. git/gh/python3. Issue tracker configured via setup-matt-pocock-skills.
 ---
@@ -19,6 +19,23 @@ compatibility: >-
 
 Coordinate **`/wayfinder`** under Orca so unblocked **AFK** tickets run in parallel
 while **HITL** tickets stay human-true.
+
+
+
+## ⚠️ HARD BASE: Orca `orchestration`
+
+**This skill is built on Orca orchestration — not on other skills in this pack, and not on in-process subagents.**
+
+| Layer | Owns | Source |
+|-------|------|--------|
+| **Runtime** | tasks, dispatch, `worker_done`, gates, DAG, worktrees | Orca (`orca orchestration …`) |
+| **Grammar** | CLI + lifecycle rules | **`orchestration` skill from the Orca CLI** (not this repo) |
+| **This skill** | *what / when / why* on top of that grammar | this repo |
+| **Workers** | AFK playbooks (Matt `/implement`, `/tdd`, …) | mattpocock/skills or this pack |
+
+**Preflight (stop if any fail):** `orca status --json` running · orchestration experimental on · `orchestration` skill loaded · never substitute Task/subagent tools for `task-create` + `dispatch`.
+
+**Full handoff** ("give this to another agent") → `orca-cli`, not supervised `dispatch --inject`, unless the user asked to supervise / wait for `worker_done`.
 
 ## Matt’s clarification (coding vs content)
 

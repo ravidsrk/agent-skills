@@ -1,3 +1,7 @@
+# HARD BASE: Orca orchestration
+
+All consumers of these helpers are **Orca orchestration coordinators**. Without a running Orca runtime + the `orchestration` skill, do not use them.
+
 # Shared Orca coordinator helpers
 
 Used by Matt×Orca orchestration skills (`matt-ship`, `wayfinder-fleet`, …).

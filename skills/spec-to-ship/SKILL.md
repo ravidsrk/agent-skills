@@ -14,7 +14,7 @@ description: >-
   the wrong base.
 license: MIT
 compatibility: >-
-  Requires the Orca multi-agent runtime (running, orchestration experimental feature enabled) and the
+  HARD dependency: the Orca multi-agent runtime (running, orchestration experimental feature enabled) and the
   companion `orchestration` skill. Worker CLIs `codex`/`claude` on PATH; `git` + `gh`; `python3`; bash/zsh.
   Optional: `gitleaks` and a PR review bot (e.g. Cursor BugBot). The coordination layer is Orca-specific; on
   another harness only the strategy half (references/) carries over.
@@ -41,6 +41,23 @@ the *wrong* branch) and will corrupt the run if you trust worker reports instead
 `references/verification.md` before you call the build "done" — a green unit suite is the *start* of
 verification, not the end; the decisive bugs are caught by the e2e gate, the adversarial red-team, and
 drift ratchets, not by per-task tests.
+
+
+
+## ⚠️ HARD BASE: Orca `orchestration`
+
+**This skill is built on Orca orchestration — not on other skills in this pack, and not on in-process subagents.**
+
+| Layer | Owns | Source |
+|-------|------|--------|
+| **Runtime** | tasks, dispatch, `worker_done`, gates, DAG, worktrees | Orca (`orca orchestration …`) |
+| **Grammar** | CLI + lifecycle rules | **`orchestration` skill from the Orca CLI** (not this repo) |
+| **This skill** | *what / when / why* on top of that grammar | this repo |
+| **Workers** | AFK playbooks (Matt `/implement`, `/tdd`, …) | mattpocock/skills or this pack |
+
+**Preflight (stop if any fail):** `orca status --json` running · orchestration experimental on · `orchestration` skill loaded · never substitute Task/subagent tools for `task-create` + `dispatch`.
+
+**Full handoff** ("give this to another agent") → `orca-cli`, not supervised `dispatch --inject`, unless the user asked to supervise / wait for `worker_done`.
 
 ## When to use
 

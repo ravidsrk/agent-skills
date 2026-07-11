@@ -8,7 +8,7 @@ description: >-
   feedback-loop invariant — no theorising without a red command.
 license: MIT
 compatibility: >-
-  Requires Orca + orchestration. Matt diagnosing-bugs, tdd, code-review;
+  HARD dependency: Orca runtime + orchestration skill (Orca CLI). Matt diagnosing-bugs, tdd, code-review;
   optionally improve-codebase-architecture. git; test runner.
 ---
 
@@ -23,6 +23,23 @@ Hard bugs need a **tight red command** before any theory. Roles:
 | **C Fix** | `/tdd` regression first, then fix | A |
 | **D Review** | Dual-axis `/code-review` | C |
 | **E Seam** (opt) | `/improve-codebase-architecture` if “no good seam to lock the bug” | D or human |
+
+
+
+## ⚠️ HARD BASE: Orca `orchestration`
+
+**This skill is built on Orca orchestration — not on other skills in this pack, and not on in-process subagents.**
+
+| Layer | Owns | Source |
+|-------|------|--------|
+| **Runtime** | tasks, dispatch, `worker_done`, gates, DAG, worktrees | Orca (`orca orchestration …`) |
+| **Grammar** | CLI + lifecycle rules | **`orchestration` skill from the Orca CLI** (not this repo) |
+| **This skill** | *what / when / why* on top of that grammar | this repo |
+| **Workers** | AFK playbooks (Matt `/implement`, `/tdd`, …) | mattpocock/skills or this pack |
+
+**Preflight (stop if any fail):** `orca status --json` running · orchestration experimental on · `orchestration` skill loaded · never substitute Task/subagent tools for `task-create` + `dispatch`.
+
+**Full handoff** ("give this to another agent") → `orca-cli`, not supervised `dispatch --inject`, unless the user asked to supervise / wait for `worker_done`.
 
 ## Invariants
 

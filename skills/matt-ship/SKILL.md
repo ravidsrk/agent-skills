@@ -6,11 +6,11 @@ description: >-
   implement(+tdd) on the ticket frontier → dual-axis code-review → integrate.
   Use when the user wants the full Matt main flow under supervised multi-agent
   orchestration, "matt ship", "idea to tickets to fleet implement", or AFK
-  coding after grilling. Requires Orca + orchestration skill + mattpocock skills.
+  coding after grilling. HARD dependency: Orca runtime + orchestration skill (Orca CLI) skill + mattpocock skills.
   Not for frozen-spec-only greenfield (use spec-to-ship) or audit close-out (use clean-sweep).
 license: MIT
 compatibility: >-
-  Requires Orca multi-agent runtime (orchestration experimental on) and the
+  HARD dependency: Orca multi-agent runtime (orchestration experimental on) and the
   companion orchestration skill from the Orca CLI. Matt skills installed
   (grill-with-docs, to-spec, to-tickets, implement, tdd, code-review, handoff,
   prototype). Worker CLIs codex/claude; git + gh; python3. Optional gitleaks, PR bot.
@@ -24,6 +24,23 @@ You are the **COORDINATOR** of a supervised Orca run that executes Matt Pocock's
 **You do not implement code or dual-role review.** You grill (HITL), freeze specs,
 materialize a DAG from tickets, dispatch AFK workers, wait on `worker_done`, sequence
 merges, and surface human gates.
+
+
+
+## ⚠️ HARD BASE: Orca `orchestration`
+
+**This skill is built on Orca orchestration — not on other skills in this pack, and not on in-process subagents.**
+
+| Layer | Owns | Source |
+|-------|------|--------|
+| **Runtime** | tasks, dispatch, `worker_done`, gates, DAG, worktrees | Orca (`orca orchestration …`) |
+| **Grammar** | CLI + lifecycle rules | **`orchestration` skill from the Orca CLI** (not this repo) |
+| **This skill** | *what / when / why* on top of that grammar | this repo |
+| **Workers** | AFK playbooks (Matt `/implement`, `/tdd`, …) | mattpocock/skills or this pack |
+
+**Preflight (stop if any fail):** `orca status --json` running · orchestration experimental on · `orchestration` skill loaded · never substitute Task/subagent tools for `task-create` + `dispatch`.
+
+**Full handoff** ("give this to another agent") → `orca-cli`, not supervised `dispatch --inject`, unless the user asked to supervise / wait for `worker_done`.
 
 ## Hard dependencies
 

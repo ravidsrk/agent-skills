@@ -8,13 +8,30 @@ description: >-
   pre-merge quality wall. Coordinator aggregates; never merges axes.
 license: MIT
 compatibility: >-
-  Requires Orca + orchestration. Matt code-review skill. git; optional gitleaks
+  HARD dependency: Orca runtime + orchestration skill (Orca CLI). Matt code-review skill. git; optional gitleaks
   and PR review bot. Spec source (issue/PRD) when Spec axis runs.
 ---
 
 # Review-Matrix
 
 Coordinate a **multi-axis review** with true isolation. Axes stay separate in the final report.
+
+
+
+## ⚠️ HARD BASE: Orca `orchestration`
+
+**This skill is built on Orca orchestration — not on other skills in this pack, and not on in-process subagents.**
+
+| Layer | Owns | Source |
+|-------|------|--------|
+| **Runtime** | tasks, dispatch, `worker_done`, gates, DAG, worktrees | Orca (`orca orchestration …`) |
+| **Grammar** | CLI + lifecycle rules | **`orchestration` skill from the Orca CLI** (not this repo) |
+| **This skill** | *what / when / why* on top of that grammar | this repo |
+| **Workers** | AFK playbooks (Matt `/implement`, `/tdd`, …) | mattpocock/skills or this pack |
+
+**Preflight (stop if any fail):** `orca status --json` running · orchestration experimental on · `orchestration` skill loaded · never substitute Task/subagent tools for `task-create` + `dispatch`.
+
+**Full handoff** ("give this to another agent") → `orca-cli`, not supervised `dispatch --inject`, unless the user asked to supervise / wait for `worker_done`.
 
 ## Inputs
 

@@ -133,4 +133,6 @@ Fixes:
 
 # Orca multi-agent skills
 
+**All multi-agent skills in this repo are built on Orca orchestration** (runtime + the `orchestration` skill from the Orca CLI). They are strategy layers on that grammar; they do not replace it and do not substitute in-process subagents.
+
 `clean-sweep` and `spec-to-ship` require the **Orca** runtime and the companion **`orchestration` skill shipped with the Orca CLI** — it is **not** published under `skills/` in this repository. They are independent peers (neither skill depends on the other).

@@ -8,13 +8,30 @@ description: >-
   module shapes. Replaces in-process parallel subagents with true Orca isolation.
 license: MIT
 compatibility: >-
-  Requires Orca + orchestration (Orca CLI). Matt skills: codebase-design (and optionally
+  HARD dependency: Orca runtime + orchestration skill (Orca CLI) (Orca CLI). Matt skills: codebase-design (and optionally
   domain-modeling, prototype). codex/claude workers; git.
 ---
 
 # Design-It-Thrice
 
 You are the coordinator. **Workers design; you compare; human picks.**
+
+
+
+## ⚠️ HARD BASE: Orca `orchestration`
+
+**This skill is built on Orca orchestration — not on other skills in this pack, and not on in-process subagents.**
+
+| Layer | Owns | Source |
+|-------|------|--------|
+| **Runtime** | tasks, dispatch, `worker_done`, gates, DAG, worktrees | Orca (`orca orchestration …`) |
+| **Grammar** | CLI + lifecycle rules | **`orchestration` skill from the Orca CLI** (not this repo) |
+| **This skill** | *what / when / why* on top of that grammar | this repo |
+| **Workers** | AFK playbooks (Matt `/implement`, `/tdd`, …) | mattpocock/skills or this pack |
+
+**Preflight (stop if any fail):** `orca status --json` running · orchestration experimental on · `orchestration` skill loaded · never substitute Task/subagent tools for `task-create` + `dispatch`.
+
+**Full handoff** ("give this to another agent") → `orca-cli`, not supervised `dispatch --inject`, unless the user asked to supervise / wait for `worker_done`.
 
 ## Why Orca
 

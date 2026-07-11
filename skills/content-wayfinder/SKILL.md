@@ -8,7 +8,7 @@ description: >-
   non-coding. For software features, use wayfinder-fleet then matt-ship instead.
 license: MIT
 compatibility: >-
-  Requires Orca + orchestration. Matt wayfinder, grilling, research, writing-*
+  HARD dependency: Orca runtime + orchestration skill (Orca CLI). Matt wayfinder, grilling, research, writing-*
   skills if present; scaffold-exercises optional.
 ---
 
@@ -16,6 +16,23 @@ compatibility: >-
 
 Matt’s note: wayfinder **can** be the entire flow for **non-coding** work (e.g. course
 creation). This skill is that path under Orca.
+
+
+
+## ⚠️ HARD BASE: Orca `orchestration`
+
+**This skill is built on Orca orchestration — not on other skills in this pack, and not on in-process subagents.**
+
+| Layer | Owns | Source |
+|-------|------|--------|
+| **Runtime** | tasks, dispatch, `worker_done`, gates, DAG, worktrees | Orca (`orca orchestration …`) |
+| **Grammar** | CLI + lifecycle rules | **`orchestration` skill from the Orca CLI** (not this repo) |
+| **This skill** | *what / when / why* on top of that grammar | this repo |
+| **Workers** | AFK playbooks (Matt `/implement`, `/tdd`, …) | mattpocock/skills or this pack |
+
+**Preflight (stop if any fail):** `orca status --json` running · orchestration experimental on · `orchestration` skill loaded · never substitute Task/subagent tools for `task-create` + `dispatch`.
+
+**Full handoff** ("give this to another agent") → `orca-cli`, not supervised `dispatch --inject`, unless the user asked to supervise / wait for `worker_done`.
 
 ## Contrast with coding
 

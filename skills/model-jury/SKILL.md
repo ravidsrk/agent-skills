@@ -7,13 +7,30 @@ description: >-
   comparing agent approaches. Expensive — use sparingly.
 license: MIT
 compatibility: >-
-  Requires Orca + orchestration with multiple agent CLIs (codex, claude, …).
+  HARD dependency: Orca runtime + orchestration skill (Orca CLI) with multiple agent CLIs (codex, claude, …).
   Matt implement, tdd, code-review.
 ---
 
 # Model-Jury
 
 One ticket, **N independent implementations**, human picks.
+
+
+
+## ⚠️ HARD BASE: Orca `orchestration`
+
+**This skill is built on Orca orchestration — not on other skills in this pack, and not on in-process subagents.**
+
+| Layer | Owns | Source |
+|-------|------|--------|
+| **Runtime** | tasks, dispatch, `worker_done`, gates, DAG, worktrees | Orca (`orca orchestration …`) |
+| **Grammar** | CLI + lifecycle rules | **`orchestration` skill from the Orca CLI** (not this repo) |
+| **This skill** | *what / when / why* on top of that grammar | this repo |
+| **Workers** | AFK playbooks (Matt `/implement`, `/tdd`, …) | mattpocock/skills or this pack |
+
+**Preflight (stop if any fail):** `orca status --json` running · orchestration experimental on · `orchestration` skill loaded · never substitute Task/subagent tools for `task-create` + `dispatch`.
+
+**Full handoff** ("give this to another agent") → `orca-cli`, not supervised `dispatch --inject`, unless the user asked to supervise / wait for `worker_done`.
 
 ## Process
 

@@ -46,6 +46,20 @@
 
 # 🤖 Multi-agent orchestration (Orca)
 
+### Architecture (all multi-agent skills)
+
+```
+Orca runtime + orchestration skill   ← HARD BASE (from Orca CLI; not this repo)
+        │
+        ├── clean-sweep / spec-to-ship     (this pack — product/audit peers)
+        └── matt-ship / wayfinder-fleet / … (this pack — Matt×Orca peers)
+                │
+                └── worker playbooks: mattpocock/skills (/implement, /tdd, …)
+```
+
+**Nothing multi-agent here runs without Orca orchestration.** Matt skills are *what workers run*; Orca is *how the coordinator dispatches, waits, and gates*. Skills in this pack do **not** depend on each other at runtime (e.g. clean-sweep is not built on matt-ship).
+
+
 All require **Orca + `orchestration` skill (Orca CLI)**. Matt×Orca skills also need [mattpocock/skills](https://github.com/mattpocock/skills). Shared helpers: [`scripts/orca-coord/`](scripts/orca-coord/).
 
 ### Product / audit peers

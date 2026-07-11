@@ -22,7 +22,7 @@
 
 # What's inside
 
-5 skills, organized by what they do — not by SDLC phase. These are **discrete capabilities** an agent reaches for when the task fits, not lifecycle steps that fire in sequence.
+7 skills, organized by what they do — not by SDLC phase. These are **discrete capabilities** an agent reaches for when the task fits, not lifecycle steps that fire in sequence.
 
 # 🌐 Infrastructure
 
@@ -44,6 +44,13 @@
 |---|---|---|
 | 🎨 **[terminal-poster](skills/terminal-poster/)** | Generates dense, retro-cyberpunk infographic posters in a terminal aesthetic — pixel-bitmap headlines, ASCII box-drawing, monospace fonts. Five reusable templates (Cluster A–E). Cluster A audited at 99% fidelity. | ~$0.002 + ~30s/image |
 
+# 🤖 Multi-agent orchestration
+
+| Skill | What it does | Cost / latency |
+|---|---|---|
+| 🚢 **[spec-to-ship](skills/spec-to-ship/)** | Turn a **frozen spec** into a shipped, verified product in one autonomous run. Coordinator drives THINK → PLAN(freeze) → FOUNDATION → parallel SLICES → INTEGRATION → HARDENING → e2e TEST → ADVERSARIAL → SHIP with PR-per-task + build-blind review. Requires Orca + `orchestration`. | Agent-hours × worker fleet; human gates on promote/deploy |
+| 🧹 **[clean-sweep](skills/clean-sweep/)** | Find and **close** every real issue in a repo (reliability, security, authz, dead code, hollow tests, …). One PR per finding, file-ledger gates, anti-inflation E2E. Sibling to `spec-to-ship` for brownfield. Requires Orca + `orchestration`. | Agent-hours × findings wave |
+
 ---
 
 # Quick Start
@@ -62,7 +69,7 @@ for s in skills/*/; do
 done
 ```
 
-✅ All 5 skills are now available. Symlinks mean `git pull` keeps them up to date.
+✅ All 7 skills are now available. Symlinks mean `git pull` keeps them up to date.
 
 📖 **Full guide:** [docs/claude-code-setup.md](docs/claude-code-setup.md)
 
@@ -283,7 +290,7 @@ Output:
 ✅ namecheap-dns
 ✅ terminal-poster
 
-🟢 All 5 skills valid against agentskills.io spec.
+🟢 All 7 skills valid against agentskills.io spec.
 ```
 
 The validator enforces the spec rules (frontmatter shape, name/directory matching, description length). Non-zero exit code if any skill fails — perfect for CI.

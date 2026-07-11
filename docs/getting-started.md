@@ -28,7 +28,7 @@ cd agent-skills
 
 ```bash
 ls skills/
-# cloudflare-dns  deep-research  fly-to-aws-migration  namecheap-dns  terminal-poster
+# cloudflare-dns  clean-sweep  deep-research  fly-to-aws-migration  namecheap-dns  spec-to-ship  terminal-poster
 ```
 
 Read its `README.md` for what it does and what env vars it needs.

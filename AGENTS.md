@@ -25,6 +25,8 @@ When working in this repo:
 | "Migrate from Fly to AWS" / "leave Fly" / "ECS migration" / "AWS migration" | [`fly-to-aws-migration`](skills/fly-to-aws-migration/SKILL.md) |
 | "Research X" / "deep dive on Y" / "what's the discourse on Z" | [`deep-research`](skills/deep-research/SKILL.md) |
 | "Generate a viral poster" / "terminal aesthetic infographic" / "agent stack visualization" | [`terminal-poster`](skills/terminal-poster/SKILL.md) |
+| "the docs are ready — build the whole product" / "spec to ship" / autonomous greenfield build | [`spec-to-ship`](skills/spec-to-ship/SKILL.md) |
+| "clean sweep the issues" / "fix everything in this audit" / autonomous fix-everything pass | [`clean-sweep`](skills/clean-sweep/SKILL.md) |
 
 # Execution Model
 

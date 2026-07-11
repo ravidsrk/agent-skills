@@ -39,6 +39,13 @@ When working in this repo:
 | "adversarial ticket" / red-team acceptance criteria | [`adversarial-ticket`](skills/adversarial-ticket/SKILL.md) |
 | "model jury" / multi-model implement compare | [`model-jury`](skills/model-jury/SKILL.md) |
 | course/content wayfinder full journey | [`content-wayfinder`](skills/content-wayfinder/SKILL.md) |
+| "ship fleet" / open PR autonomously after build | [`gstack-ship-fleet`](skills/gstack-ship-fleet/SKILL.md) |
+| "qa fleet" / autonomous browser QA | [`qa-fleet`](skills/qa-fleet/SKILL.md) |
+| "cso fleet" / OWASP autonomous audit | [`cso-fleet`](skills/cso-fleet/SKILL.md) |
+| "autoplan fleet" / autonomous plan gauntlet | [`autoplan-fleet`](skills/autoplan-fleet/SKILL.md) |
+| "full sprint fleet" / plan-build-verify-ship | [`full-sprint-fleet`](skills/full-sprint-fleet/SKILL.md) |
+| "headless mode" / guard policy for fleets | [`headless-mode`](skills/headless-mode/SKILL.md) / [`guard-policy`](skills/guard-policy/SKILL.md) |
+
 
 # Execution Model
 

@@ -22,7 +22,7 @@
 
 # What's inside
 
-19 skills, organized by what they do — not by SDLC phase. These are **discrete capabilities** an agent reaches for when the task fits, not lifecycle steps that fire in sequence.
+37 skills, organized by what they do — not by SDLC phase. These are **discrete capabilities** an agent reaches for when the task fits, not lifecycle steps that fire in sequence.
 
 # 🌐 Infrastructure
 
@@ -88,6 +88,33 @@ Coding flow (Matt v1.1+): **`/wayfinder` → `/to-spec` → `/to-tickets` → `/
 | ⚖️ **[model-jury](skills/model-jury/)** | Multi-model independent implement + pick |
 | 📚 **[content-wayfinder](skills/content-wayfinder/)** | Non-coding wayfinder full journey (courses) |
 
+### Gstack × Orca (autonomous role fleets)
+
+Methodology from [garrytan/gstack](https://github.com/garrytan/gstack); **runtime is Orca** (we use it, we do not replace it). Workers load gstack skills for playbooks.
+
+| Skill | What it does |
+|---|---|
+| 🚢 **[gstack-ship-fleet](skills/gstack-ship-fleet/)** | Tests → review → open PR (ship factory) |
+| 🧪 **[qa-fleet](skills/qa-fleet/)** | Parallel browse QA axes (report or fix budget) |
+| 🔒 **[cso-fleet](skills/cso-fleet/)** | OWASP/STRIDE audit → PR-per-finding fixes |
+| 📋 **[autoplan-fleet](skills/autoplan-fleet/)** | CEO→design→eng→DX plan gauntlet (fresh contexts) |
+| 🔍 **[review-prod-fleet](skills/review-prod-fleet/)** | Prod-bug class parallel review |
+| ❤️ **[health-fleet](skills/health-fleet/)** | Typecheck/lint/tests/dead-code dashboard |
+| 📚 **[docs-fleet](skills/docs-fleet/)** | document-generate + document-release |
+| 🐛 **[investigate-fleet](skills/investigate-fleet/)** | gstack RCA swarm |
+| 🐤 **[canary-fleet](skills/canary-fleet/)** | Post-deploy monitor (no silent rollback) |
+| ⚡ **[benchmark-fleet](skills/benchmark-fleet/)** | Perf / CWV vs baseline |
+| 📅 **[retro-cron](skills/retro-cron/)** | Weekly eng retro batch |
+| 📱 **[ios-qa-fleet](skills/ios-qa-fleet/)** | Real-device iOS QA/fix |
+| 💬 **[office-hours-async](skills/office-hours-async/)** | Six questions async + research prep |
+| 🎨 **[design-shotgun-fleet](skills/design-shotgun-fleet/)** | Parallel UI variants → human pick |
+| 📝 **[spec-issue-fleet](skills/spec-issue-fleet/)** | gstack /spec → issue → implement |
+| 🏁 **[full-sprint-fleet](skills/full-sprint-fleet/)** | Plan→build→verify→ship coordinator |
+| 🛡️ **[guard-policy](skills/guard-policy/)** | careful/freeze/guard on all workers |
+| 🤖 **[headless-mode](skills/headless-mode/)** | AUTO_DECIDE · no AskUserQuestion |
+
+
+
 ---
 
 # Quick Start
@@ -98,6 +125,7 @@ Coding flow (Matt v1.1+): **`/wayfinder` → `/to-spec` → `/to-tickets` → `/
 |---|---|---|
 | **A — Capability** (any agent harness) | `cloudflare-dns`, `namecheap-dns`, `fly-to-aws-migration`, `deep-research`, `terminal-poster` | Env keys only (see below) |
 | **B — Orca multi-agent** | `clean-sweep`, `spec-to-ship` | Orca + `orchestration` (Orca CLI). Peers; neither depends on the other. |
+| **D — Gstack × Orca** | `gstack-ship-fleet`, `qa-fleet`, `cso-fleet`, `autoplan-fleet`, `review-prod-fleet`, `health-fleet`, `docs-fleet`, `investigate-fleet`, `canary-fleet`, `benchmark-fleet`, `retro-cron`, `ios-qa-fleet`, `office-hours-async`, `design-shotgun-fleet`, `spec-issue-fleet`, `full-sprint-fleet`, `guard-policy`, `headless-mode` | Orca + `orchestration` + **garrytan/gstack** for worker playbooks. |
 | **C — Matt × Orca** | `matt-ship`, `wayfinder-fleet`, `triage-to-fleet`, `ready-agent-drain`, `review-matrix`, `adversarial-ticket`, `diagnose-swarm`, `architecture-sprint`, `design-it-thrice`, `research-then-grill`, `model-jury`, `content-wayfinder` | Orca + `orchestration` + **mattpocock/skills** for worker playbooks. |
 
 🟡 **Name collision:** this repo's `deep-research` is the **monid 8-source** orchestrator. Other skill packs (e.g. makerskills) may ship a different skill with the same name. Symlinking this repo's copy will replace the other under `~/.claude/skills/deep-research`. Keep makerskills under `~/.agents/skills/` if you need both.
@@ -119,6 +147,15 @@ ln -sfn "$(pwd)/skills/deep-research" "$HOME/.claude/skills/deep-research"
 
 # Track B — Orca peers (no Matt dependency):
 for name in clean-sweep spec-to-ship; do
+  ln -sfn "$(pwd)/skills/$name" "$HOME/.claude/skills/$name"
+done
+
+
+# Track D — Gstack × Orca (also install gstack for workers):
+for name in gstack-ship-fleet qa-fleet cso-fleet autoplan-fleet review-prod-fleet \
+  health-fleet docs-fleet investigate-fleet canary-fleet benchmark-fleet retro-cron \
+  ios-qa-fleet office-hours-async design-shotgun-fleet spec-issue-fleet full-sprint-fleet \
+  guard-policy headless-mode; do
   ln -sfn "$(pwd)/skills/$name" "$HOME/.claude/skills/$name"
 done
 
@@ -362,7 +399,7 @@ Output:
 ✅ namecheap-dns
 ✅ terminal-poster
 
-🟢 All 19 skills valid against agentskills.io spec.
+🟢 All 37 skills valid against agentskills.io spec.
 ```
 
 The validator enforces the spec rules (frontmatter shape, name/directory matching, description length). Non-zero exit code if any skill fails — perfect for CI.

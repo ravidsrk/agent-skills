@@ -1,7 +1,7 @@
 {
   "name": "agent-skills",
-  "description": "Production-grade agent skills: infra (DNS, Fly\u2192AWS), research, posters, Orca multi-agent (spec-to-ship, clean-sweep), and Matt\u00d7Orca orchestration (matt-ship, wayfinder-fleet, triage/review/diagnose fleets). MIT.",
-  "version": "1.2.0",
+  "description": "37 production agent skills: infra, research, posters, Orca multi-agent (spec-to-ship, clean-sweep), Matt\u00d7Orca fleets, and Gstack\u00d7Orca autonomous role fleets (qa, cso, autoplan, ship, full-sprint, \u2026). MIT.",
+  "version": "1.3.0",
   "author": {
     "name": "Ravindra Kumar",
     "email": "ravindrakumar8088@gmail.com",
@@ -30,6 +30,11 @@
     "wayfinder-fleet",
     "triage-to-fleet",
     "review-matrix",
-    "mattpocock"
+    "mattpocock",
+    "gstack",
+    "qa-fleet",
+    "autoplan-fleet",
+    "full-sprint-fleet",
+    "cso-fleet"
   ]
 }

@@ -48,6 +48,6 @@ matt-ship/
 
 ## Related
 
-wayfinder-fleet (if foggy first), review-matrix, adversarial-ticket
+wayfinder-fleet (if foggy first), review-matrix
 
 Also: `spec-to-ship` / `clean-sweep` (Orca peers, not Matt-based).

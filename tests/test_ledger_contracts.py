@@ -79,16 +79,14 @@ class LedgerContractTest(unittest.TestCase):
         found = set(re.findall(r"`([^`]+)`", m.group(0)))
         self.assertEqual(found, NEVER_GATE)
 
-    def test_review_fleets_use_canonical_never_gate_ids(self):
+    def test_review_matrix_uses_canonical_never_gate_ids(self):
+        # review-prod-fleet was folded into review-matrix (axis-pack=prod-risk), so the one
+        # surviving review skill must carry the canonical NEVER_GATE ids for both packs.
         rm = (SKILLS / "review-matrix" / "SKILL.md").read_text(encoding="utf-8")
-        rp = (SKILLS / "review-prod-fleet" / "SKILL.md").read_text(encoding="utf-8")
-        self.assertIn("`security-lite`", rm)
+        for sid in NEVER_GATE:  # security-lite, authz, sql
+            self.assertIn(f"`{sid}`", rm, f"review-matrix missing NEVER_GATE id {sid}")
         self.assertNotIn("security/authz", rm)
         self.assertNotIn("data-migration", rm)
-        self.assertIn("`authz`", rp)
-        self.assertIn("`sql`", rp)
-        self.assertNotIn("security/authz", rp)
-        self.assertNotIn("data-migration", rp)
 
     def test_fleet_memory_store_seeded(self):
         store = REPO / "docs" / "fleet-memory"

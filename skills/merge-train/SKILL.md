@@ -94,7 +94,7 @@ LOOP:
 - `--force-with-lease` rejected twice → someone is pushing concurrently; escalate rather
   than fight (a bot autofix loop is the usual culprit — see spec-to-ship gotchas #1/#24).
 - Conductor dies → provenance holds the queue (merge_ready messages persist);
-  `run-blackbox` RESUME rebuilds boarding order from message sequence, verified against
+  `run-supervision` RESUME rebuilds boarding order from message sequence, verified against
   `gh pr list --base BASE --state open`.
 
 ## Completion contract
@@ -116,14 +116,14 @@ merge_ready = flag it in the ledger, don't adopt it silently.
 
 Consumes: `merge_ready` payloads (schema above) + review fleets' finding reports.
 Emits: per-PR ledger lines (`PR · reviewed_sha · merge SHA · verified`) and thread
-replies. `gstack-ship-fleet` and `full-sprint-fleet` SHIP phases can delegate their
+replies. `gstack-fleet` and `the full-sprint composition (AGENTS.md)` SHIP phases can delegate their
 BASE-bound merges here; `clean-sweep` / `spec-to-ship` merge roles are the single-PR
 special case of this discipline.
 
 ## Related
 
-`gate-steward` (D8 grant, one-way promotion), `review-matrix` / `review-prod-fleet`
-(evidence sources), `run-blackbox` (conductor crash recovery), `spec-to-ship` (merge
+`gate-steward` (D8 grant, one-way promotion), `review-matrix` / `review-matrix`
+(evidence sources), `run-supervision` (conductor crash recovery), `spec-to-ship` (merge
 gotchas this generalizes).
 
 ## Scripts & assets

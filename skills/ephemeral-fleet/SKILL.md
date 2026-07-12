@@ -100,7 +100,7 @@ of what the worker said.
 
 Pushed branches land in the normal pipeline: `merge-train` for BASE sequencing,
 review fleets for evidence. The ledger's lane table (sandbox id, pushed SHA, destroyed
-timestamp) is the audit trail `run-blackbox` AUDIT consumes.
+timestamp) is the audit trail `run-supervision` AUDIT consumes.
 
 ## Related
 

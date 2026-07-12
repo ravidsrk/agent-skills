@@ -14,7 +14,7 @@ compatibility: >-
   MEASURE (Lighthouse/DevTools MCP for web CWV, or a server/profiler harness). Worker
   playbooks: addyosmani/agent-skills (performance-optimization, web-performance-auditor,
   browser-testing-with-devtools) or gstack (benchmark, browse daemon) — one router per
-  worker. In-pack: merge-train, fleet-doctor, gate-steward, run-blackbox, benchmark-fleet.
+  worker. In-pack: merge-train, run-supervision, gate-steward, run-supervision, perf-sweep.
 ---
 
 # Perf-Sweep — every journey within budget, proven by a before/after number
@@ -105,7 +105,7 @@ comparison is not a delta.
   at). **The PR body MUST carry a measured before→after for the target journey** — a perf
   fix with no number is unverifiable and doesn't merge.
 - Guard against regression: add/extend a perf budget in CI where the harness supports it
-  (`bundlesize`, `lhci`) so the win can't silently rot.
+(`bundlesize`, `lhci`) so the win can't silently rot.
 - Correctness first: a fix that speeds the journey but changes behavior is a bug — the
   build-blind REVIEW checks behavior, not just the number. `merge_ready` → **merge-train**.
 
@@ -144,7 +144,7 @@ neighbor). Loop until every journey is within budget or parked.
 
 ## RESUME
 
-`run-blackbox` RESUME scoped to this ledger; a "within budget" claim is re-verified by
+`run-supervision` RESUME scoped to this ledger; a "within budget" claim is re-verified by
 RE-MEASURING (numbers, not memory) — a claimed win with no reproducible measurement
 restarts as a breach. In-flight fixes resume at their measure/fix/confirm stage.
 
@@ -162,14 +162,18 @@ restarts as a breach. In-flight fixes resume at their measure/fix/confirm stage.
 
 Emits the perf ledger (baselines, bottlenecks, before/after, confirmations), findings in
 the AGENTS.md schema, and REFLECT learnings to `fleet-memory`. Composes with
-`benchmark-fleet` (measurement workers) and `canary-fleet` (post-deploy perf watch).
+`perf-sweep` (measurement workers) and `gstack-fleet` (post-deploy perf watch).
 Schedulable via `standing-fleet` (precheck: a journey regressed past budget).
+
+## Variants (absorbed skills)
+
+- **mode=report-only** (was `benchmark-fleet`): measure critical journeys vs baseline and report, no fix loop. This is Phase 1 alone, `PROFILE=ro`.
 
 ## Related
 
-`benchmark-fleet` (the measurement fleet perf-sweep drives), `canary-fleet` (post-deploy
-perf), `feature-factory` (ship perf budgets with features), `merge-train`, `fleet-doctor`,
-`gate-steward`, `run-blackbox`, `fleet-memory`.
+`perf-sweep` (the measurement fleet perf-sweep drives), `gstack-fleet` (post-deploy
+perf), `spec-to-ship` (ship perf budgets with features), `merge-train`, `run-supervision`, 
+`gate-steward`, `run-supervision`, `fleet-memory`.
 
 ## Scripts & assets
 

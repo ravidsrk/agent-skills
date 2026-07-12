@@ -54,7 +54,7 @@ spec** and hand implementation to AFK agents. Do **not** use wayfinder as the en
 coding path from grill → shipped product (v1.1 feedback).
 
 Wayfinder *can* own the whole journey for **non-coding** work (e.g. course creation) —
-see **`content-wayfinder`** for that path.
+see **`wayfinder-fleet`** for that path.
 
 This skill **stops at map-complete for coding** and either:
 
@@ -82,7 +82,7 @@ SELF-ORIENT (tracker, labels)
        graduate fog → new tickets + deps
   → MAP COMPLETE?
        coding  → FREEZE narrative → /to-spec → (matt-ship or to-tickets+implement)
-       content → continue in content-wayfinder or stay in map if user wants
+       content → continue in wayfinder-fleet or stay in map if user wants
 ```
 
 ## Chart the map (HITL, coordinator)
@@ -125,10 +125,14 @@ When no open in-scope tickets remain and destination is clear:
 4. **`/to-tickets`** → Orca DAG → **`/implement`** fleet  
    Prefer loading **`matt-ship`** from Phase “SPEC” onward so one skill owns ship discipline.
 
+## Variants (absorbed skills)
+
+- **exit=content** (was `content-wayfinder`): non-coding journeys (courses, curricula, long-form) — stay in the decision map instead of exiting to `to-spec`→`matt-ship`. Same map/frontier/HITL-gate machinery.
+
 ## Related
 
 - `matt-ship` — coding delivery after to-spec.
-- `content-wayfinder` — non-coding full journey inside wayfinder.
+- `wayfinder-fleet` — non-coding full journey inside wayfinder.
 - `research-then-grill` — evidence pack *before* charting.
 
 ## Scripts & assets (local to this skill)

@@ -30,7 +30,7 @@ compatibility: >-
 
 
 ## Not a fleet by itself
-This skill **configures** other fleets. Apply at start of matt-ship / full-sprint-fleet / clean-sweep / etc.
+This skill **configures** other fleets. Apply at start of matt-ship / the full-sprint composition (AGENTS.md) / clean-sweep / etc.
 
 ## Enforce, don't advise
 Policy that lives only in prose is a false safety signal. This skill activates real
@@ -70,7 +70,7 @@ controls; the written doc just records them.
   `decision_gate` / `reply`, never composed by a worker.
 
 ## Related
-`headless-mode`, all fleet skills.
+`autoplan-fleet`, all fleet skills.
 
 
 ## Scripts & assets

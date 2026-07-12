@@ -148,6 +148,10 @@ promotion PR for human review. MERGE ≠ DEPLOY.
 - Trusting `worker_done` merge claims without `gh pr view` verification.
 - Squash merges; agent trailers; live secrets in workers.
 
+## Variants (absorbed skills)
+
+- **front-end=spec-issue** (was `spec-issue-fleet`): start from a gstack `/spec` written into a tracker issue, then run the implement phases from that issue. A thin adapter on Phase 3-4.
+
 ## Related peers
 
 - `wayfinder-fleet` — foggy multi-session **before** this skill’s to-spec.

@@ -34,4 +34,4 @@ orca status --json   # must be running
 
 ## Related
 
-See `full-sprint-fleet` for end-to-end composition. Peers: `matt-ship`, `spec-to-ship`, `clean-sweep`.
+See `a mission sequence (AGENTS.md)` for end-to-end composition. Peers: `matt-ship`, `spec-to-ship`, `clean-sweep`.

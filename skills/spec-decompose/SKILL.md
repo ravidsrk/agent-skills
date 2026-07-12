@@ -64,18 +64,18 @@ orca orchestration task-create \
 ```
 
 Record every returned task id in the ledger (`docs/spec-decompose-<slug>.md`): the
-id ↔ slice table IS the run scope `run-blackbox` will need.
+id ↔ slice table IS the run scope `run-supervision` will need.
 
 ### 3. Choose the loop — declared, not drifted into
 
 - **Runtime coordinator** (hands-off): `orca orchestration run --worktree <selector>
   --max-concurrent <N>` — auto-provisions workers, dispatches the frontier, warns on
-  stalls (it does not self-heal: pair `fleet-doctor`). One active run only; `run-stop`
+  stalls (it does not self-heal: pair `run-supervision`). One active run only; `run-stop`
   before starting another. **Scope hazard — check before launch:** the coordinator loop
   dispatches READY tasks from the runtime-GLOBAL table, not just yours. Precondition:
   `task-list --json` shows no foreign pending/ready/dispatched tasks (only this DAG's
   ids from the ledger table). Foreign active tasks present → use the manual wave loop
-  below, which dispatches only your ids. There is no run-status RPC — `run-blackbox`
+  below, which dispatches only your ids. There is no run-status RPC — `run-supervision`
   STATUS is the dashboard. Base drift >20 commits skips dispatch silently: sync the
   worktree's base before waves, and add `allow-stale-base: true` to a task spec only
   with a written reason in the ledger.
@@ -107,15 +107,15 @@ dispatched. A decomposition nobody dispatched is a proposal, not a decomposition
 
 ## Handoff contract
 
-Emits the ledger with the id ↔ slice table (run scope for `run-blackbox`), hands
-merge sequencing to `merge-train`, stalls to `fleet-doctor`, and gates to
+Emits the ledger with the id ↔ slice table (run scope for `run-supervision`), hands
+merge sequencing to `merge-train`, stalls to `run-supervision`, and gates to
 `gate-steward`. `matt-ship` Phase 4 is the tracker-integrated sibling; this skill is
 the tracker-less direct path.
 
 ## Related
 
 `matt-ship` (tracker-first sibling), `spec-to-ship` (whose foundation/slice discipline
-this reuses), `fleet-doctor`, `run-blackbox`, `merge-train`, `standing-fleet`.
+this reuses), `run-supervision`, `merge-train`, `standing-fleet`.
 
 ## Scripts & assets
 

@@ -108,7 +108,7 @@ delegates its AUTO_DECIDE layer-2 to this skill; `standing-fleet` re-raises PARK
 
 ## Related
 
-`autoplan-fleet`, `standing-fleet`, `guard-policy`, `merge-train`, `headless-mode`.
+`autoplan-fleet`, `standing-fleet`, `guard-policy`, `merge-train`
 
 ## Scripts & assets
 

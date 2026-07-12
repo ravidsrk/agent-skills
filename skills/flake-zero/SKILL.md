@@ -12,7 +12,7 @@ compatibility: >-
   HARD dependency: Orca runtime + orchestration skill (Orca CLI); git + gh; a runnable
   test suite. Worker playbooks: mattpocock/skills diagnosing-bugs (feedback-loop-first)
   or addyosmani/agent-skills debugging-and-error-recovery — one router per worker.
-  In-pack: merge-train, gate-steward, fleet-doctor, run-blackbox.
+  In-pack: merge-train, gate-steward, run-supervision.
 ---
 
 # Flake-Zero — the suite is green N times in a row, not just once
@@ -58,7 +58,7 @@ ORIENT → DETECT (repeat-run + CI history) → rank by flake rate
   worktrees, different seeds/orders where the runner allows). Record per-test:
   pass/fail counts → **flake rate**. A test that fails k/{{DETECT_RUNS}} is a flake at
   rate k/N; deterministic failures (N/N) are BUGS, not flakes — route those to
-  `backlog-zero`, out of this mission's scope.
+  `clean-sweep`, out of this mission's scope.
 - Mine CI retry history (`gh run list` / annotations) for tests that pass-on-retry —
   those flake in environments your local runs don't reproduce; capture them even at
   rate 0 locally.
@@ -118,7 +118,7 @@ that survives `{{DETECT_RUNS}}`-run diagnosis with no root cause → quarantine
 
 ## RESUME
 
-`run-blackbox` RESUME scoped to this ledger; the streak counter lives in the ledger and
+`run-supervision` RESUME scoped to this ledger; the streak counter lives in the ledger and
 is re-verified by re-running, never trusted from memory — a claimed streak with no
 pasted runs restarts at zero.
 
@@ -135,13 +135,13 @@ pasted runs restarts at zero.
 ## Handoff contract
 
 Emits the flake ledger (rates, root causes, ratchets, streak runs), deterministic
-failures handed to `backlog-zero`, and REFLECT learnings to `fleet-memory`. Schedulable
+failures handed to `clean-sweep`, and REFLECT learnings to `fleet-memory`. Schedulable
 via `standing-fleet` (nightly detection run; wake the mission when new flakes appear).
 
 ## Related
 
-`diagnose-swarm` (single hard-bug sibling), `backlog-zero` (deterministic failures go
-there), `merge-train`, `fleet-doctor`, `gate-steward`, `run-blackbox`, `fleet-memory`.
+`diagnose-swarm` (single hard-bug sibling), `clean-sweep` (deterministic failures go
+there), `merge-train`, `run-supervision`, `gate-steward`, `fleet-memory`.
 
 ## Scripts & assets
 

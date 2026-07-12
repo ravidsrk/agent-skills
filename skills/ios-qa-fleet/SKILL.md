@@ -55,7 +55,7 @@ Escalate if daemon unreachable — do not fake device results.
 - Evidence per finding: screenshot before/after, the ax-tree node targeted, and the
   gesture sequence — a repro someone can replay on a fresh simulator.
 - Permissions/camera-injection state persists on the simulator between tasks: reset to a
-  declared baseline at task start (`permissions`, `camera`), or findings bleed across
+declared baseline at task start (`permissions`, `camera`), or findings bleed across
   axes.
 - Lifecycle per lane: `orca emulator attach` at task start; boot/attach failure = the
   TASK fails with the error captured (never silently fall back to another simulator —
@@ -63,7 +63,7 @@ Escalate if daemon unreachable — do not fake device results.
   attached and record it in the ledger.
 
 ## Related
-`qa-fleet` (web), `review-prod-fleet`.
+`qa-fleet` (web), `review-matrix`.
 
 
 ## Scripts & assets

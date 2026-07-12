@@ -98,13 +98,18 @@ Spec: N findings (worst: …)
 ## Handoff contract
 Emits findings in the AGENTS.md finding schema to `report_path`
 `docs/reviews/review-matrix-<sha>.md` with `reviewed_sha` = the branch HEAD reviewed.
-Consumers (merge roles, `gstack-ship-fleet`, `full-sprint-fleet`) treat the evidence as
+Consumers (merge roles, `gstack-fleet`, `the full-sprint composition (AGENTS.md)`) treat the evidence as
 FRESH only while `reviewed_sha` == the HEAD they act on; stale routes back here.
+
+## Variants (absorbed skills)
+
+- **axis-pack=prod-risk** (was `review-prod-fleet`): SQL/authz/LLM-trust/side-effect axes instead of Standards/Spec — the passes-CI-breaks-in-prod hunt. Report-only, `PROFILE=ro`.
+- **axis=attack** (was `adversarial-ticket`): a build-blind red-team axis scoped to one just-implemented ticket, attacking its acceptance criteria. Add it to the axis set for a freshly-built ticket.
 
 ## Related
 
 - Embedded after each ticket in **`matt-ship`**
-- **`adversarial-ticket`** for refuse-surface attacks beyond review
+- **`review-matrix`** for refuse-surface attacks beyond review
 
 ## Scripts & assets (local to this skill)
 

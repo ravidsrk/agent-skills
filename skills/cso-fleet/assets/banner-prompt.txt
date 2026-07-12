@@ -1,1 +1,0 @@
-Banner for skills/cso-fleet: OWASP · STRIDE · fix findings. Cream #F8F4EE. Orca base.

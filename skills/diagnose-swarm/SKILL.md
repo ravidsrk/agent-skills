@@ -60,6 +60,10 @@ This skill **uses** the Orca multi-agent runtime and the `orchestration` skill. 
 4. C → D review matrix axes.
 5. If architecture is the real finding: E or hand to `architecture-sprint`.
 
+## Variants (absorbed skills)
+
+- **pack=gstack** (was `investigate-fleet`): workers run gstack `/investigate` instead of Matt `diagnosing-bugs`. Same repro-gate-first swarm; one router per worker.
+
 ## Related
 
 - Single-session path: Matt `/diagnosing-bugs` alone (no Orca)

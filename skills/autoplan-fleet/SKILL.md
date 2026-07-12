@@ -43,7 +43,7 @@ INPUT plan/spec path
   → FREEZE plan for matt-ship / implement
 ```
 
-## Execution model (matches `headless-mode`)
+## Execution model (the former headless-mode, folded in here)
 Workers run with `GSTACK_HEADLESS=1`. Two layers can answer a question, in order:
 
 1. **gstack's own question preferences** (plan-tune): a question the user has tuned to
@@ -70,7 +70,7 @@ Workers run with `GSTACK_HEADLESS=1`. Two layers can answer a question, in order
 - Output: single frozen plan doc + ledger of auto-decisions.
 
 ## Related
-`office-hours-async`, `matt-ship`, `spec-issue-fleet`, `full-sprint-fleet`.
+`gstack-fleet`, `matt-ship`, `the full-sprint composition (AGENTS.md)`.
 
 
 ## Scripts & assets

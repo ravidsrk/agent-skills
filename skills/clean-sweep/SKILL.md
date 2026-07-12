@@ -52,7 +52,7 @@ Before anything else, PREFLIGHT — if any check fails, STOP and tell the user; 
 - **Orca on PATH** (`orca` / `orca-ide` on Linux) and **runtime up**: `orca status --json` shows running.
 - **Orchestration experimental feature enabled** in Orca Settings → Experimental.
 - **The `orchestration` skill is loaded** — it owns the exact `orca orchestration` command grammar
-  (`task-create`, `dispatch --inject`, `check --wait`, `send`/`reply`/`ask`, gates, worker terminals).
+(`task-create`, `dispatch --inject`, `check --wait`, `send`/`reply`/`ask`, gates, worker terminals).
   This `clean-sweep` skill owns only the *what/when/why* on top of that grammar. **Load `orchestration`
   and follow its syntax; this skill does not restate it.**
 - Worker agent CLIs available on the box (`codex`, `claude`) with their autonomous/max-effort flags

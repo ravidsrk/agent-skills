@@ -13,7 +13,7 @@ Requires Orca + `orchestration`, git + gh, a runnable suite, and a debugging pla
 
 ## Use
 
-"Deflake the test suite, 10-run streak to call it done." → detect + rank by flake rate, diagnose to a taxonomy class, fix root causes (inject the clock, seed the RNG, isolate state), prove with an unbroken streak. Deterministic N/N failures are bugs — routed to backlog-zero, out of scope here.
+"Deflake the test suite, 10-run streak to call it done." → detect + rank by flake rate, diagnose to a taxonomy class, fix root causes (inject the clock, seed the RNG, isolate state), prove with an unbroken streak. Deterministic N/N failures are bugs — routed to clean-sweep, out of scope here.
 
 ## Structure
 

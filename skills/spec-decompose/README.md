@@ -13,7 +13,7 @@ Requires Orca (runtime + `orchestration` CLI skill) and a frozen, human-gated sp
 
 ## Use
 
-"Decompose this spec and run it, max 4 workers" → slices, DAG, `orchestration run --worktree --max-concurrent 4`, with fleet-doctor watching stalls and run-blackbox as the dashboard. The base-drift skip (>20 commits behind, silent) and the one-active-run limit are called out so they don't cost you an afternoon.
+"Decompose this spec and run it, max 4 workers" → slices, DAG, `orchestration run --worktree --max-concurrent 4`, with run-supervision watching stalls and run-supervision as the dashboard. The base-drift skip (>20 commits behind, silent) and the one-active-run limit are called out so they don't cost you an afternoon.
 
 ## Structure
 

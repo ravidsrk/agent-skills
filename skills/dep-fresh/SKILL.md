@@ -14,7 +14,7 @@ compatibility: >-
   package manager + a green CI baseline. Worker playbooks: addyosmani/agent-skills
   (deprecation-and-migration, security-and-hardening supply-chain, code-review dep
   discipline) — one router per worker (verify names against the installed pack). In-pack:
-  merge-train, fleet-doctor, gate-steward, run-blackbox, quorum.
+  merge-train, run-supervision, gate-steward, run-supervision, quorum.
 ---
 
 # Dep-Fresh — every major current or parked with a reason, CI green the whole way
@@ -133,7 +133,7 @@ every dep on a current supported version OR parked with a reason. New advisories
 
 ## RESUME
 
-`run-blackbox` RESUME scoped to this ledger; an upgrade claimed merged is re-verified by
+`run-supervision` RESUME scoped to this ledger; an upgrade claimed merged is re-verified by
 ancestry AND by re-reading the lockfile on `{{BASE}}` (the version actually landed), never
 from worker memory. In-flight migration lanes resume at their expand/migrate/contract
 stage.
@@ -156,8 +156,8 @@ new outdated major or advisory).
 ## Related
 
 `red-team-harden` (supply-chain advisories overlap — dep-fresh does the upgrades, red-team
-does the exploit proof), `backlog-zero`, `merge-train`, `fleet-doctor`, `gate-steward`,
-`run-blackbox`, `fleet-memory`.
+does the exploit proof), `clean-sweep`, `merge-train`, `run-supervision`, `gate-steward`, 
+`run-supervision`, `fleet-memory`.
 
 ## Scripts & assets
 

@@ -41,7 +41,9 @@ preamble text. A TASK line saying "SESSION_KIND=headless" changes nothing.
   **BLOCKS** (Completion Status BLOCKED). It does NOT auto-select an answer for UNTUNED
   questions. (Exception: a per-question `never-ask` preference from gstack plan-tune
   auto-decides BEFORE the headless fallback; one-way doors always override `never-ask`.
-  Fresh worker sessions typically carry no tuned preferences — plan for blocking.)
+  Preferences are PROJECT-persistent — `~/.gstack/projects/<slug>/question-preferences.json`
+  — so worker sessions in the same repo inherit whatever the user has tuned; a project
+  with no plan-tune history blocks on everything.)
 - Spawned sessions (e.g. OpenClaw-launched) are the mode that auto-selects the
   `(recommended)` option.
 - Anything else is interactive.
@@ -58,9 +60,11 @@ preamble text. A TASK line saying "SESSION_KIND=headless" changes nothing.
    - taste / premise / irreversible decisions always escalate; log every decision taken
      in the report
 3. Coordinator turns blocked questions into `decision_gate`s for the human.
-4. If you want auto-decided review questions, that is **autoplan's AUTO_DECIDE** — the
-   COORDINATOR answers per autoplan's decision principles with an audit trail. It is not
-   a gstack headless feature; do not promise workers that gstack will self-answer.
+4. Auto-decided review questions come from two places, and only two: gstack's own
+   per-question `never-ask` preferences (project-persistent plan-tune state, see above),
+   and **autoplan's AUTO_DECIDE** where the COORDINATOR answers blocked questions per
+   autoplan's decision principles with an audit trail. Do not promise workers that gstack
+   headless will self-answer UNTUNED questions — those block until the coordinator replies.
 
 ## Related
 `guard-policy`, `autoplan-fleet`, `full-sprint-fleet`.

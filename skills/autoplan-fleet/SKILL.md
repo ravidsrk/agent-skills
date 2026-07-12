@@ -48,8 +48,10 @@ Workers run with `GSTACK_HEADLESS=1`. Two layers can answer a question, in order
 
 1. **gstack's own question preferences** (plan-tune): a question the user has tuned to
    `never-ask` is auto-decided BY GSTACK (recommended option) before any headless fallback;
-   one-way doors always override `never-ask`. Do not rely on this — fresh worker sessions
-   typically carry no tuned preferences.
+   one-way doors always override `never-ask`. Preferences are PROJECT-persistent
+   (`~/.gstack/projects/<slug>/question-preferences.json`) — workers in the same repo
+   inherit them. Coverage is only as wide as the user's plan-tune history, so still plan
+   for layer 2.
 2. **Everything untuned BLOCKS** (headless semantics — gstack does not self-answer untuned
    questions). That is where the COORDINATOR takes over: on a blocked question (worker
    `ask`, or a heartbeat naming the blocking gate), it answers **mechanical** questions per

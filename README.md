@@ -22,7 +22,7 @@
 
 # What's inside
 
-42 skills, organized by what they do — not by SDLC phase. These are **discrete capabilities** an agent reaches for when the task fits, not lifecycle steps that fire in sequence.
+46 skills, organized by what they do — not by SDLC phase. These are **discrete capabilities** an agent reaches for when the task fits, not lifecycle steps that fire in sequence.
 
 # 🌐 Infrastructure
 
@@ -80,6 +80,10 @@ Built directly on Orca primitives no other skill exploited — automations, prov
 | 📦 **[run-blackbox](skills/run-blackbox/)** | Status / crash-resume / audit from the runtime's persisted provenance |
 | 🚪 **[gate-steward](skills/gate-steward/)** | Mechanical gates auto-resolved (audited), taste batched, one-way human-only |
 | 🚂 **[merge-train](skills/merge-train/)** | Serialized merge queue on `merge_ready` with reviewed-SHA freshness |
+| 🗳️ **[quorum](skills/quorum/)** | Group fan-out votes with auditable consensus tables; JURY mode for model-jury |
+| ✂️ **[spec-decompose](skills/spec-decompose/)** | Spec → tracer-bullet task DAG for `orchestration run` (the missing decomposition) |
+| 🫧 **[ephemeral-fleet](skills/ephemeral-fleet/)** | Disposable sandbox workers; the only sanctioned home for danger-profile work |
+| 🧠 **[fleet-memory](skills/fleet-memory/)** | Compounding learnings injected into future dispatches + adaptive review gating |
 
 ### Matt × Orca (engineering process on a fleet)
 
@@ -137,7 +141,7 @@ Methodology from [garrytan/gstack](https://github.com/garrytan/gstack); **runtim
 |---|---|---|
 | **A — Capability** (any agent harness) | `cloudflare-dns`, `namecheap-dns`, `fly-to-aws-migration`, `deep-research`, `terminal-poster` | Env keys only (see below) |
 | **B — Orca multi-agent** | `clean-sweep`, `spec-to-ship` | Orca + `orchestration` (Orca CLI). Peers; neither depends on the other. |
-| **E — Fleet ops** | `standing-fleet`, `fleet-doctor`, `run-blackbox`, `gate-steward`, `merge-train` | Orca + `orchestration` (Orca CLI) only. Compose with any fleet. |
+| **E — Fleet ops** | `standing-fleet`, `fleet-doctor`, `run-blackbox`, `gate-steward`, `merge-train`, `quorum`, `spec-decompose`, `ephemeral-fleet`, `fleet-memory` | Orca + `orchestration` (Orca CLI) only (`ephemeral-fleet` also needs `orca-per-workspace-env` recipes). Compose with any fleet. |
 | **D — Gstack × Orca** | `gstack-ship-fleet`, `qa-fleet`, `cso-fleet`, `autoplan-fleet`, `review-prod-fleet`, `health-fleet`, `docs-fleet`, `investigate-fleet`, `canary-fleet`, `benchmark-fleet`, `retro-cron`, `ios-qa-fleet`, `office-hours-async`, `design-shotgun-fleet`, `spec-issue-fleet`, `full-sprint-fleet`, `guard-policy`, `headless-mode` | Orca + `orchestration` + **garrytan/gstack** for worker playbooks. `investigate-fleet`, `spec-issue-fleet`, `full-sprint-fleet` ALSO need **mattpocock/skills** (Track C). |
 | **C — Matt × Orca** | `matt-ship`, `wayfinder-fleet`, `triage-to-fleet`, `ready-agent-drain`, `review-matrix`, `adversarial-ticket`, `diagnose-swarm`, `architecture-sprint`, `design-it-thrice`, `research-then-grill`, `model-jury`, `content-wayfinder` | Orca + `orchestration` + **mattpocock/skills** for worker playbooks. |
 
@@ -164,7 +168,8 @@ for name in clean-sweep spec-to-ship; do
 done
 
 # Track E — Fleet ops (Orca only):
-for name in standing-fleet fleet-doctor run-blackbox gate-steward merge-train; do
+for name in standing-fleet fleet-doctor run-blackbox gate-steward merge-train \
+  quorum spec-decompose ephemeral-fleet fleet-memory; do
   ln -sfn "$(pwd)/skills/$name" "$HOME/.claude/skills/$name"
 done
 
@@ -421,7 +426,7 @@ Output:
 ✅ namecheap-dns
 ✅ terminal-poster
 
-🟢 All 42 skills valid against agentskills.io spec.
+🟢 All 46 skills valid against agentskills.io spec.
 ```
 
 The validator enforces the spec rules (frontmatter shape, name/directory matching, description length). Non-zero exit code if any skill fails — perfect for CI.

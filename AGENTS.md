@@ -61,6 +61,10 @@ When working in this repo:
 | "coordinator died" / resume the run / run status / audit a run | [`run-blackbox`](skills/run-blackbox/SKILL.md) |
 | "too many gates" / auto-decide mechanical / gate policy | [`gate-steward`](skills/gate-steward/SKILL.md) |
 | "merge queue" / PRs racing / serialize merges to BASE | [`merge-train`](skills/merge-train/SKILL.md) |
+| "vote on it" / second opinions / consensus / adversarial verify | [`quorum`](skills/quorum/SKILL.md) |
+| "decompose this spec" / build the task DAG / "No tasks found" | [`spec-decompose`](skills/spec-decompose/SKILL.md) |
+| "run it in sandboxes" / disposable workers / untrusted work | [`ephemeral-fleet`](skills/ephemeral-fleet/SKILL.md) |
+| "stop re-hitting the same gotchas" / fleet learnings / gate cold reviewers | [`fleet-memory`](skills/fleet-memory/SKILL.md) |
 
 
 # Execution Model
@@ -203,5 +207,5 @@ Non-coding exceptions (no spec freeze required): `content-wayfinder` (writing),
 | `full-sprint-fleet`                        | yes | yes | yes | composes office-hours-async, autoplan-fleet, matt-ship / wayfinder-fleet / spec-to-ship, review-prod-fleet, review-matrix, qa-fleet, cso-fleet, gstack-ship-fleet, canary-fleet, docs-fleet |
 | Policy (guard-policy, headless-mode)       | yes | yes (hooks / env) | no | applied to other fleets |
 | Peers (clean-sweep, spec-to-ship)          | yes | no | no | none (independent peers) |
-| Fleet ops (standing-fleet, fleet-doctor, run-blackbox, gate-steward, merge-train) | yes | no | no | compose WITH other fleets at runtime by design (each names its consumers), but run standalone |
+| Fleet ops (standing-fleet, fleet-doctor, run-blackbox, gate-steward, merge-train, quorum, spec-decompose, ephemeral-fleet, fleet-memory) | yes | no | no | compose WITH other fleets at runtime by design (each names its consumers), but run standalone; ephemeral-fleet additionally needs orca-per-workspace-env recipes |
 | Utility (cloudflare-dns, namecheap-dns, fly-to-aws-migration, deep-research, terminal-poster) | no | no | no | none |

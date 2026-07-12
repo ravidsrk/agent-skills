@@ -41,6 +41,23 @@ if fix mode: ios-fix workers per P0 → re-qa
 
 Escalate if daemon unreachable — do not fake device results.
 
+## Concrete device/emulator-worker mechanics
+
+- The active emulator is WORKSPACE-scoped (one per workspace): parallel mobile QA means
+  either one worker per WORKTREE-workspace (each `orca emulator attach`es its own
+  simulator) or a single serialized emulator lane — never two workers driving one
+  emulator.
+- Commands take normalized 0-1 coordinates (`tap 0.5 0.85`), so specs stay
+  resolution-independent; read the accessibility tree (`orca emulator ax`) to target
+  semantically before falling back to coordinates.
+- iOS runs via serve-sim (macOS only); Android shells to adb — declare which lane in the
+  TASK, the two have different failure modes (simulator boot vs adb device offline).
+- Evidence per finding: screenshot before/after, the ax-tree node targeted, and the
+  gesture sequence — a repro someone can replay on a fresh simulator.
+- Permissions/camera-injection state persists on the simulator between tasks: reset to a
+  declared baseline at task start (`permissions`, `camera`), or findings bleed across
+  axes.
+
 ## Related
 `qa-fleet` (web), `review-prod-fleet`.
 

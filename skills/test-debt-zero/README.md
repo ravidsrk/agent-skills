@@ -1,8 +1,8 @@
-<img src="assets/banner.jpg" alt="Test-Debt-Zero — Autonomous mission: every critical path has a red-capable test" width="100%">
+<img src="assets/banner.jpg" alt="Test-Debt-Zero — Autonomous mission: every critical path has a mutation-audited test" width="100%">
 
 # Test-Debt-Zero
 
-Map the untested critical surface (coverage × call-graph of the money/auth/data paths), write failing-first tests that assert real behavior, prove each one earns its keep by going RED when its production code is reverted, and route surfaced bugs to a fix or backlog — looping until every confirmed critical path is revert-audited. Coverage percent is a proxy; the revert-check is the truth.
+Map the untested critical surface (coverage × call-graph of the money/auth/data paths), write characterization tests that assert real behavior, prove each one earns its keep by failing at its assertion under a semantics-preserving MUTATION of its code (a compile break doesn't count — the harness must stay runnable), and route surfaced bugs to a fix or backlog — looping until every confirmed critical path is mutation-audited. Coverage percent is a proxy; the mutation-audit is the truth.
 
 ## Install
 
@@ -13,7 +13,7 @@ Requires Orca + `orchestration`, git + gh, a runnable suite + coverage tool, and
 
 ## Use
 
-"Close the test gap on the payments and auth paths." → map the critical surface (human-confirmed to bound it), characterize with real assertions, revert-audit each test RED, and hand surfaced bugs to backlog-zero. A green test over reverted code is worthless and the mission knows it.
+"Close the test gap on the payments and auth paths." → map the critical surface (human-confirmed to bound it), characterize with real assertions, mutation-audit each test (it must fail at its assertion under a semantics-preserving code mutation, harness still runnable), and hand surfaced bugs to backlog-zero. A test insensitive to the behavior is worthless and the mission knows it.
 
 ## Structure
 

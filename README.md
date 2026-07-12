@@ -84,7 +84,7 @@ per worker (Matt / gstack / Addy — never two routers in a single worker TASK).
 | 🛡️ **[red-team-harden](skills/red-team-harden/)** | CLEAN (zero unrefuted P0/P1, fix then re-attack) or HARDENED-WITH-OPEN-ITEMS (parked one-way work) |
 | 🎯 **[flake-zero](skills/flake-zero/)** | The suite passes N consecutive green runs, no retry-wrappers |
 | 🏭 **[feature-factory](skills/feature-factory/)** | One grill in → a shipped feature behind the promotion gate |
-| 🧪 **[test-debt-zero](skills/test-debt-zero/)** | Every critical path has a test that fails when its code is reverted |
+| 🧪 **[test-debt-zero](skills/test-debt-zero/)** | Every critical path has a test that dies under a semantics-preserving mutation |
 | 📦 **[dep-fresh](skills/dep-fresh/)** | Every dependency major current or parked, CI green throughout |
 | 📖 **[docs-truth](skills/docs-truth/)** | Every documented claim traces to the code, or it's gone |
 | ⚡ **[perf-sweep](skills/perf-sweep/)** | Every journey within its budget, proven by a measured before/after |

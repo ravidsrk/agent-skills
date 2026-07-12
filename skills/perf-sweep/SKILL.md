@@ -14,7 +14,7 @@ compatibility: >-
   MEASURE (Lighthouse/DevTools MCP for web CWV, or a server/profiler harness). Worker
   playbooks: addyosmani/agent-skills (performance-optimization, web-performance-auditor,
   browser-testing-with-devtools) or gstack (benchmark, browse daemon) — one router per
-  worker. In-pack: merge-train, run-supervision, gate-steward, run-supervision, perf-sweep.
+  worker. In-pack: merge-train, run-supervision, gate-steward, spec-decompose, fleet-memory.
 ---
 
 # Perf-Sweep — every journey within budget, proven by a before/after number
@@ -162,7 +162,7 @@ restarts as a breach. In-flight fixes resume at their measure/fix/confirm stage.
 
 Emits the perf ledger (baselines, bottlenecks, before/after, confirmations), findings in
 the AGENTS.md schema, and REFLECT learnings to `fleet-memory`. Composes with
-`perf-sweep` (measurement workers) and `gstack-fleet` (post-deploy perf watch).
+`gstack-fleet` (benchmark/measurement + post-deploy perf watch).
 Schedulable via `standing-fleet` (precheck: a journey regressed past budget).
 
 ## Variants (absorbed skills)
@@ -171,9 +171,8 @@ Schedulable via `standing-fleet` (precheck: a journey regressed past budget).
 
 ## Related
 
-`perf-sweep` (the measurement fleet perf-sweep drives), `gstack-fleet` (post-deploy
-perf), `spec-to-ship` (ship perf budgets with features), `merge-train`, `run-supervision`, 
-`gate-steward`, `run-supervision`, `fleet-memory`.
+`gstack-fleet` (post-deploy perf watch), `spec-to-ship` (ship perf budgets with features),
+`merge-train`, `run-supervision`, `gate-steward`, `fleet-memory`.
 
 ## Scripts & assets
 

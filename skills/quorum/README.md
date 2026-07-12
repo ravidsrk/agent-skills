@@ -2,7 +2,7 @@
 
 # Quorum
 
-Broadcast a self-contained ballot to @claude / @codex / @idle on a shared thread, reduce the replies to an auditable consensus table, and route splits to gate-steward as taste gates. JURY mode runs full independent candidates first (the quorum pattern), with jurors never judging their own work.
+Broadcast a self-contained ballot to @claude / @codex / @idle on a shared thread, reduce the replies to an auditable consensus table, and route splits to gate-steward as taste gates. JURY mode runs full independent candidates first (the former model-jury pattern), with jurors never judging their own work.
 
 ## Install
 

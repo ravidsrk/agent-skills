@@ -69,7 +69,7 @@ For judging something that already exists: a finding, a diff, a design doc, a pl
 
 ## Mode 2 — JURY (redundant independent execution; expensive, use deliberately)
 
-The `quorum` pattern, generalized: N workers independently produce the SAME
+The former `model-jury` pattern, generalized: N workers independently produce the SAME
 deliverable (implementation, RCA, design), then a VOTE round judges the candidates.
 
 ```
@@ -78,7 +78,7 @@ deliverable (implementation, RCA, design), then a VOTE round judges the candidat
 2. dispatch each via scripts/spawn_worker.sh; collect worker_done + reportPaths.
 3. VOTE mode (above) on the candidates, voters ≠ authors (a juror never votes on its
    own candidate — check handles).
-4. The winner pick is ALWAYS a human gate (matching `quorum`): adopting a jury
+4. The winner pick is ALWAYS a human gate (same contract as the former `model-jury`): adopting a jury
    candidate — an implementation to merge, an RCA to act on, a design to build —
    commits the run to it, consequential by definition. The consensus table informs the
    human; the steward never auto-picks a jury winner, unanimous or not.
@@ -108,12 +108,11 @@ A vote you can't audit from the ledger didn't happen.
 
 Emits the consensus table into the run ledger (and `report_path` when standalone).
 Split votes route to `gate-steward` as taste gates; `clean-sweep` adversarial
-verification and `quorum` candidate picks consume VOTE mode directly.
+verification and JURY candidate picks consume VOTE mode directly.
 
 ## Related
 
-`quorum` (the JURY special case, now routed through this protocol), `gate-steward`, 
-`review-matrix`
+`model-jury` (folded into Mode 2 JURY above), `gate-steward`, `review-matrix`
 
 ## Scripts & assets
 

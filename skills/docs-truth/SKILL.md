@@ -146,8 +146,8 @@ Emits the claims ledger (verdicts, evidence, actions), doc-surfaced bugs to
 
 ## Related
 
-`docs-truth` (generation-focused sibling — docs-truth is verification-first),
-`clean-sweep` (doc-surfaced bugs), `merge-train`, `run-supervision`, `gate-steward`, 
+`mode=generate` (this skill's generation variant — the default `mode=verify` is
+verification-first), `clean-sweep` (doc-surfaced bugs), `merge-train`, `run-supervision`, `gate-steward`, 
 `run-supervision`, `fleet-memory`.
 
 ## Scripts & assets

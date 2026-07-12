@@ -35,7 +35,7 @@ You are the **COORDINATOR**. Phases are **sequential** (gstack: each builds on p
 ## Phase graph
 ```
 INPUT plan/spec path
-  → CEO worker (gstack /plan-ceo-review, headless AUTO_DECIDE)
+  → CEO worker (gstack /plan-ceo-review, GSTACK_HEADLESS=1 — blocks on questions)
   → DESIGN worker (/plan-design-review)
   → ENG worker (/plan-eng-review)  → produces test plan artifact
   → DEVEX worker (/plan-devex-review) if product is developer-facing
@@ -43,8 +43,16 @@ INPUT plan/spec path
   → FREEZE plan for matt-ship / implement
 ```
 
+## Execution model (matches `headless-mode` — gstack does NOT self-answer)
+Workers run with `GSTACK_HEADLESS=1`, so gstack **BLOCKS** when a review needs an answer.
+AUTO_DECIDE is the **coordinator's** job, not a gstack mode: on a blocked question (worker
+`ask`, or a heartbeat naming the blocking gate), the coordinator answers **mechanical**
+questions per autoplan's decision principles via `orca orchestration reply --id <CURRENT>`
+with an audit line in the ledger. Taste / premise / user-challenge questions become human
+`decision_gate`s — the coordinator never answers those.
+
 ## Auto-decide vs gate
-- **AUTO_DECIDE:** mechanical, tooling, clear defaults with (recommended)
+- **AUTO_DECIDE (coordinator answers, audited):** mechanical, tooling, clear defaults with (recommended)
 - **GATE human:** premises, scope expansion, taste, irreversible product bets
 - Never skip premise gate on greenfield
 

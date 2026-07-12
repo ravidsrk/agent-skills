@@ -50,9 +50,11 @@ SELF-ORIENT → PREFLIGHT (BASE, clean tree)
 ## Rules
 - Prefer PR to integration BASE, not silent merge to default.
 - MERGE ≠ DEPLOY. Never land-and-deploy without explicit human auth in this run.
-- Never pre-run a separate test/review worker before /ship: /ship repeats both, and any fix
-  it applies stales the earlier build-blind result. If /ship changed code, prior review
-  evidence is stale — re-review the new SHA or rely on /ship's own army.
+- Never run your OWN duplicate test/review worker before /ship: /ship repeats both, and any
+  fix it applies stales the earlier build-blind result. Missing or stale evidence routes to
+  the OWNING review fleet (that fleet owns the finding artifacts — AGENTS.md routing), or
+  rely on /ship's built-in army. If /ship changed code, prior review evidence is stale —
+  route back to the owning fleet for the new SHA.
 - Ledger: `docs/gstack-ship-fleet-progress.md`.
 
 ## Related

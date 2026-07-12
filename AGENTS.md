@@ -163,14 +163,14 @@ One owner per review concern — never "and/or". Selection rule:
 |---------------------------------------------------------|----------------------|-------|
 | Standards + Spec of a diff/PR (Matt path)                | `review-matrix`      | Not run again inside gstack-ship-fleet |
 | Production-risk axes (SQL, authz, LLM trust, side effects) | `review-prod-fleet` | Never fixes; report-only |
-| Pre-ship umbrella (tests + review army + changelog + PR) | `gstack-ship-fleet` via gstack `/ship` | Never pre-runs a separate test/review worker |
+| Pre-ship umbrella (tests + review army + changelog + PR) | `gstack-ship-fleet` via gstack `/ship` | Never runs its OWN duplicate test/review pass — missing/stale evidence routes to the owning review fleet, or falls back to /ship's built-in army |
 | Security deep audit (OWASP/STRIDE)                       | `cso-fleet`          | Not folded into review-matrix's security-lite when a real audit is wanted |
 
 **Finding schema** (every review fleet emits findings in this JSON shape so downstream skills
 can consume instead of re-scan):
 
 ```json
-{"id": "RM-003", "axis": "standards|spec|sql|authz|llm-trust|side-effects|security",
+{"id": "RM-003", "axis": "standards|spec|test-adequacy|sql|authz|llm-trust|side-effects|security",
  "file": "src/x.ts", "line": 42, "severity": "P0|P1|P2",
  "summary": "...", "reviewed_sha": "<commit reviewed>", "report_path": "docs/reviews/..."}
 ```

@@ -56,8 +56,11 @@ Tracks C + D), before running. A quick-start that symlinks only this skill canno
 All gstack×Orca and Matt×Orca fleet skills.
 
 **Handoff contract:** one sprint ledger (`docs/full-sprint-progress.md`) shared across
-phases; each phase consumes the prior phase's `report_path` and `reviewed_sha` per the
-AGENTS.md finding schema — a phase never re-scans what the prior phase already produced.
+phases; each phase consumes the PRIOR phase's declared artifact — plan: frozen plan doc
+path; build: spec + tickets + integration branch; verify: `report_path` + `reviewed_sha`
+per the AGENTS.md finding schema; ship: merged SHA + PR number; canary: deploy URL +
+baseline report; docs: written doc paths. A phase never re-scans what the prior phase
+already produced.
 
 
 ## Scripts & assets

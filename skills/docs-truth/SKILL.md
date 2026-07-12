@@ -96,8 +96,17 @@ Re-extract claims after each wave (regenerated docs introduce new claims; merged
 changes stale others). The mission converges when a fresh extraction over the surface
 finds zero false/stale claims and every unverifiable one is parked with a human note.
 
-## Completion contract (evidence)
+## Two named terminal outcomes
 
+- **TRUE** — every falsifiable claim on the surface is verified true or fixed to be true;
+  zero false/stale claims remain. A completed mission.
+- **TRUE-WITH-UNVERIFIABLE** (degraded, not TRUE) — zero false/stale claims, but ≥1 claim is
+  UNVERIFIABLE (no way to check without a human / private system) and parked with a note.
+  The ledger names each. Legitimate stop, never reported as TRUE.
+
+## Completion contract (evidence — the outcome must be named)
+
+- Ledger outcome line = `TRUE` or `TRUE-WITH-UNVERIFIABLE` with the list.
 - Every falsifiable claim on the surface has a recorded verdict with `file:symbol`-or-run
   evidence.
 - Every false/stale claim: fixed/regenerated/removed in a merged PR (ancestry-verified),

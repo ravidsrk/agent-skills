@@ -81,7 +81,7 @@ per worker (Matt / gstack / Addy — never two routers in a single worker TASK).
 | 🚢 **[spec-to-ship](skills/spec-to-ship/)** | Frozen spec → shipped product (PR-per-task). Whole-product. |
 | 🧹 **[clean-sweep](skills/clean-sweep/)** | Every real audit finding closed. Peer of spec-to-ship. |
 | 🗂️ **[backlog-zero](skills/backlog-zero/)** | The tracker is empty or every survivor is parked with a reason |
-| 🛡️ **[red-team-harden](skills/red-team-harden/)** | A fresh full audit finds zero unrefuted P0/P1 (fix, then re-attack) |
+| 🛡️ **[red-team-harden](skills/red-team-harden/)** | CLEAN (zero unrefuted P0/P1, fix then re-attack) or HARDENED-WITH-OPEN-ITEMS (parked one-way work) |
 | 🎯 **[flake-zero](skills/flake-zero/)** | The suite passes N consecutive green runs, no retry-wrappers |
 | 🏭 **[feature-factory](skills/feature-factory/)** | One grill in → a shipped feature behind the promotion gate |
 | 🧪 **[test-debt-zero](skills/test-debt-zero/)** | Every critical path has a test that fails when its code is reverted |

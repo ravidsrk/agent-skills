@@ -1,11 +1,11 @@
 ---
 name: test-debt-zero
 description: >-
-  Autonomous mission: give every critical path a red-capable test. Map the untested
-  critical surface (coverage + call-graph of the money paths), write failing-first tests
-  en masse that assert real behavior, fix the bugs those tests surface PR-per-fix, and
-  loop until every critical path has a test that fails when its production code is
-  reverted. Use when "close the test gap", test debt zero, cover the critical paths,
+  Autonomous mission: give every critical path a mutation-audited test. Map the untested
+  critical surface (coverage + call-graph of the money paths), write characterization
+  tests that assert real behavior, fix the bugs those tests surface PR-per-fix, and loop
+  until every critical path has a test that fails at its assertion under a
+  semantics-preserving mutation of its code. Use when "close the test gap", test debt zero, cover the critical paths,
   characterization tests, or an unattended test-hardening run. Not raw coverage-percent
   chasing — behavior coverage of the paths that matter.
 license: MIT
@@ -16,13 +16,13 @@ compatibility: >-
   installed pack). In-pack: merge-train, fleet-doctor, gate-steward, run-blackbox.
 ---
 
-# Test-Debt-Zero — every critical path has a test that fails when the code is reverted
+# Test-Debt-Zero — every critical path has a test that dies under mutation
 
 You are the **COORDINATOR** of an autonomous mission. The end state is EVIDENCE:
-every path on the agreed critical surface has at least one test that goes RED when its
-production code is reverted (a mutation/revert-audited assertion — not a test that passes
-against a broken implementation). Coverage percent is a proxy; the revert-check is the
-truth.
+every path on the agreed critical surface has at least one test that FAILS AT ITS
+ASSERTION under a semantics-preserving mutation of its production code, with the harness
+still runnable (a compile/import break is NOT proof — it shows source-shape dependence,
+not behavior coverage). Coverage percent is a proxy; the mutation-audit is the truth.
 
 ## ⚠️ HARD BASE: Orca `orchestration`
 
@@ -49,8 +49,8 @@ green · suite + coverage run to completion at baseline · clean baseline.
 
 ```
 ORIENT → MAP critical surface (coverage gaps × call-graph) → human scope confirm
-  → CHARACTERIZE waves (failing-first tests, PR-per-area) → SURFACED-BUG sub-loop
-  → build-blind REVIEW → merge-train → PROVE (revert-audit each new test) → loop → REFLECT
+  → CHARACTERIZE waves (mutation-audited tests, PR-per-area) → SURFACED-BUG sub-loop
+  → build-blind REVIEW → merge-train → PROVE (mutation-audit each new test) → loop → REFLECT
 ```
 
 ## Phase 1 — MAP (define a finite critical surface)
@@ -58,12 +58,12 @@ ORIENT → MAP critical surface (coverage gaps × call-graph) → human scope co
 - Run `{{COVERAGE_CMD}}`; intersect uncovered lines/branches with the call-graph of the
   critical entry points (money, auth, data-mutation, external contracts). Uncovered
   trivial getters are NOT the mission; uncovered branches on a payment path ARE.
-- Ledger (`docs/test-debt-zero-progress.md`): `| path | why-critical | has-red-capable-
-  test | TEST-PR | MERGED | REVERT-AUDITED | surfaced-bugs |`, one row per critical path.
+- Ledger (`docs/test-debt-zero-progress.md`): `| path | why-critical | has-mutation-
+  audited-test | TEST-PR | MERGED | MUTATION-AUDITED | outcome | surfaced-bugs |`.
 - **Human scope confirm (gate #1):** the critical-surface list, one decision. This bounds
   the mission — without it, "every path" is unbounded.
 
-## Phase 2 — CHARACTERIZE waves (failing-first, real assertions)
+## Phase 2 — CHARACTERIZE waves (mutation-audited, real assertions)
 
 One `PROFILE=rw` worker per path-cluster (same-file tests = merge chain):
 
@@ -71,9 +71,14 @@ One `PROFILE=rw` worker per path-cluster (same-file tests = merge chain):
   the code has a gap — a test written to pass against current (possibly-wrong) behavior
   is a characterization LIE. Two outcomes:
   - code is correct, just untested → the test passes once written; **prove it earns its
-    keep by reverting the covered production line and showing the test goes RED** (this
-    is the mission's core evidence — a green test over reverted code is worthless).
-  - the test reveals a BUG (behavior ≠ intent) → route to the SURFACED-BUG sub-loop.
+    keep with a semantics-preserving MUTATION** (flip a boundary, negate a condition,
+    zero a returned value — a change that keeps the code COMPILING and the harness
+    RUNNABLE) and show THIS test fails at its behavioral assertion. A revert that breaks
+    compilation/imports/fixtures proves dependence on source SHAPE, not on behavior —
+    that does not count. The mutation must fail the targeted assertion while the suite
+    otherwise runs.
+  - the test reveals a BUG (behavior ≠ intent) → route to the SURFACED-BUG sub-loop
+    (only here is it a genuine failing-first/RED test in the TDD sense).
 - Follow the test pyramid (small/fast first), DAMP over DRY, assert state not
   interactions, prefer real > fake > stub > mock — the Addy/Matt testing discipline.
   Never weaken an assertion to make a red test green; that inverts the mission.
@@ -92,39 +97,52 @@ A test that fails because the code is WRONG (not just untested) is a real bug:
 
 After each wave merges, RE-MAP coverage. New critical paths (from new code merged during
 the run, or newly-reachable branches) enter the table. A path is DONE only when its test
-is merged AND revert-audited RED. Loop until every row on the confirmed surface is
-revert-audited. New surface discovered → new rows → next wave.
+is merged AND mutation-audited (fails at its assertion under mutation, harness runnable).
+Loop until every row on the confirmed surface is mutation-audited. New surface → new rows.
 
-## Completion contract (evidence)
+## Two named terminal outcomes
 
-- Every critical-surface path: a merged test that goes RED on revert of its covered code
-  (revert-audit recorded; spot-audited on a sample by a fresh worker).
+- **COVERED** — every path on the confirmed critical surface has a merged, mutation-audited
+  test, and every surfaced bug is fixed-with-test. A completed mission.
+- **COVERED-WITH-PARKED** (degraded, not COVERED) — all writable paths mutation-audited, but
+  ≥1 surfaced bug is PARKED as needs-human (load-bearing quirk / behavior-change decision)
+  or a path can't be tested without a human decision. The ledger names each parked item.
+  Legitimate stop, never reported as COVERED.
+
+## Completion contract (evidence — the outcome must be named)
+
+- Ledger outcome line = `COVERED` or `COVERED-WITH-PARKED` with the parked list.
+- Every critical-surface path: a merged test that fails at its assertion under a
+  semantics-preserving mutation of its covered code, harness still runnable
+  (mutation-audit recorded; spot-audited on a sample by a fresh worker).
 - Every surfaced bug: fixed-with-test, or PARKED as needs-human with a reason, or handed
   to `backlog-zero` (referenced).
 - No assertion weakened to pass (diff-audit: a test file whose assertions got looser is a
   red flag a fresh reviewer checks).
 - Coverage before/after on the critical surface pasted in the ledger — but the pass
-  criterion is the revert-audit set, not the percent.
+  criterion is the mutation-audit set, not the percent.
 - Promotion to default is out of scope.
 
 ## RESUME
 
 `run-blackbox` RESUME scoped to this ledger; a test claimed merged is re-verified by
-ancestry, and its revert-audit RED status is re-checkable by re-running — never trusted
+ancestry, and its mutation-audit status is re-checkable by re-running — never trusted
 from memory.
 
 ## Anti-patterns
 
-- Chasing coverage percent instead of critical-path revert-audits (100% coverage with
+- Chasing coverage percent instead of critical-path mutation-audits (100% coverage with
   tautological asserts proves nothing).
-- Writing tests that pass against current behavior without the revert-check (a green test
-  over broken code is worse than no test — it certifies the bug).
+- Writing tests that pass against current behavior without the mutation-check (a green
+  test insensitive to the behavior is worse than no test — it certifies the status quo).
+- Accepting a compile/import break as the mutation proof (proves source-shape dependence,
+  not behavior — the mutation must keep the harness runnable and fail the assertion).
 - Silently asserting a surfaced bug's wrong behavior as correct (locks in the bug).
 - Unbounded surface ("test everything") — the mission needs the confirmed critical list.
 
 ## Handoff contract
 
-Emits the coverage ledger (paths, revert-audits, surfaced bugs), bugs handed to
+Emits the coverage ledger (paths, mutation-audits, surfaced bugs), bugs handed to
 `backlog-zero`, and REFLECT learnings to `fleet-memory`. Schedulable via `standing-fleet`
 (re-map after each merge to default; wake when critical coverage regresses).
 
@@ -137,6 +155,6 @@ Emits the coverage ledger (paths, revert-audits, surfaced bugs), bugs handed to
 ## Scripts & assets
 
 - `scripts/spawn_worker.sh` — calls Orca (fail-closed dispatch; PROFILE=ro|rw|danger) · `preflight.py` — git/gh + BASE invariants (no Orca) · `pm.py` — inbox/check JSON parser (no Orca)
-- `references/ledger-template.md` — the critical-path/revert-audit ledger schema
+- `references/ledger-template.md` — the critical-path/mutation-audit ledger schema
 
 Load the Orca **`orchestration`** skill for command grammar. This skill supplies the mission; Orca supplies the machine.

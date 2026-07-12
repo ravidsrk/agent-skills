@@ -3,9 +3,9 @@ name: perf-sweep
 description: >-
   Autonomous mission: bring every critical user journey within its performance budget.
   Baseline each journey with real measurement (Core Web Vitals / server timings), fix
-  budget breaches PR-per-hotspot with a before/after number, re-benchmark with a
-  2-consecutive-confirmation to beat noise, and loop until every journey is within budget
-  or the residual is parked with a reason. Use when "the app is slow", perf sweep,
+  budget breaches PR-per-hotspot with a before/after number, re-benchmark to each
+  metric's measurement contract (percentile sample, lab median-of-5, field window), and
+  loop until every journey is within budget or parked with a reason. Use when "the app is slow", perf sweep,
   performance budget, Core Web Vitals, "get under budget", or an unattended
   performance-hardening run. Measure-first — never guess-and-optimize.
 license: MIT
@@ -20,9 +20,11 @@ compatibility: >-
 # Perf-Sweep — every journey within budget, proven by a before/after number
 
 You are the **COORDINATOR** of an autonomous mission. The end state is EVIDENCE: every
-critical journey meets its declared budget, proven by MEASURED before/after numbers that
-hold across two consecutive runs (a single fast measurement is noise). Guessing at
-optimizations without a measurement is banned — the metric is the mission.
+critical journey meets its declared budget, proven by MEASURED before/after numbers taken
+to that metric's measurement contract (below) — a p95 needs its request sample, a field
+CWV its window; two lab runs are a smoke minimum, not universal proof. Guessing at
+optimizations, or confirming a metric with a protocol weaker than it needs, are both
+banned — the metric is the mission.
 
 ## ⚠️ HARD BASE: Orca `orchestration`
 
@@ -49,19 +51,38 @@ fix that first) · clean baseline.
 ## Phase graph
 
 ```
-ORIENT → BASELINE every journey (measure ×2) → rank breaches by gap×traffic
+ORIENT → declare metric contract → BASELINE every journey → rank breaches by gap×traffic
   → DIAGNOSE hotspot (profile, find the actual bottleneck) → FIX (PR-per-hotspot, before/after)
-  → build-blind REVIEW → merge-train → RE-BENCHMARK (2 consecutive) → loop → REFLECT
+  → build-blind REVIEW → merge-train → RE-BENCHMARK (to the metric's contract) → loop → REFLECT
 ```
 
-## Phase 1 — BASELINE (measure, don't assume)
+## The measurement contract (declare per metric BEFORE baselining)
 
-- `PROFILE=ro` worker per journey runs `{{MEASURE_CMD}}` TWICE (perf numbers are noisy —
-  one run is an anecdote). Record the metric + which budget it breaches and by how much.
-  **Metric-honesty rule (the web-performance-auditor law): never fabricate a number.** A
-  journey you couldn't measure is `unmeasured`, flagged for a human — not assumed-fine.
-- Ledger (`docs/perf-sweep-progress.md`): `| journey | budget | baseline (×2) | breach |
-  bottleneck | FIXED | before→after | PR | MERGED | CONFIRMED (×2) |`.
+"Two runs" is a smoke minimum, not proof — a p95 or a field Core Web Vital needs a real
+sample, and lab ≠ field. Fix the protocol per metric in the ledger up front, and use it
+identically for baseline and candidate:
+
+| Metric kind | Source | Sample / confirmation | Conditions to pin |
+|-------------|--------|-----------------------|-------------------|
+| Field CWV (LCP/INP/CLS) | RUM / CrUX / field beacon | the metric's own percentile (p75) over a stated window + sample count; a "run" is a window, not a page-load | real traffic; don't substitute a lab number |
+| Lab CWV (Lighthouse) | Lighthouse/DevTools, lab | median of ≥5 runs (not 2); report the spread | throttling preset, cold-vs-warm cache, device/network profile |
+| Server latency percentile (p95/p99) | load harness | the percentile over ≥N requests at stated concurrency, two independent load runs agree | concurrency, warm/cold, dataset size, same env |
+| Simple duration (mean) | benchmark harness | median of ≥5, two consecutive agree | isolation, warmup discarded |
+
+A metric measured against a protocol weaker than its row (a p95 "confirmed" by 2 page
+loads, a field CWV proxied by one Lighthouse run) is NOT confirmed. Baseline and candidate
+MUST share source, sample size, and pinned conditions — a lab-vs-field or warm-vs-cold
+comparison is not a delta.
+
+## Phase 1 — BASELINE (measure to the contract, don't assume)
+
+- `PROFILE=ro` worker per journey measures per its metric's contract row (NOT a blanket
+  "twice" — a p95 gets its request sample, a field CWV its window). Record the value + the
+  breach. **Metric-honesty rule (the web-performance-auditor law): never fabricate or
+  proxy a number.** A journey you couldn't measure to its contract is `unmeasured`,
+  flagged for a human — not assumed-fine, and not downgraded to a weaker proxy.
+- Ledger (`docs/perf-sweep-progress.md`): `| journey | metric+contract | budget | baseline |
+  breach | bottleneck | FIXED | before→after | PR | MERGED | CONFIRMED | outcome |`.
 - Rank by gap × traffic/importance — the slowest low-traffic admin page is not the first
   fix.
 
@@ -90,16 +111,28 @@ ORIENT → BASELINE every journey (measure ×2) → rank breaches by gap×traffi
 
 ## Phase 4 — RE-BENCHMARK + loop
 
-After each wave merges, re-measure the affected journeys TWICE on `{{BASE}}`. A journey is
-within-budget only when TWO consecutive post-fix runs meet the budget (beats noise and
-one-off cache warmth). A fix that measured fast once but fails the second run is NOT done —
+After each wave merges, re-measure the affected journeys ON `{{BASE}}` to their metric
+contract (same source, sample, and pinned conditions as the baseline). A journey is
+within-budget only when the contract's confirmation is met (median-of-5 for lab, the
+percentile over the request sample for p95, the window for field CWV — not a lucky single
+run). A fix that met budget once but fails the contract's confirmation is NOT done —
 re-diagnose. Re-baseline all journeys periodically (a fix elsewhere can regress a
 neighbor). Loop until every journey is within budget or parked.
 
-## Completion contract (evidence)
+## Two named terminal outcomes
 
-- Every critical journey: within budget confirmed by TWO consecutive measured runs
-  (numbers pasted), OR PARKED with a written reason + human reference (needs an
+- **WITHIN-BUDGET** — every critical journey meets its budget on its metric contract's
+  confirmation. A completed mission.
+- **OPTIMIZED-WITH-PARKED** (degraded, not WITHIN-BUDGET) — all fixable hotspots fixed, but
+  ≥1 journey stays over budget needing an infra/architecture change beyond scope, or is
+  an inherent-cost tradeoff, parked with a human reference. Legitimate stop, never reported
+  as WITHIN-BUDGET.
+
+## Completion contract (evidence — the outcome must be named)
+
+- Ledger outcome line = `WITHIN-BUDGET` or `OPTIMIZED-WITH-PARKED` with the parked list.
+- Every critical journey: within budget confirmed to its metric contract (source, sample,
+  conditions, and the pasted numbers), OR PARKED with a written reason + human reference (needs an
   infra/architecture change beyond this mission's scope, or an inherent-cost tradeoff).
 - Every fix PR: a measured before→after for its journey (no number → not merged); a fresh
   worker re-measures a sample to confirm the reported win reproduces.
@@ -118,7 +151,8 @@ restarts as a breach. In-flight fixes resume at their measure/fix/confirm stage.
 ## Anti-patterns
 
 - Optimizing without a baseline measurement (guess-and-hope; you can't prove a win).
-- One fast measurement = "fixed" (perf is noisy — two consecutive, always).
+- Confirming a metric below its contract (a p95 "proven" by 2 page loads, a field CWV by
+  one lab run) — meet the metric's own protocol or it isn't confirmed.
 - Fabricating or estimating a number instead of measuring (the honesty rule; a spot-check
   catches it and fails the mission).
 - Scattershot micro-opts instead of the profiled bottleneck (moves numbers randomly).

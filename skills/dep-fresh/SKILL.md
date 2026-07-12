@@ -43,7 +43,8 @@ lockfile committed · clean baseline.
 
 - `{{BASE}}` · `{{MAX_WORKERS}}` · `{{ECOSYSTEM}}` (npm/pnpm/pip/cargo/…) ·
   `{{RUN_LEVEL}}` (patch+minor only / include-majors / include-framework-migrations) ·
-  `{{CI_CMD}}` (the gate every upgrade must keep green).
+  `{{CI_CMD}}` (the gate every upgrade must keep green) · `{{SUPPORT_POLICY}}` (optional:
+  the project's supported-version rule — e.g. "stay on active-LTS" — else derived per Phase 1).
 
 ## Phase graph
 
@@ -57,8 +58,14 @@ ORIENT → INVENTORY (outdated + advisories + reachability) → order by risk
 
 - List outdated (`npm outdated` / `pip list --outdated` / equiv) + security advisories
   (`npm audit` / `pip-audit`). For each, read the CHANGELOG, not just the version delta
-  (the Addy code-review dep rule) — is the major a real breaking change or a version-
+  (the code-review dep discipline) — is the major a real breaking change or a version-
   policy bump?
+- **"Current supported" authority (record it — registry-latest is NOT the truth):** the
+  target is the version the PROJECT supports, decided by, in order: an explicit project
+  constraint (engines/peerDeps/`{{SUPPORT_POLICY}}`), then the dependency's own published
+  support/EOL policy (LTS line, security-maintenance window), then registry-latest only
+  when neither exists. A dep on a still-supported older major is CURRENT, not outdated —
+  the ledger records which authority set each target.
 - **Reachability triage** (Addy supply-chain): a vuln/major in a dev-only or unreachable
   transitive dep is lower priority than a runtime-critical one. Never `npm audit fix
   --force` blindly — that's a mass unreviewed bump.
@@ -102,8 +109,17 @@ transitive that now needs its own PR). The mission converges when a fresh invent
 every dep on a current supported version OR parked with a reason. New advisories mid-run
 → new rows → next wave.
 
-## Completion contract (evidence)
+## Two named terminal outcomes
 
+- **CURRENT** — every dep on a current supported version, zero reachable unaddressed
+  advisories. A completed mission.
+- **CURRENT-WITH-PINNED** (degraded, not CURRENT) — all upgradable deps current, but ≥1 is
+  pinned-and-parked (breaking upstream / dropped platform / unresolved conflict) with a
+  human reference. The ledger names each pin. Legitimate stop, never reported as CURRENT.
+
+## Completion contract (evidence — the outcome must be named)
+
+- Ledger outcome line = `CURRENT` or `CURRENT-WITH-PINNED` with the pin list.
 - Every outdated dep at Phase 1 reaches a terminal state: upgraded+merged with CI green
   (the green run referenced), or PARKED-pinned with a written reason + human reference
   (breaking upstream / dropped platform / unresolved conflict).

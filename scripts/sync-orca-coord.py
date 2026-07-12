@@ -81,7 +81,8 @@ def main(argv: list[str]) -> int:
             exists = copy.exists()
             current = copy.read_text(encoding="utf-8") if exists else None
             content_ok = current == expected
-            exec_ok = (not name.endswith(".sh")) or (exists and os.access(copy, os.X_OK))
+            is_script = not name.endswith(".md")
+            exec_ok = (not is_script) or (exists and os.access(copy, os.X_OK))
             if content_ok and exec_ok:
                 continue
             if args.check:
@@ -94,7 +95,7 @@ def main(argv: list[str]) -> int:
             else:
                 copy.parent.mkdir(parents=True, exist_ok=True)
                 copy.write_text(expected, encoding="utf-8")
-                if name.endswith(".sh"):
+                if is_script:
                     copy.chmod(copy.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
                 written += 1
 

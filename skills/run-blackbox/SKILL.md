@@ -93,7 +93,7 @@ Use STATUS freely during a live run — it is the missing `runStatus`.
              reconstructed, what was SUSPECT, and the provenance counts.
 ```
 
-## Mode 3 — AUDIT (post-run, read-only)
+## Mode 3 — AUDIT (post-run; reads runtime state, writes ONLY the audit file)
 
 Same reads as STATUS against a finished run: per-task wall-clock (dispatched_at →
 completed_at), failure/respawn counts, phase timelines from heartbeats, reportPath

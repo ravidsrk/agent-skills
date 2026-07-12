@@ -30,8 +30,9 @@ compatibility: >-
 The runtime already persists everything recovery needs — heartbeats every ~5 minutes,
 stale-dispatch detection at 10 minutes (2× cadence), `failure_count` carried across
 dispatch contexts via MAX, `circuit_broken` at 3 failures — but the coordinator only
-WARNS on staleness; it never acts. This skill is the acting layer. It adds no state of
-its own: the dispatch table is the truth.
+WARNS on staleness; it never acts. This skill is the acting layer. Runtime state stays
+authoritative; the doctor's only own state is its attempt counter and evidence lines in
+the doctor log — a ledger section, never a shadow copy of runtime state.
 
 ## The doctor loop (run in the coordinator, interleaved with the fleet's own waits)
 
@@ -91,8 +92,9 @@ LOOP until fleet converged:
 
 The doctor is DONE when the fleet converges: every task `completed` / `failed` /
 human-parked, no dispatch in `dispatched` state without a live heartbeat, and every
-circuit-broken task has a recorded human decision (A/B/C above) in the ledger. A doctor
-that "fixed" a fleet by silently dropping tasks is not done.
+circuit-broken or budget-exhausted task has EITHER a recorded human decision (A/B/C,
+interactive) OR a PARKED HUMAN-queue entry with its `gate-create` hold (unattended) in
+the ledger. A doctor that "fixed" a fleet by silently dropping tasks is not done.
 
 ## Rules
 

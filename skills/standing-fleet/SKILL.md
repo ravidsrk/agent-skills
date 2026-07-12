@@ -98,13 +98,19 @@ Customize `assets/standing-run-prompt.txt`. Its contract, in order:
      run continues elsewhere or winds down. Taste questions follow `gate-steward`
      (steward resolves with pending-veto, batched in the run brief) — only fleet-declared
      human gates and one-way doors park.
-   - NEXT run start: reconcile ledger PARKED lines against `gate-list --status pending`.
-     Gate row resolved by the human via `gate-resolve` between runs → the resolution
-     auto-injects into that task's next dispatch — just re-dispatch it. Answer recorded
-     only in the ledger → apply it: `gate-resolve --id <gate> --resolution "<answer>"`,
-     then re-dispatch. Gate/task rows GONE (reset, pruned) → create a NEW task whose spec
-     embeds the human's resolution verbatim. Never treat a ledger line alone as a
-     resolved runtime gate.
+   - NEXT run start: reconcile each ledger PARKED line by querying ITS OWN rows —
+     `orca orchestration gate-list --task <task-id> --json` (NO status filter: a pending
+     filter cannot tell resolved from pruned; the unfiltered per-task query can). Branch
+     on what comes back:
+     · gate present, status `resolved` → the resolution auto-injects into that task's
+       next dispatch — re-dispatch it.
+     · gate present, status `pending`, answer recorded in the ledger → apply it:
+       `gate-resolve --id <gate> --resolution "<answer>"`, then re-dispatch.
+     · gate present, status `pending`, no answer anywhere → still parked; carry the line.
+     · no gate row / task absent from `task-list` (reset, pruned) → create a NEW task
+       whose spec embeds the human's ledger-recorded resolution verbatim; no resolution
+       recorded → the question parks again on the new task.
+     Never treat a ledger line alone as a resolved runtime gate.
 5. End with a run-footer: counts (tasks completed/failed/parked), reportPaths, and the
    next action if any.
 

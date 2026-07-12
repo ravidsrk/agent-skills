@@ -71,10 +71,14 @@ id ↔ slice table IS the run scope `run-blackbox` will need.
 - **Runtime coordinator** (hands-off): `orca orchestration run --worktree <selector>
   --max-concurrent <N>` — auto-provisions workers, dispatches the frontier, warns on
   stalls (it does not self-heal: pair `fleet-doctor`). One active run only; `run-stop`
-  before starting another. There is no run-status RPC — `run-blackbox` STATUS is the
-  dashboard. Base drift >20 commits skips dispatch silently: sync the worktree's base
-  before waves, and add `allow-stale-base: true` to a task spec only with a written
-  reason in the ledger.
+  before starting another. **Scope hazard — check before launch:** the coordinator loop
+  dispatches READY tasks from the runtime-GLOBAL table, not just yours. Precondition:
+  `task-list --json` shows no foreign pending/ready/dispatched tasks (only this DAG's
+  ids from the ledger table). Foreign active tasks present → use the manual wave loop
+  below, which dispatches only your ids. There is no run-status RPC — `run-blackbox`
+  STATUS is the dashboard. Base drift >20 commits skips dispatch silently: sync the
+  worktree's base before waves, and add `allow-stale-base: true` to a task spec only
+  with a written reason in the ledger.
 - **Manual wave loop** (the pack's fleets): dispatch ready tasks yourself via
   `scripts/spawn_worker.sh`, wait on `check --wait`, sequence merges via `merge-train`.
   Pick this when you need per-wave human gates or merge-chain choreography the runtime

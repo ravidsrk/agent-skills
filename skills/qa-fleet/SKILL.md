@@ -66,6 +66,9 @@ human gate: accept residual risk
 - Evidence per finding, no exceptions: `screenshot` (before/after), `console --errors`,
   `network` for failed requests, saved under the axis reportPath. A bug without a repro
   path + screenshot is a rumor.
+- Page lifecycle: at ORIENT the coordinator `tab create`s one page per axis, records
+  page id → axis in the ledger, and hands each worker ITS id; at wind-down it closes the
+  tabs it created (leftover tabs leak state into the next run).
 - Waits are explicit: `wait --text/--url/--selector/--load networkidle` — never sleep-and-hope.
 - Re-verify after fixes baseline-relative: capture the pre-fix state, then require the
   improvement to hold on 2 CONSECUTIVE checks (single-pass green after a fix is how

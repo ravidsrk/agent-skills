@@ -57,6 +57,10 @@ Escalate if daemon unreachable — do not fake device results.
 - Permissions/camera-injection state persists on the simulator between tasks: reset to a
   declared baseline at task start (`permissions`, `camera`), or findings bleed across
   axes.
+- Lifecycle per lane: `orca emulator attach` at task start; boot/attach failure = the
+  TASK fails with the error captured (never silently fall back to another simulator —
+  that invalidates the axis's device claim); at wind-down `orca emulator kill` what you
+  attached and record it in the ledger.
 
 ## Related
 `qa-fleet` (web), `review-prod-fleet`.

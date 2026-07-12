@@ -45,6 +45,12 @@ auto-fixable changes as part of reviewing), which cannot honor this fleet's repo
 contract. Want a fix-capable review pass? That's `gstack-ship-fleet` (via `/ship`'s built-in
 review army) or an explicit fix-budget run — not this skill.
 
+## Optional pre-step — fleet-memory gating
+If `fleet-memory` is loaded, apply its specialist gating BEFORE task-create: an axis
+with 0 findings across its last 10+ dispatches (per-dispatch stats lines) is gated off
+for this run with a ledger line; security/authz and data-migration are NEVER_GATE and
+always run. After the run, append one stats line per dispatched axis.
+
 ## Process
 1. Pin fixed point / PR
 2. Parallel axis workers → reportPaths (workers are `PROFILE=ro`; report-only)

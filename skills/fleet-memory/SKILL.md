@@ -40,8 +40,10 @@ gstack's learnings/retro/specialist-stats design, adapted to Orca fleets.
 ```
 
 `status`: `active` | `superseded:<newer-key>` | `retired:<reason>`. Never edit lines;
-append the superseding line. `docs/fleet-memory/specialist-stats.jsonl` holds one line
-per review dispatch: `{"specialist": "...", "dispatches": n, "findings": n, "date": ...}`.
+append the superseding line. `docs/fleet-memory/specialist-stats.jsonl` holds ONE LINE
+PER REVIEW DISPATCH — `{"specialist": "authz", "run": "<ledger-slug>", "date":
+"2026-07-12", "findings": 2}` — so "last 10 dispatches" is deterministically the last
+10 lines for that specialist, no cumulative counters to unpick.
 
 ## Write — at REFLECT, not in the heat
 
@@ -78,8 +80,13 @@ contradicting → force the supersede decision now, not at 2 a.m. mid-run.
 
 ## Adaptive review gating (stats, not vibes)
 
-After each review fleet run, append specialist stats. Gating rule, checked at fleet
-start:
+**Who executes this:** the COORDINATOR of a review fleet (`review-matrix`,
+`review-prod-fleet`) that has THIS skill loaded — it checks the stats before
+`task-create`, drops a gated axis's task, and writes the ledger line. The review skills
+name this as their optional pre-step; without fleet-memory loaded, nothing gates.
+
+After each review fleet run, append the per-dispatch stats lines. Gating rule, checked
+at fleet start:
 
 - A specialist with **0 findings across its last 10+ dispatches** → gate OFF for this
   run (ledger line: `gated: <specialist>, 0/10+`), freeing its lane.

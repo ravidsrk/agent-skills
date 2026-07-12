@@ -41,14 +41,17 @@ For judging something that already exists: a finding, a diff, a design doc, a pl
              required reply format:
              "REPLY on this thread with: VOTE=<A|B|abstain> · CONFIDENCE=<1-5> ·
               one-paragraph rationale. Vote to REFUTE unless the evidence convinces you."
-2. CAST    — orca orchestration send --to @idle --type decision_gate \
-               --subject "quorum: <question>" --body "<ballot>"
-             (or --to @claude AND --to @codex as two sends for a forced cross-model
-             panel; record how many recipients each fan-out reached — that is your
-             denominator. Zero recipients throws: spawn idle voters first.)
-3. COLLECT — the fan-out shares a thread_id: poll `inbox --full --json` + pm.py and
-             match replies by thread. Deadline, not forever: one re-nudge on the thread
-             at T/2, close the poll at T. Late votes are noted, not counted.
+2. CAST    — mint a QUORUM-ID (QID, e.g. q-<date>-<slug>) and put it in the subject:
+             orca orchestration send --to @idle --type decision_gate \
+               --subject "quorum <QID>: <question>" --body "<ballot — voters MUST echo <QID> in their reply>"
+             A cross-model panel (--to @claude AND --to @codex) is TWO sends and
+             therefore TWO thread_ids — the QID is what unifies them. Sum the recipients
+             across all fan-outs: that is your denominator. Zero recipients on a fan-out
+             throws: spawn idle voters first.
+3. COLLECT — poll `inbox --full --json` + pm.py; a vote counts iff it is a reply on one
+             of THIS quorum's threads AND echoes the QID (belt and braces — replies
+             stay per-thread, the QID spans them). Deadline, not forever: one re-nudge
+             per thread at T/2, close the poll at T. Late votes are noted, not counted.
 4. REDUCE  — mechanically, no re-judging:
              | voter | model | vote | confidence | one-line rationale |
              Quorum rule declared UP FRONT (default: majority of votes cast, minimum 2
@@ -70,8 +73,9 @@ deliverable (implementation, RCA, design), then a VOTE round judges the candidat
 2. dispatch each via scripts/spawn_worker.sh; collect worker_done + reportPaths.
 3. VOTE mode (above) on the candidates, voters ≠ authors (a juror never votes on its
    own candidate — check handles).
-4. Human picks from the consensus table when candidates genuinely differ (taste);
-   gate-steward can auto-pick only when votes are unanimous AND the action is reversible.
+4. The winner pick is ALWAYS a human gate (matching `model-jury`): jury candidates are
+   code that will merge — consequential by definition. The consensus table informs the
+   human; the steward never auto-picks a jury winner, unanimous or not.
 ```
 
 Cost warning up front: JURY = N× the work + a vote round. Reach for it on decisions

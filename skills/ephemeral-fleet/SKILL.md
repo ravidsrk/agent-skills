@@ -61,9 +61,13 @@ skill composed the two.
              is permitted HERE with ORCA_COORD_ALLOW_DANGER=1 — record the sanction in
              the ledger: "danger sanctioned: ephemeral sandbox <id>, destroyed after".
 4. HARVEST — worker_done carries reportPath/filesModified as usual, but the DISK IS
-             MORTAL: anything worth keeping leaves via git push (to the integration
-             BASE) or an explicit artifact copy BEFORE teardown. The completion contract
-             below makes this non-optional.
+             MORTAL: anything worth keeping leaves via git push BEFORE teardown — to the
+             lane's own WORK BRANCH (`<maintainer>/lane-<n>`), NEVER directly to the
+             integration BASE. Sandbox work enters BASE through the normal pipeline
+             (PR + review evidence + `merge-train`), same as any worker; a sandbox is an
+             isolation boundary, not a review bypass. Non-git artifacts copy out
+             explicitly with paths recorded. The completion contract makes this
+             non-optional.
 5. DESTROY — the recipe's destroy path, per sandbox, as soon as its lane converges.
              Suspend/resume only for deliberate multi-day lanes with a written reason.
              Verify destruction (provider list) — a forgotten sandbox is a standing
@@ -82,7 +86,9 @@ of what the worker said.
 ## Rules
 
 - Danger profile: sanctioned ONLY inside ephemeral sandboxes, recorded per-lane in the
-  ledger. On your own machine guard-policy still says never.
+  ledger. On your own machine guard-policy still says never. While guard-policy is
+  ACTIVE for the run, even sandbox danger needs an explicit human grant recorded in the
+  ledger (guard-policy precedence wins over this skill's standing sanction).
 - Secrets: the sandbox gets the auth SNAPSHOT the recipe baked — never inject live
   credentials at dispatch time; a task spec containing a secret is a spec bug.
 - Anything not pushed before DESTROY never happened — schedule harvest before teardown,

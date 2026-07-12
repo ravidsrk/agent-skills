@@ -16,12 +16,13 @@ UNSTABLE PR and **silently no-ops** (exit is masked if piped) — and the worker
 success anyway.
 
 **Fix.** Once (a) all *real* CI gates are `SUCCESS`, (b) the bot **review** check has concluded
-(`NEUTRAL`/`SUCCESS`), and (c) all findings are reconciled → **merge with `--admin`** to bypass only the
+(`NEUTRAL`/`SUCCESS`), (c) all findings are reconciled, and (d) the run's **merge-trap grant** is recorded
+(a human-approved ledger gate D8, asked ONCE per run) → **merge with `--admin`** to bypass only the
 hung non-required check: `gh pr merge <n> --repo <r> --merge --admin`. Then **verify**:
 `gh pr view <n> --json state` == `MERGED` AND `git cat-file -e origin/<base>:<a-real-file-from-this-PR>`.
 
-**Rule.** VERIFY EVERY MERGE. Never advance a task's `MERGED=t` on a worker's word. Bake `--admin` +
-verify into every integrator task spec.
+**Rule.** VERIFY EVERY MERGE. Never advance a task's `MERGED=t` on a worker's word. Bake human-granted
+`--admin` + verify into every integrator task spec; never `--admin` without the recorded D8 grant.
 
 **Polling addendum.** When you wait for a PR to go green, wait on the REAL gates **by name** and **exclude
 the perpetual bot check** from your condition. "All checks green" is unreachable while it hangs, and
@@ -31,19 +32,22 @@ per-check state of the required gates, not the aggregate exit code or `mergeStat
 `UNSTABLE` the whole time):
 `gh pr checks <n> --json name,state,bucket` → merge once every check whose `name` ≠ the bot is terminal + green.
 
-## 2. Worker decision-gates: use terminal-send, not the reply channel
+## 2. Worker decision-gates: reply to the CURRENT id, then unblock via terminal-send
 
 **Symptom.** A worker `ask`s a blocking question (decision_gate). You answer via
 `orca orchestration reply --id <msg>`. The worker re-emits the *same* question minutes later (observed 3×).
 
-**Root cause.** The reply doesn't reach the worker's blocking `ask` loop in this environment (it polls, or
-the id binding is off).
+**Root cause.** A blocking `ask` times out (default ~10 min) and RE-ASKS under a **new msg id** — a reply
+to the old id no longer reaches any waiting `ask`.
 
-**Fix.** Deliver the decision straight into the worker's terminal:
+**Fix.** Answer the **current** re-ask id on the durable channel first:
+`orca orchestration reply --id <CURRENT msg id> --body "DECISION = <option> — proceed now, do not ask again"`.
+Then, if the worker's `ask` has already expired and it idles at the prompt, deliver into the terminal too:
 `orca terminal send --terminal <handle> --text "DECISION = <option> ... proceed now, do not ask again" --enter`.
-This unblocked every gate. Keep the reply as a log echo if you like, but don't rely on it.
 
-**Rule.** Answer worker gates via terminal-send. Make decisions crisp and final ("do not ask again").
+**Rule.** The `reply` records the decision (thread, provenance, audit); terminal-send is
+delivery-of-last-resort for an expired `ask`, never the only channel. Answer the LATEST re-ask id,
+crisp and final.
 
 ## 3. Worktree base is the LOCAL ref — sync before each wave
 
@@ -225,7 +229,8 @@ your reply never reached its blocking `ask`. Answering the *old* id does nothing
 --id <current>` **and** `orca terminal send --terminal <handle> --text "DECISION = … proceed now, do not
 ask again" --enter`. Phrase it as final.
 
-**Rule.** Always answer the latest re-ask id, via terminal-send AND reply, crisp and final.
+**Rule.** Always answer the latest re-ask id: the `reply` records the decision, terminal-send unblocks
+an expired `ask`. Crisp and final.
 
 ## 18. NUL-byte / binary source files (recurring builder failure)
 

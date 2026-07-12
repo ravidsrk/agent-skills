@@ -50,10 +50,12 @@ the env-parity rule.
    coordinator dispatches a fix round to the SAME branch (≤3 rounds, then BLOCKED).
 3. **BOT RECONCILE** (see gotcha #1, #6): bounded poll for the bot's review; normalize/supersede any
    autofix commits; ingest comments as VALID(fix)/FALSE-POSITIVE(dismiss-with-reason). If a required check
-   hangs, use `--admin` once real gates are green + review concluded.
+   hangs, use `--admin` once real gates are green + review concluded + the run's human-approved
+   merge-trap grant (ledger D8) is recorded.
 4. **MERGE** conflict-aware, commits preserved: check mergeability; if conflicts, `git fetch; git rebase
-   origin/<BASE>`, resolve as a UNION preserving both intents, re-run gates, force-push. Then
-   `gh pr merge <n> --merge --admin` (never `--squash`). Delete branch (`git push origin --delete` if the
+   origin/<BASE>`, resolve as a UNION preserving both intents, re-run gates, force-push with
+   `--force-with-lease`. Then `gh pr merge <n> --merge` — add `--admin` only when the merge-trap check
+   hangs AND the D8 grant is recorded (never `--squash`). Delete branch (`git push origin --delete` if the
    `--delete-branch` flag trips on the base worktree). **VERIFY `state=MERGED` + file on base.**
 5. **WT_CLEAN** — after verified merge + branch deletion, remove the task's worktree
    (`orca worktree rm --worktree id:<WT>`), which tears down its child terminals. Guard: never remove the
@@ -93,10 +95,11 @@ coordinator's job is to *sequence the chains*, not to widen them.
 ## Integrators auto-merge — the coordinator processes `worker_done`, then verifies
 
 An integrator task's terminal state IS the merge: after its rebase + bot-reconcile + re-CI it runs the
-`--admin` merge itself and reports `worker_done`. So the coordinator's merge step is mostly **verify, not
+merge itself (`--admin` only under the recorded D8 grant when the trap check hangs) and reports
+`worker_done`. So the coordinator's merge step is mostly **verify, not
 merge**: on each integrator `worker_done`, confirm `state=MERGED` **+ `baseRefName==<BASE>` +
 file-on-base** (gotchas #1, #13), then advance the gates and clean the worktree. Reach for a
-coordinator-run `--admin` merge only for a **confirmed straggler** (an integrator stuck on the merge-trap
+coordinator-run `--admin` merge (still under the D8 grant) only for a **confirmed straggler** (an integrator stuck on the merge-trap
 past its cycle) or a verified docs/test-only PR on the critical path — and verify it the same way after
 (gotcha #16). Don't race an integrator that's mid-merge.
 
@@ -134,7 +137,8 @@ when tasks are interdependent, touch hot mount-point files, or each needs its ow
 Block on `orca orchestration check --wait --types worker_done,escalation,decision_gate --timeout-ms <n>`,
 looping N times for N concurrent finishers, dispatching newly-ready work after each. A timeout/`{count:0}`
 is a checkpoint — re-issue. If the harness pushes worker messages to you directly, you can skip explicit
-waits and just act on each message. Answer `decision_gate` via **terminal-send** (gotcha #2), then keep
+waits and just act on each message. Answer `decision_gate` per gotcha #2 — `reply --id <CURRENT>` records
+the decision, terminal-send unblocks an expired `ask` — then keep
 going.
 
 ## First-merge verification

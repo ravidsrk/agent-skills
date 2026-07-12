@@ -41,6 +41,9 @@ INPUT: production/staging URL + success criteria
 - Observe and report by default.
 - Auto-mitigation only if user pre-authorized a runbook step in the TASK.
 - Pair after `gstack-ship-fleet` land phase.
+- Launch profile: canary workers `PROFILE=ro` + preflight `--mode readonly`; the COORDINATOR
+  files the incident draft issue, not the workers. `PROFILE=rw` only for a pre-authorized
+  runbook mitigation task.
 
 ## Related
 `gstack-ship-fleet`, `benchmark-fleet`.

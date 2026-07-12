@@ -71,8 +71,10 @@ under constraint: <P>. Output:
 5) why this is NOT the same as the other poles
 Write to design/<slug>-<P>.md. Do NOT implement production code. worker_done with reportPath.
 "
-worktree create --name design-<P> --no-parent
+worktree create --name design-<P> --no-parent --base-branch <BASE>
 dispatch --inject
+# --base-branch pins the Git base; --no-parent only affects Orca lineage.
+# Without it a candidate forks from the default branch and the comparison is invalid.
 ```
 
 Cap concurrent designers at 3–5. Enforce **radical difference** in the prompt (list the other poles and ban their signatures).

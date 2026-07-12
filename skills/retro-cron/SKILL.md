@@ -39,6 +39,9 @@ one batch invocation:
 
 No code changes. Safe for scheduled automations (`orca automations`).
 
+**Launch profile:** `PROFILE=rw` (the worker writes only `docs/retros/`) — never `danger`;
+preflight with `--mode readonly` (this fleet opens no PRs).
+
 ## Related
 `health-fleet`, `landing-report` (gstack) as inputs.
 

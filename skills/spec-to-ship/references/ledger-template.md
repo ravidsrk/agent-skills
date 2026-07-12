@@ -17,8 +17,8 @@ Lifecycle: THINK ✓ → PLAN ✓ → PLAN_FROZEN ✓ → **BUILDING** → TESTI
 - BUGBOT: on/off (if on, integrator runs wait→ingest→reconcile every PR + re-push)
 
 ## Decisions (rationale, one line each) — see DECISIONS.md
-- D1 stack … / D2 worker config … / D6 sync-local-base-before-wave … / D7 answer-gates-via-terminal-send
-- D8 merge-trap: merge via --admin once gates green + review concluded; VERIFY state=MERGED
+- D1 stack … / D2 worker config … / D6 sync-local-base-before-wave … / D7 gates: reply CURRENT id (record), terminal-send to unblock expired ask
+- D8 merge-trap: HUMAN GRANT recorded here BEFORE any --admin; then --admin once gates green + review concluded; VERIFY state=MERGED
 
 ## Task ledger  (boolean gates advance a task only when TRUE in this file)
 | Task | deps | lane | mig# | req IDs | WT | flags | PR# | notes |

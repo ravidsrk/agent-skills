@@ -35,6 +35,31 @@ under `skills/<name>/scripts/` for worktree-local paths — edit here, then run
 - **`orchestration` skill from the Orca CLI** (command grammar)
 - Worker CLIs as needed (`codex`, `claude`)
 
+## Decision-gate grammar (ask / reply)
+
+Worker side — blocking question to the coordinator (NEVER AskUserQuestion, which hangs a
+headless session):
+
+```
+orca orchestration ask --to <coordinator-handle> \
+  --question "Migration collides with 0007 — renumber mine (A) or rebase (B)?" \
+  --options "A,B" --timeout-ms 570000
+# default timeout 600000 ms; a timed-out ask RE-ASKS under a NEW message id
+```
+
+Coordinator side — the durable answer, always to the CURRENT re-ask id:
+
+```
+orca orchestration reply --id <current-msg-id> \
+  --body "DECISION = A — proceed now, do not ask again"
+# only if the worker's ask already expired and it idles at the prompt, ALSO deliver:
+orca terminal send --terminal <worker-handle> \
+  --text "DECISION = A — proceed now, do not ask again" --enter
+```
+
+The `reply` records the decision (thread, provenance); terminal-send is delivery-of-last-resort
+for an expired `ask`, never the only channel.
+
 ## Learnings (operational, hard-won)
 
 - **L1 — `dispatch --inject` pastes but does not SUBMIT on claude workers.** codex terminals

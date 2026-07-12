@@ -36,7 +36,11 @@ INPUT: URL(s) + baseline artifact (optional)
   → report + optional tickets for regressions > threshold
 ```
 
-Read-only. No "optimize" without separate implement tasks.
+Read-only. No performance-fix work without separate implement tasks.
+
+**Launch profile:** spawn workers with `PROFILE=ro` (`scripts/spawn_worker.sh` — sandboxed/plan-mode
+agents, no bypass flags) and preflight with `--mode readonly`. A measurement fleet never needs
+write-capable workers.
 
 ## Related
 `health-fleet`, `qa-fleet`, `canary-fleet`.

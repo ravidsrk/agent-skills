@@ -43,7 +43,9 @@ SURVEY (improve-codebase-architecture → HTML/report of deepenings)
   → HUMAN PICK 1–3 deepenings (gate)
   → optional DESIGN (design-it-thrice per pick)
   → ALIGN (grill-with-docs on chosen deepening)
-  → TICKETS → IMPLEMENT FLEET (matt-ship phases from tickets)
+  → TO-SPEC (Matt /to-spec — freeze the spec; the canonical fixed point that ticket
+    acceptance criteria and the later Spec review axis are judged against)
+  → TICKETS (/to-tickets) → IMPLEMENT FLEET (matt-ship phases from tickets)
   → REVIEW + integrate
 ```
 

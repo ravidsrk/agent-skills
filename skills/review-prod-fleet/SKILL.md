@@ -39,14 +39,18 @@ You are the **COORDINATOR**. Complements `review-matrix` (Matt Standards/Spec).
 | AuthZ | IDOR, role, tenant |
 | LLM/tool trust | prompt injection, unsafe tool args, secret egress |
 | Conditional side effects | flags, racey webhooks, partial failure |
-| gstack /review umbrella | optional single worker running full skill |
+
+Do NOT dispatch gstack `/review` from this fleet: upstream `/review` is fix-first (it applies
+auto-fixable changes as part of reviewing), which cannot honor this fleet's report-only
+contract. Want a fix-capable review pass? That's `gstack-ship-fleet` (via `/ship`'s built-in
+review army) or an explicit fix-budget run — not this skill.
 
 ## Process
 1. Pin fixed point / PR
-2. Parallel axis workers → reportPaths
-3. Optional **codex second-opinion** worker (gstack /codex challenge)
+2. Parallel axis workers → reportPaths (workers are `PROFILE=ro`; report-only)
+3. Optional **codex second-opinion** worker (gstack /codex challenge — read-only mode)
 4. Aggregate; do not fix unless user asked
-5. Optional fix tasks for P0
+5. Optional fix tasks for P0 (separate `PROFILE=rw` dispatches, never the review workers)
 
 ## Related
 `review-matrix`, `gstack-ship-fleet`, `cso-fleet`.

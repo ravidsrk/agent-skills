@@ -57,9 +57,11 @@ For judging something that already exists: a finding, a diff, a design doc, a pl
              Quorum rule declared UP FRONT (default: majority of votes cast, minimum 2
              votes, abstentions excluded). Refute-framing means ties/short quorum = NOT
              confirmed.
-5. ROUTE   — unanimous → act on it. Split → this is a TASTE gate: hand the table to
-             gate-steward (steward recommendation + pending-veto brief), or to the human
-             when the underlying action is one-way. Never average a split into a "2.5".
+5. ROUTE   — unanimous → act on it (EXCEPTION: a JURY winner pick goes to the human
+             regardless of unanimity — Mode 2 step 4). Split → this is a TASTE gate:
+             hand the table to gate-steward (steward recommendation + pending-veto
+             brief), or to the human when the underlying action is one-way. Never
+             average a split into a "2.5".
 ```
 
 ## Mode 2 — JURY (redundant independent execution; expensive, use deliberately)
@@ -73,8 +75,9 @@ deliverable (implementation, RCA, design), then a VOTE round judges the candidat
 2. dispatch each via scripts/spawn_worker.sh; collect worker_done + reportPaths.
 3. VOTE mode (above) on the candidates, voters ≠ authors (a juror never votes on its
    own candidate — check handles).
-4. The winner pick is ALWAYS a human gate (matching `model-jury`): jury candidates are
-   code that will merge — consequential by definition. The consensus table informs the
+4. The winner pick is ALWAYS a human gate (matching `model-jury`): adopting a jury
+   candidate — an implementation to merge, an RCA to act on, a design to build —
+   commits the run to it, consequential by definition. The consensus table informs the
    human; the steward never auto-picks a jury winner, unanimous or not.
 ```
 

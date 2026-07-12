@@ -22,7 +22,7 @@
 
 # What's inside
 
-46 skills, organized by what they do — not by SDLC phase. These are **discrete capabilities** an agent reaches for when the task fits, not lifecycle steps that fire in sequence.
+50 skills, organized by what they do — not by SDLC phase. These are **discrete capabilities** an agent reaches for when the task fits, not lifecycle steps that fire in sequence.
 
 # 🌐 Infrastructure
 
@@ -62,12 +62,22 @@ Orca runtime + orchestration skill   ← HARD BASE (from Orca CLI; not this repo
 
 All require **Orca + `orchestration` skill (Orca CLI)**. Matt×Orca skills also need [mattpocock/skills](https://github.com/mattpocock/skills). Shared helpers: [`scripts/orca-coord/`](scripts/orca-coord/).
 
-### Product / audit peers
+### Autonomous missions (goal in → finished outcome out)
 
-| Skill | What it does |
+Give it a goal, come back to an evidence-based end state. Each is a deep mission that loops
+until done: discovery → PR-per-finding on an integration branch → build-blind review →
+merge-train → verify → repeat-until-dry. Human gates only at scope freeze, one-way
+decisions, and BASE→default promotion. Worker methodology is drawn from one upstream pack
+per worker (Matt / gstack / Addy — never two routers in a single worker TASK).
+
+| Mission | End state (definition of done) |
 |---|---|
-| 🚢 **[spec-to-ship](skills/spec-to-ship/)** | Frozen spec → shipped product (PR-per-task). **Not** built on Matt skills. |
-| 🧹 **[clean-sweep](skills/clean-sweep/)** | Close every real finding (audit). Peer of spec-to-ship; **not** on Matt. |
+| 🚢 **[spec-to-ship](skills/spec-to-ship/)** | Frozen spec → shipped product (PR-per-task). Whole-product. |
+| 🧹 **[clean-sweep](skills/clean-sweep/)** | Every real audit finding closed. Peer of spec-to-ship. |
+| 🗂️ **[backlog-zero](skills/backlog-zero/)** | The tracker is empty or every survivor is parked with a reason |
+| 🛡️ **[red-team-harden](skills/red-team-harden/)** | A fresh full audit finds zero unrefuted P0/P1 (fix, then re-attack) |
+| 🎯 **[flake-zero](skills/flake-zero/)** | The suite passes N consecutive green runs, no retry-wrappers |
+| 🏭 **[feature-factory](skills/feature-factory/)** | One grill in → a shipped feature behind the promotion gate |
 
 ### Fleet ops (runtime-native autonomy layer)
 
@@ -141,6 +151,7 @@ Methodology from [garrytan/gstack](https://github.com/garrytan/gstack); **runtim
 |---|---|---|
 | **A — Capability** (any agent harness) | `cloudflare-dns`, `namecheap-dns`, `fly-to-aws-migration`, `deep-research`, `terminal-poster` | Env keys only (see below) |
 | **B — Orca multi-agent** | `clean-sweep`, `spec-to-ship` | Orca + `orchestration` (Orca CLI). Peers; neither depends on the other. |
+| **F — Autonomous missions** | `backlog-zero`, `red-team-harden`, `flake-zero`, `feature-factory` | Orca + `orchestration` + ONE worker pack per mission (mattpocock/skills, garrytan/gstack, or [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills)); compose in-pack fleet-ops. |
 | **E — Fleet ops** | `standing-fleet`, `fleet-doctor`, `run-blackbox`, `gate-steward`, `merge-train`, `quorum`, `spec-decompose`, `ephemeral-fleet`, `fleet-memory` | Orca + `orchestration` (Orca CLI) only (`ephemeral-fleet` also needs `orca-per-workspace-env` recipes). Compose with any fleet. |
 | **D — Gstack × Orca** | `gstack-ship-fleet`, `qa-fleet`, `cso-fleet`, `autoplan-fleet`, `review-prod-fleet`, `health-fleet`, `docs-fleet`, `investigate-fleet`, `canary-fleet`, `benchmark-fleet`, `retro-cron`, `ios-qa-fleet`, `office-hours-async`, `design-shotgun-fleet`, `spec-issue-fleet`, `full-sprint-fleet`, `guard-policy`, `headless-mode` | Orca + `orchestration` + **garrytan/gstack** for worker playbooks. `investigate-fleet`, `spec-issue-fleet`, `full-sprint-fleet` ALSO need **mattpocock/skills** (Track C). |
 | **C — Matt × Orca** | `matt-ship`, `wayfinder-fleet`, `triage-to-fleet`, `ready-agent-drain`, `review-matrix`, `adversarial-ticket`, `diagnose-swarm`, `architecture-sprint`, `design-it-thrice`, `research-then-grill`, `model-jury`, `content-wayfinder` | Orca + `orchestration` + **mattpocock/skills** for worker playbooks. |
@@ -164,6 +175,11 @@ ln -sfn "$(pwd)/skills/deep-research" "$HOME/.claude/skills/deep-research"
 
 # Track B — Orca peers (no Matt dependency):
 for name in clean-sweep spec-to-ship; do
+  ln -sfn "$(pwd)/skills/$name" "$HOME/.claude/skills/$name"
+done
+
+# Track F — Autonomous missions (install ONE worker pack per mission; never two routers in one worker):
+for name in backlog-zero red-team-harden flake-zero feature-factory; do
   ln -sfn "$(pwd)/skills/$name" "$HOME/.claude/skills/$name"
 done
 
@@ -426,7 +442,7 @@ Output:
 ✅ namecheap-dns
 ✅ terminal-poster
 
-🟢 All 46 skills valid against agentskills.io spec.
+🟢 All 50 skills valid against agentskills.io spec.
 ```
 
 The validator enforces the spec rules (frontmatter shape, name/directory matching, description length). Non-zero exit code if any skill fails — perfect for CI.

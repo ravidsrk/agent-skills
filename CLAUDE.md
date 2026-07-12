@@ -5,7 +5,8 @@ Production-grade skills for AI agents — DNS migration, AWS migration, deep res
 # Project Structure
 
 ```
-skills/        → 46 skills: 5 capability + 30 Orca orchestration/fleet + 2 autonomous peers
+skills/        → 50 skills: 5 capability + 30 Orca orchestration/fleet + 6 autonomous missions
+                 (clean-sweep, spec-to-ship, backlog-zero, red-team-harden, flake-zero, feature-factory)
                  + 9 fleet-ops (standing/doctor/blackbox/steward/train/quorum/decompose/ephemeral/memory)
                  (each with SKILL.md + README.md; scripts/ references/ templates/ assets/ as needed)
 docs/          → Per-runtime setup guides + skill-anatomy spec + review/remediation logs

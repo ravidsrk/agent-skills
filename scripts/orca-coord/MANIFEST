@@ -42,3 +42,7 @@ quorum
 spec-decompose
 ephemeral-fleet
 fleet-memory
+backlog-zero
+red-team-harden
+flake-zero
+feature-factory

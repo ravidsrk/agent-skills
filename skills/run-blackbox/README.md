@@ -1,4 +1,4 @@
-<img src="assets/banner.jpg" alt="Run-Blackbox — Status, resume, and audit from the runtime's persisted provenance" width="100%">
+<!-- Banner pending OPENROUTER_API_KEY: bash skills/terminal-poster/scripts/generate.sh skills/run-blackbox/assets/banner-prompt.txt skills/run-blackbox/assets/banner.jpg -->
 
 # Run-Blackbox
 

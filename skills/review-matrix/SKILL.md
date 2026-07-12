@@ -59,10 +59,12 @@ run Matt `/code-review` ONCE in a single fresh reviewer terminal and consume bot
 report.
 
 ## Optional pre-step — fleet-memory gating
-If `fleet-memory` is loaded, apply its specialist gating BEFORE task-create: an axis
-with 0 findings across its last 10+ dispatches (per-dispatch stats lines) is gated off
-for this run with a ledger line; security/authz and data-migration are NEVER_GATE and
-always run. After the run, append one stats line per dispatched axis.
+If `fleet-memory` is loaded, apply its specialist gating BEFORE task-create. Use the
+canonical specialist ids (`standards`, `spec`, `security-lite`, `test-adequacy`) — an
+axis with 0 findings across its last 10+ dispatches (per-dispatch stats lines) is gated
+off for this run with a ledger line. **NEVER_GATE** (always run): `security-lite` (plus
+`authz` / `sql` when those prod axes are also in scope). After the run, append one stats
+line per dispatched axis using those exact ids.
 
 ## Process
 

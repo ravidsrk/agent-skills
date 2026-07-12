@@ -1,4 +1,4 @@
-<img src="assets/banner.jpg" alt="Fleet-Memory — Compounding learnings + adaptive review gating across runs" width="100%">
+<!-- Banner pending OPENROUTER_API_KEY: bash skills/terminal-poster/scripts/generate.sh skills/fleet-memory/assets/banner-prompt.txt skills/fleet-memory/assets/banner.jpg -->
 
 # Fleet-Memory
 

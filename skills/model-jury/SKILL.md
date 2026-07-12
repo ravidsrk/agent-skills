@@ -50,8 +50,14 @@ consensus table and denominator rules live there.
    - `worktree create --name jury-<ticket>-<M> --no-parent --base-branch <BASE>` (pin the Git base — `--no-parent` only affects Orca lineage; without `--base-branch` a juror forks from the default branch and the comparison is invalid)
    - implement+tdd worker with **no access** to other jury worktrees
 3. For each implementation: `review-matrix` axes (or dual code-review).
-4. Coordinator comparison table: correctness, simplicity, test quality, standards.
-5. `gate-create`: pick A / B / hybrid (human specifies merge rules).
+4. **VOTE via `quorum` Mode 1** on the candidates: mint a QID, paste paths + acceptance
+   criteria into a self-contained ballot, cast to voters whose handles are **not**
+   authors of any candidate, collect with denominator honesty, reduce to the consensus
+   table in the quorum ledger. Do not invent a parallel "coordinator comparison table"
+   that bypasses quorum.
+5. **Human gate picks the winner** (ALWAYS — quorum Mode 2 step 4 / ROUTE exception).
+   The consensus table informs; the steward never auto-picks, unanimous or not. Hybrid
+   only on explicit human rule — see `references/merge-rules.md`.
 6. Integrate winner onto BASE; archive losers (keep branches for audit).
 
 ## Rules
@@ -62,6 +68,7 @@ consensus table and denominator rules live there.
 
 ## Related
 
+- `quorum` — protocol home (JURY = Mode 2; VOTE for the pick round)
 - `design-it-thrice` — design only, not full implement
 - `matt-ship` — single-model default path
 

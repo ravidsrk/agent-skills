@@ -50,8 +50,11 @@ For judging something that already exists: a finding, a diff, a design doc, a pl
              throws: spawn idle voters first.
 3. COLLECT — poll `inbox --full --json` + pm.py; a vote counts iff it is a reply on one
              of THIS quorum's threads AND echoes the QID (belt and braces — replies
-             stay per-thread, the QID spans them). Deadline, not forever: one re-nudge
-             per thread at T/2, close the poll at T. Late votes are noted, not counted.
+             stay per-thread, the QID spans them). Deadline, not forever: declare **T**
+             up front in the ledger — default
+             `T = max(20 minutes, N_voters × 10 minutes)`, hard cap **2 hours**.
+             One re-nudge per thread at T/2, close the poll at T. Late votes are noted,
+             not counted.
 4. REDUCE  — mechanically, no re-judging:
              | voter | model | vote | confidence | one-line rationale |
              Quorum rule declared UP FRONT (default: majority of votes cast, minimum 2

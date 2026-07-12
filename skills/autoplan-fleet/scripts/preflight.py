@@ -120,8 +120,12 @@ def main(argv: list[str]) -> int:
     )
     args = parser.parse_args(argv)
 
+    # Usage errors are exit 1 (contract: 0=OK, 1=usage/dependency, 2=invariant).
+    # Do not call parser.error() here — argparse defaults to SystemExit(2), which
+    # would collapse usage into the invariant bucket.
     if args.mode == "write" and not args.base:
-        parser.error("--base is required unless --mode readonly")
+        print("preflight: ERROR: --base is required unless --mode readonly", file=sys.stderr)
+        return 1
 
     errors: list[str] = []
     warnings: list[str] = []

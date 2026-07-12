@@ -1,4 +1,4 @@
-<img src="assets/banner.jpg" alt="Spec-Decompose — Spec → tracer-bullet task DAG for the runtime coordinator" width="100%">
+<!-- Banner pending OPENROUTER_API_KEY: bash skills/terminal-poster/scripts/generate.sh skills/spec-decompose/assets/banner-prompt.txt skills/spec-decompose/assets/banner.jpg -->
 
 # Spec-Decompose
 

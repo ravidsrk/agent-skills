@@ -1,4 +1,4 @@
-<img src="assets/banner.jpg" alt="Quorum — N-voter consensus on Orca group fan-out" width="100%">
+<!-- Banner pending OPENROUTER_API_KEY: bash skills/terminal-poster/scripts/generate.sh skills/quorum/assets/banner-prompt.txt skills/quorum/assets/banner.jpg -->
 
 # Quorum
 
@@ -13,7 +13,7 @@ Requires Orca (runtime + `orchestration` CLI skill); multiple agent CLIs for cro
 
 ## Use
 
-"Is this clean-sweep finding real?" → VOTE mode with refute framing, majority-of-cast quorum, denominator honesty (2-of-7-voted is not 2-of-2). "Implement it three ways and pick" → JURY mode. Unanimous acts; splits become taste gates; nothing gets averaged into a 2.5.
+"Is this clean-sweep finding real?" → VOTE mode with refute framing, majority-of-cast quorum, denominator honesty (2-of-7-voted is not 2-of-2). "Implement it three ways and pick" → JURY mode. Unanimous VOTE may act; splits become taste gates; **JURY winner pick is always human-gated** (even if unanimous). Nothing gets averaged into a 2.5.
 
 ## Structure
 

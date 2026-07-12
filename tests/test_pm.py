@@ -68,6 +68,11 @@ class PmTest(unittest.TestCase):
         self.assertIn("FROM: ? | TYPE: ?", r.stdout)
         self.assertIn("only-subject", r.stdout)
 
+    def test_bare_invocation_exits_usage(self):
+        r = subprocess.run([sys.executable, str(PM)], capture_output=True, text=True)
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("usage: pm.py", r.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()

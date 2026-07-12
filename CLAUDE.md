@@ -7,13 +7,13 @@ Production-grade skills for AI agents — DNS migration, AWS migration, deep res
 ```
 skills/        → 46 skills: 5 capability + 30 Orca orchestration/fleet + 2 autonomous peers
                  + 9 fleet-ops (standing/doctor/blackbox/steward/train/quorum/decompose/ephemeral/memory)
-                 (each with SKILL.md + README.md + scripts/ references/ templates/ assets/)
+                 (each with SKILL.md + README.md; scripts/ references/ templates/ assets/ as needed)
 docs/          → Per-runtime setup guides + skill-anatomy spec + review/remediation logs
 scripts/       → Repo-level helpers (validate-skills.py, sync-orca-coord.py, test-orca-coord.sh)
 scripts/orca-coord/ → CANONICAL shared fleet helpers; skill copies are GENERATED (see MANIFEST)
 tests/         → Behavioral tests for the orca-coord substrate
 assets/        → Banner image, screenshots
-plugin.json    → Claude Code marketplace manifest
+.claude-plugin/plugin.json → Claude Code marketplace manifest
 LICENSE        → MIT
 ```
 

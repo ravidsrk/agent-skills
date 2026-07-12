@@ -61,6 +61,14 @@ When working in this repo:
 | "coordinator died" / resume the run / run status / audit a run | [`run-blackbox`](skills/run-blackbox/SKILL.md) |
 | "too many gates" / auto-decide mechanical / gate policy | [`gate-steward`](skills/gate-steward/SKILL.md) |
 | "merge queue" / PRs racing / serialize merges to BASE | [`merge-train`](skills/merge-train/SKILL.md) |
+| "drain the backlog" / close every issue / backlog zero | [`backlog-zero`](skills/backlog-zero/SKILL.md) |
+| "harden this" / security sweep / red team / close the security loop | [`red-team-harden`](skills/red-team-harden/SKILL.md) |
+| "kill the flaky tests" / deflake / flake zero | [`flake-zero`](skills/flake-zero/SKILL.md) |
+| "build and ship this feature" / feature factory / spec to shipped feature | [`feature-factory`](skills/feature-factory/SKILL.md) |
+| "close the test gap" / cover the critical paths / test debt | [`test-debt-zero`](skills/test-debt-zero/SKILL.md) |
+| "update the dependencies" / upgrade everything / framework migration | [`dep-fresh`](skills/dep-fresh/SKILL.md) |
+| "the docs are out of date" / verify the documentation / doc rot | [`docs-truth`](skills/docs-truth/SKILL.md) |
+| "the app is slow" / perf budget / Core Web Vitals sweep | [`perf-sweep`](skills/perf-sweep/SKILL.md) |
 | "vote on it" / second opinions / consensus / adversarial verify | [`quorum`](skills/quorum/SKILL.md) |
 | "decompose this spec" / build the task DAG / "No tasks found" | [`spec-decompose`](skills/spec-decompose/SKILL.md) |
 | "run it in sandboxes" / disposable workers / untrusted work | [`ephemeral-fleet`](skills/ephemeral-fleet/SKILL.md) |
@@ -196,6 +204,17 @@ the canonical fixed point for ticket acceptance criteria and Spec review. `matt-
 Non-coding exceptions (no spec freeze required): `content-wayfinder` (writing),
 `research-then-grill` (research), `office-hours-async` (decision prep), report-only fleets.
 
+# One worker-playbook router per worker (hard rule)
+
+Autonomous missions draw worker methodology from upstream packs — mattpocock/skills,
+garrytan/gstack, and addyosmani/agent-skills. Each of those ships its OWN router/meta-skill,
+and they fight when co-mounted (clashing command names, competing routing, conflicting TDD
+philosophies — Addy folds REFACTOR into the TDD loop, Matt puts it in review). A worker TASK
+therefore loads exactly ONE pack's playbooks. Cross-pack cherry-picking is fine at the
+mission level (one worker runs Matt triage, another runs Addy security-and-hardening); it is
+never fine inside a single worker. Missions state which pack a worker uses in the dispatched
+TASK.
+
 # Runtime dependency matrix
 
 | Skill (or group)                          | Needs Orca | Needs gstack | Needs Matt skills | Needs in-pack peers |
@@ -207,5 +226,6 @@ Non-coding exceptions (no spec freeze required): `content-wayfinder` (writing),
 | `full-sprint-fleet`                        | yes | yes | yes | composes office-hours-async, autoplan-fleet, matt-ship / wayfinder-fleet / spec-to-ship, review-prod-fleet, review-matrix, qa-fleet, cso-fleet, gstack-ship-fleet, canary-fleet, docs-fleet |
 | Policy (guard-policy, headless-mode)       | yes | yes (hooks / env) | no | applied to other fleets |
 | Peers (clean-sweep, spec-to-ship)          | yes | no | no | none (independent peers) |
+| Autonomous missions (backlog-zero, red-team-harden, flake-zero, feature-factory, test-debt-zero, dep-fresh, docs-truth, perf-sweep) | yes | one pack per worker | one pack per worker | compose in-pack fleet-ops (merge-train, fleet-doctor, gate-steward, run-blackbox, quorum, spec-decompose); worker methodology from Matt / gstack / Addy, ONE router per worker |
 | Fleet ops (standing-fleet, fleet-doctor, run-blackbox, gate-steward, merge-train, quorum, spec-decompose, ephemeral-fleet, fleet-memory) | yes | no | no | compose WITH other fleets at runtime by design (each names its consumers), but run standalone; ephemeral-fleet additionally needs orca-per-workspace-env recipes |
 | Utility (cloudflare-dns, namecheap-dns, fly-to-aws-migration, deep-research, terminal-poster) | no | no | no | none |

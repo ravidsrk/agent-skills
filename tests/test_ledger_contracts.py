@@ -72,14 +72,11 @@ class LedgerContractTest(unittest.TestCase):
         skill = (SKILLS / "fleet-memory" / "SKILL.md").read_text(encoding="utf-8")
         for sid in CANONICAL_SPECIALISTS:
             self.assertIn(f"`{sid}`", skill, f"fleet-memory missing specialist id {sid}")
-        # NEVER_GATE block must name the three insurance ids
-        m = re.search(
-            r"\*\*NEVER_GATE\*\*.*?:\s*`([^`]+)`,\s*`([^`]+)`,\s*`([^`]+)`",
-            skill,
-            flags=re.S,
-        )
-        self.assertIsNotNone(m, "NEVER_GATE triple not found in fleet-memory SKILL.md")
-        found = {m.group(1), m.group(2), m.group(3)}
+        # Collect EVERY backtick id in the NEVER_GATE clause (not a fixed 3-group regex,
+        # which would false-green if the list grows and only the constant is updated).
+        m = re.search(r"\*\*NEVER_GATE\*\*.*?(?:\n-|\n\n)", skill, flags=re.S)
+        self.assertIsNotNone(m, "NEVER_GATE clause not found in fleet-memory SKILL.md")
+        found = set(re.findall(r"`([^`]+)`", m.group(0)))
         self.assertEqual(found, NEVER_GATE)
 
     def test_review_fleets_use_canonical_never_gate_ids(self):

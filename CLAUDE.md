@@ -13,7 +13,7 @@ scripts/       → Repo-level helpers (validate-skills.py, sync-orca-coord.py, t
 scripts/orca-coord/ → CANONICAL shared fleet helpers; skill copies are GENERATED (see MANIFEST)
 tests/         → Behavioral tests for the orca-coord substrate
 assets/        → Banner image, screenshots
-plugin.json    → Claude Code marketplace manifest
+.claude-plugin/plugin.json → Claude Code marketplace manifest
 LICENSE        → MIT
 ```
 

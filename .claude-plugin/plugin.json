@@ -1,7 +1,7 @@
 {
   "name": "agent-skills",
-  "description": "37 production agent skills: infra, research, posters, Orca multi-agent (spec-to-ship, clean-sweep), Matt\u00d7Orca fleets, and Gstack\u00d7Orca autonomous role fleets (qa, cso, autoplan, ship, full-sprint, \u2026). MIT.",
-  "version": "1.3.0",
+  "description": "46 production agent skills: infra, research, posters, Orca multi-agent (spec-to-ship, clean-sweep), Matt×Orca fleets, Gstack×Orca autonomous role fleets (qa, cso, autoplan, ship, full-sprint, …), and the fleet-ops autonomy layer (standing-fleet, fleet-doctor, run-blackbox, gate-steward, merge-train, quorum, spec-decompose, ephemeral-fleet, fleet-memory). MIT.",
+  "version": "1.4.0",
   "author": {
     "name": "Ravindra Kumar",
     "email": "ravindrakumar8088@gmail.com",
@@ -35,6 +35,16 @@
     "qa-fleet",
     "autoplan-fleet",
     "full-sprint-fleet",
-    "cso-fleet"
+    "cso-fleet",
+    "standing-fleet",
+    "fleet-doctor",
+    "run-blackbox",
+    "gate-steward",
+    "merge-train",
+    "quorum",
+    "spec-decompose",
+    "ephemeral-fleet",
+    "fleet-memory",
+    "autonomous-fleets"
   ]
 }

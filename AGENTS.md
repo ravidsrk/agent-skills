@@ -56,6 +56,11 @@ When working in this repo:
 | "retro cron" / scheduled weekly retrospective batch | [`retro-cron`](skills/retro-cron/SKILL.md) |
 | "review prod fleet" / passes-CI-breaks-in-prod hunt | [`review-prod-fleet`](skills/review-prod-fleet/SKILL.md) |
 | "spec issue fleet" / gstack /spec into issue, then implement fleet | [`spec-issue-fleet`](skills/spec-issue-fleet/SKILL.md) |
+| "schedule the fleet" / nightly drain / standing run / cron fleet | [`standing-fleet`](skills/standing-fleet/SKILL.md) |
+| "the fleet stalled" / revive workers / self-healing run | [`fleet-doctor`](skills/fleet-doctor/SKILL.md) |
+| "coordinator died" / resume the run / run status / audit a run | [`run-blackbox`](skills/run-blackbox/SKILL.md) |
+| "too many gates" / auto-decide mechanical / gate policy | [`gate-steward`](skills/gate-steward/SKILL.md) |
+| "merge queue" / PRs racing / serialize merges to BASE | [`merge-train`](skills/merge-train/SKILL.md) |
 
 
 # Execution Model
@@ -198,4 +203,5 @@ Non-coding exceptions (no spec freeze required): `content-wayfinder` (writing),
 | `full-sprint-fleet`                        | yes | yes | yes | composes office-hours-async, autoplan-fleet, matt-ship / wayfinder-fleet / spec-to-ship, review-prod-fleet, review-matrix, qa-fleet, cso-fleet, gstack-ship-fleet, canary-fleet, docs-fleet |
 | Policy (guard-policy, headless-mode)       | yes | yes (hooks / env) | no | applied to other fleets |
 | Peers (clean-sweep, spec-to-ship)          | yes | no | no | none (independent peers) |
+| Fleet ops (standing-fleet, fleet-doctor, run-blackbox, gate-steward, merge-train) | yes | no | no | compose WITH other fleets at runtime by design (each names its consumers), but run standalone |
 | Utility (cloudflare-dns, namecheap-dns, fly-to-aws-migration, deep-research, terminal-poster) | no | no | no | none |

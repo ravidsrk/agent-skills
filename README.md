@@ -69,6 +69,18 @@ All require **Orca + `orchestration` skill (Orca CLI)**. Matt×Orca skills also 
 | 🚢 **[spec-to-ship](skills/spec-to-ship/)** | Frozen spec → shipped product (PR-per-task). **Not** built on Matt skills. |
 | 🧹 **[clean-sweep](skills/clean-sweep/)** | Close every real finding (audit). Peer of spec-to-ship; **not** on Matt. |
 
+### Fleet ops (runtime-native autonomy layer)
+
+Built directly on Orca primitives no other skill exploited — automations, provenance, merge_ready, gates. No gstack or Matt dependency.
+
+| Skill | What it does |
+|---|---|
+| ⏰ **[standing-fleet](skills/standing-fleet/)** | Schedule any fleet on `orca automations`: prechecks skip empty runs, parked gates carry across runs |
+| 🩺 **[fleet-doctor](skills/fleet-doctor/)** | Detect stalled dispatches, respawn fresh terminals, circuit-breaker escalation |
+| 📦 **[run-blackbox](skills/run-blackbox/)** | Status / crash-resume / audit from the runtime's persisted provenance |
+| 🚪 **[gate-steward](skills/gate-steward/)** | Mechanical gates auto-resolved (audited), taste batched, one-way human-only |
+| 🚂 **[merge-train](skills/merge-train/)** | Serialized merge queue on `merge_ready` with reviewed-SHA freshness |
+
 ### Matt × Orca (engineering process on a fleet)
 
 Coding flow (Matt v1.1+): **`/wayfinder` → `/to-spec` → `/to-tickets` → `/implement`** (AFK fleet). Do not use wayfinder as the entire coding path.
@@ -125,6 +137,7 @@ Methodology from [garrytan/gstack](https://github.com/garrytan/gstack); **runtim
 |---|---|---|
 | **A — Capability** (any agent harness) | `cloudflare-dns`, `namecheap-dns`, `fly-to-aws-migration`, `deep-research`, `terminal-poster` | Env keys only (see below) |
 | **B — Orca multi-agent** | `clean-sweep`, `spec-to-ship` | Orca + `orchestration` (Orca CLI). Peers; neither depends on the other. |
+| **E — Fleet ops** | `standing-fleet`, `fleet-doctor`, `run-blackbox`, `gate-steward`, `merge-train` | Orca + `orchestration` (Orca CLI) only. Compose with any fleet. |
 | **D — Gstack × Orca** | `gstack-ship-fleet`, `qa-fleet`, `cso-fleet`, `autoplan-fleet`, `review-prod-fleet`, `health-fleet`, `docs-fleet`, `investigate-fleet`, `canary-fleet`, `benchmark-fleet`, `retro-cron`, `ios-qa-fleet`, `office-hours-async`, `design-shotgun-fleet`, `spec-issue-fleet`, `full-sprint-fleet`, `guard-policy`, `headless-mode` | Orca + `orchestration` + **garrytan/gstack** for worker playbooks. `investigate-fleet`, `spec-issue-fleet`, `full-sprint-fleet` ALSO need **mattpocock/skills** (Track C). |
 | **C — Matt × Orca** | `matt-ship`, `wayfinder-fleet`, `triage-to-fleet`, `ready-agent-drain`, `review-matrix`, `adversarial-ticket`, `diagnose-swarm`, `architecture-sprint`, `design-it-thrice`, `research-then-grill`, `model-jury`, `content-wayfinder` | Orca + `orchestration` + **mattpocock/skills** for worker playbooks. |
 
@@ -147,6 +160,11 @@ ln -sfn "$(pwd)/skills/deep-research" "$HOME/.claude/skills/deep-research"
 
 # Track B — Orca peers (no Matt dependency):
 for name in clean-sweep spec-to-ship; do
+  ln -sfn "$(pwd)/skills/$name" "$HOME/.claude/skills/$name"
+done
+
+# Track E — Fleet ops (Orca only):
+for name in standing-fleet fleet-doctor run-blackbox gate-steward merge-train; do
   ln -sfn "$(pwd)/skills/$name" "$HOME/.claude/skills/$name"
 done
 

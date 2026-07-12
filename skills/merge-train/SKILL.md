@@ -60,17 +60,26 @@ LOOP:
                · headRefOid != reviewed_sha  → STALE: bounce to the owning review fleet
                  (reply to the merge_ready: "stale — re-review <new sha>"), requeue at
                  the BACK when fresh evidence arrives. Never merge stale.
-  3. MERGE   — strictly one at a time, commits preserved:
-               conflicts/behind → rebase onto origin/BASE as a UNION preserving both
-               intents, re-run gates, push with `--force-with-lease` (never bare force)
-               — a with-lease failure means someone else pushed: re-fetch, re-check
-               freshness (step 2), do not force through.
-               gh pr merge <n> --merge --delete-branch
+  3. MERGE   — strictly one at a time, commits preserved. Two cases, no third:
+               · MERGEABLE AS-IS (head == reviewed_sha, no conflicts): merge now —
+                 `gh pr merge <n> --merge --delete-branch`. A behind-but-clean PR merges
+                 with a merge commit WITHOUT changing headRefOid, so the review stands.
+               · CONFLICTS / needs rebase: rebase onto origin/BASE as a UNION preserving
+                 both intents, push with `--force-with-lease` (never bare force), then the
+                 PR **LEAVES THE TRAIN** — a rebase changed the head, so the review
+                 evidence is void. Reply on the thread: "rebased to <new sha> — needs
+                 review for this SHA", route to the owning review fleet, and re-board only
+                 on a NEW merge_ready carrying reviewed_sha == the new head. Re-running
+                 gates is NOT a review.
+               A with-lease rejection means someone else pushed: re-fetch, back to step 2.
                `--admin` ONLY when the merge-trap check hangs AND the run's human D8
                grant is recorded (gate-steward: one-way). No grant → park the PR, move on.
-  4. VERIFY  — merged means: state=MERGED AND baseRefName==BASE AND a file from the PR
-               is greppable on origin/BASE. Then ledger: `PR#<n> MERGED=t sha=<merge>`
-               and reply to the originating merge_ready thread with the merge SHA.
+  4. VERIFY  — merged means, by ancestry, not by grep:
+               mc=$(gh pr view <n> --json mergeCommit -q .mergeCommit.oid)
+               git fetch origin <BASE> && git merge-base --is-ancestor "$mc" "origin/<BASE>"
+               AND state=MERGED AND baseRefName==BASE. Then ledger:
+               `PR#<n> MERGED=t sha=$mc` and reply to the originating merge_ready thread
+               with the merge SHA.
   5. CHAIN   — after every merge, freshness for the whole remaining queue changes
                (BASE moved): each queued PR gets re-checked at its turn; hot-file chains
                (migrations, barrels, route registries) stay in the order boarded.
@@ -80,6 +89,8 @@ LOOP:
 
 - Rebase conflict the conductor can't resolve as a clean union → bounce to the PR's
   builder as a fix task (reply on the thread), requeue on its next merge_ready.
+- Every conductor rebase — even a clean union — voids the review (step 3): no
+  rebased head ever merges on the old reviewed_sha.
 - `--force-with-lease` rejected twice → someone is pushing concurrently; escalate rather
   than fight (a bot autofix loop is the usual culprit — see spec-to-ship gotchas #1/#24).
 - Conductor dies → provenance holds the queue (merge_ready messages persist);

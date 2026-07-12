@@ -34,10 +34,27 @@ run-status view, and until now no skill read any of it back. The fleet ledgers s
 is truth; the ledger is its cache" — this skill makes the runtime's provenance the third
 leg: ledger (narrative) · git (code truth) · provenance (dispatch truth).
 
-## Mode 1 — STATUS (read-only, any time, no side effects)
+## Run scope — mandatory before any mode
+
+Orchestration state is RUNTIME-GLOBAL: `task-list` returns every task from every run and
+`task-list` has no run filter. The blackbox therefore requires a declared scope:
+
+- **Primary key:** the run's coordinator terminal handle(s), from the fleet ledger header
+  — task rows record `created_by_terminal_handle`, so scope = tasks created by those
+  handles.
+- **Secondary key:** the task ids the ledger itself lists (belt and braces; catches tasks
+  created before the ledger recorded the handle).
+- Everything else in `task-list` is OUT OF SCOPE: counted once in the dashboard footer
+  ("N out-of-scope tasks present, untouched"), never triaged, never re-dispatched, never
+  written into this run's ledger.
+
+No ledger / no derivable scope → STATUS may render a clearly-labeled GLOBAL view;
+RESUME must ABORT (resuming an unbounded scope can hijack another run's tasks).
+
+## Mode 1 — STATUS (read-only, no side effects — renders to the session, writes no files)
 
 ```
-1. orca orchestration task-list --json                 → tasks, statuses, deps
+1. orca orchestration task-list --json                 → filter to RUN SCOPE (above)
 2. per dispatched/completed/failed task:
    orca orchestration dispatch-show --task <id> --json → assignee, failure_count,
                                                          last_heartbeat_at, timestamps
@@ -80,12 +97,14 @@ Use STATUS freely during a live run — it is the missing `runStatus`.
 
 Same reads as STATUS against a finished run: per-task wall-clock (dispatched_at →
 completed_at), failure/respawn counts, phase timelines from heartbeats, reportPath
-inventory. Output `docs/audits/run-<date>.md`. Feed recurring stall patterns to
-`fleet-memory` (wave 2) as learnings.
+inventory. AUDIT is the one file-writing read mode: output
+`docs/audits/run-<date>-<coordinator-handle>.md` (append `-2`, `-3` on collision). Feed
+recurring stall patterns to `fleet-memory` (wave 2) as learnings.
 
 ## Completion contract
 
-- STATUS: dashboard rendered with EVERY task in task-list accounted for — no "misc" rows.
+- STATUS: dashboard rendered with EVERY IN-SCOPE task accounted for — no "misc" rows —
+  plus the out-of-scope count in the footer. No files written.
 - RESUME: ledger rewritten, every SUSPECT called out, coordinator loop actually re-entered
   (or the run declared converged), and the Resumed header written. Reconstructing without
   re-entering is an audit, not a resume — say which one happened.
@@ -101,9 +120,9 @@ inventory. Output `docs/audits/run-<date>.md`. Feed recurring stall patterns to
 
 ## Handoff contract
 
-STATUS/AUDIT emit `docs/audits/run-<date>.md`; RESUME hands a reconciled ledger to the
-fleet skill and SUSPECT tasks to `fleet-doctor`. `standing-fleet` invokes RESUME when a
-scheduled run's ledger has a header but no footer.
+AUDIT emits `docs/audits/run-<date>-<coordinator-handle>.md` (STATUS writes nothing);
+RESUME hands a reconciled ledger to the fleet skill and SUSPECT tasks to `fleet-doctor`.
+`standing-fleet` invokes RESUME when a scheduled run's ledger has a header but no footer.
 
 ## Related
 

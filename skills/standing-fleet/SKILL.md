@@ -71,8 +71,12 @@ orca automations create \
   --fresh-session \
   --missed-run-grace-minutes 120 \
   --precheck '<precheck command>' --precheck-timeout 60000 \
-  --prompt "$(cat assets/standing-run-prompt.txt)"   # customized per step 4
+  --prompt "$(cat "$HOME/.claude/skills/standing-fleet/assets/standing-run-prompt.txt")"
 ```
+
+(The prompt template lives beside THIS skill — `$HOME/.claude/skills/standing-fleet/assets/`
+for a standard install, `skills/standing-fleet/assets/` in a repo checkout. Customize a
+copy per step 4; your shell is usually in the target repo, so never a bare relative path.)
 
 `--repo` gives each run a fresh worktree; use `--workspace` only for fleets that must
 observe existing state (canary). `--fresh-session` keeps run N+1 clean — state lives in
@@ -88,16 +92,26 @@ Customize `assets/standing-run-prompt.txt`. Its contract, in order:
 3. Append a run-header line to the standing ledger `docs/standing/<name>.md`
    (`run N · <date> · trigger=<t> · precheck=passed`), then execute the fleet skill
    exactly as written — same gates, same profiles, same completion contracts.
-4. Human gates DO NOT weaken: anything the fleet gates (merge to default, rollback,
-   taste picks) becomes a `decision_gate` recorded in the ledger; the run parks it and
-   ENDS rather than waiting indefinitely — `gate-steward` (or the human) resolves between
-   runs, and the next run picks it up from the ledger.
+4. Human gates DO NOT weaken, and parked gates must map back to REAL runtime state:
+   - One-way decisions (anything the fleet or guard-policy names a human gate) → PARK:
+     ledger HUMAN-queue line + `gate-create --task <id>` so the DAG holds the task. The
+     run continues elsewhere or winds down. Taste questions follow `gate-steward`
+     (steward resolves with pending-veto, batched in the run brief) — only fleet-declared
+     human gates and one-way doors park.
+   - NEXT run start: reconcile ledger PARKED lines against `gate-list --status pending`.
+     Gate row resolved by the human via `gate-resolve` between runs → the resolution
+     auto-injects into that task's next dispatch — just re-dispatch it. Answer recorded
+     only in the ledger → apply it: `gate-resolve --id <gate> --resolution "<answer>"`,
+     then re-dispatch. Gate/task rows GONE (reset, pruned) → create a NEW task whose spec
+     embeds the human's resolution verbatim. Never treat a ledger line alone as a
+     resolved runtime gate.
 5. End with a run-footer: counts (tasks completed/failed/parked), reportPaths, and the
    next action if any.
 
 ### 5. Operate
 
-- `orca automations runs --name <n> --json` — run history; `run` triggers immediately.
+- Run history: `orca automations list --json` for the automation id, then
+  `orca automations runs --id <automation-id> --json`; `run --id <id>` triggers now.
 - The standing ledger is the cross-run memory: parked gates, last reviewed SHA, streaks.
 - Pair with `fleet-doctor` inside the run for stalled-worker recovery, and `run-blackbox`
   to reconstruct any run that died mid-flight.

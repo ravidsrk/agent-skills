@@ -22,7 +22,7 @@
 
 # What's inside
 
-37 skills, organized by what they do — not by SDLC phase. These are **discrete capabilities** an agent reaches for when the task fits, not lifecycle steps that fire in sequence.
+42 skills, organized by what they do — not by SDLC phase. These are **discrete capabilities** an agent reaches for when the task fits, not lifecycle steps that fire in sequence.
 
 # 🌐 Infrastructure
 
@@ -421,7 +421,7 @@ Output:
 ✅ namecheap-dns
 ✅ terminal-poster
 
-🟢 All 37 skills valid against agentskills.io spec.
+🟢 All 42 skills valid against agentskills.io spec.
 ```
 
 The validator enforces the spec rules (frontmatter shape, name/directory matching, description length). Non-zero exit code if any skill fails — perfect for CI.

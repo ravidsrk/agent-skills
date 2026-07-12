@@ -46,22 +46,35 @@ LOOP until fleet converged:
               a. one nudge: orca terminal send --terminal <handle> --enter  (paste-not-
                  submitted is the most common stall; harmless if already running)
               b. still silent after one more poll → RESPAWN (step 4)
-  4. RESPAWN — never re-dispatch to the same handle (a handle that had this task returns
-              dispatch id null — README Learnings L2). Fresh terminal:
-                scripts/spawn_worker.sh <task> <worktree-selector> <title>-retry<N> <agent>
-              spawn_worker exit 3 (dispatched, no heartbeat) feeds back into this loop;
-              exit 1/2 → treat as a failed attempt (the runtime increments failure_count
-              on failDispatch; do NOT reset task state by hand).
-  5. BREAK  — task reached circuit_broken / failed after 3 attempts → STOP retrying.
-              Escalate to the human:
-                orca orchestration ask --to <human-facing coordinator> \
-                  --question "task <id> circuit-broke after 3 respawns: <last error>.
-                              Park (A), reassign to <other agent> as a NEW task (B),
-                              or drop with rationale (C)?" --options "A,B,C"
-              Record the answer in the fleet ledger. Reassignment = a NEW task-create
-              (fresh failure budget is deliberate and visible), never a silent reset.
-  6. ESCALATION messages from workers (type=escalation) route the same way: they already
-     fail the dispatch server-side — triage the reason, don't just respawn the same spec.
+  4. RESPAWN — the stale task is still `dispatched`, and spawn_worker v2 refuses anything
+              but ready. The sanctioned recovery transition, in this exact order:
+              a. EVIDENCE + LOG: doctor-log line FIRST — `task <id> · dead-worker evidence:
+                 <no heartbeat since T / terminal gone> · attempt <N>/3` (N is the
+                 DOCTOR'S OWN counter in the log — respawns do not consume the runtime
+                 failure budget; that budget counts real dispatch failures).
+              b. RE-READY: orca orchestration task-update --id <task> --status ready --json
+                 — permitted HERE ONLY because the worker is evidenced dead and the line
+                 above is written. This is recovery, not the forced-ready antipattern.
+              c. FRESH TERMINAL: never re-dispatch to a handle that had this task
+                 (dispatch id null — README Learnings L2):
+                   scripts/spawn_worker.sh <task> <worktree-selector> <title>-retry<N> <agent>
+              d. EXIT CODES: 3 (dispatched, no heartbeat) → counts, loop continues.
+                 1 (infra step failed) → counts. 2 (refusal: task no longer pending/ready)
+                 → the state MOVED under you (late worker_done, another actor) — re-triage
+                 from step 2, do NOT count an attempt.
+  5. BREAK  — 3 doctor attempts spent, OR the runtime marks the dispatch circuit_broken
+              (real dispatch failures, e.g. repeated inject errors) → STOP retrying.
+              Escalate to the human — honestly:
+              · Interactive session (a human drives this coordinator): put the question
+                to them directly — park (A), reassign as a NEW task (B), drop with
+                rationale (C) — and record the answer in the ledger.
+              · Unattended: PARK — ledger HUMAN-queue entry naming task, evidence, and
+                the A/B/C options, plus `gate-create --task <id>` so the DAG holds it.
+                There is no runtime channel that reaches a human: `ask` is agent-to-agent
+                (worker→coordinator). Never claim an ask reached a person.
+              Reassignment = a NEW task-create (fresh, visible budget), never a reset.
+  6. ESCALATION messages from workers (type=escalation) already fail their dispatch
+     server-side — triage the stated reason; fix spec/env first, don't respawn blind.
 ```
 
 ## Diagnosis table (before any respawn, read the evidence)
@@ -84,8 +97,14 @@ that "fixed" a fleet by silently dropping tasks is not done.
 ## Rules
 
 - The dispatch table is authoritative — never mark tasks completed by hand to unblock.
-- Respawn budget is the runtime's circuit breaker (3). Never work around it by resetting
-  task status; reassignment is a NEW task with rationale.
+- TWO budgets, don't conflate: the doctor's respawn counter (3, kept in the doctor log —
+  respawns don't increment the runtime's failure_count) and the runtime circuit breaker
+  (3 real dispatch FAILURES → circuit_broken). Either tripping means BREAK.
+- The step-4b `task-update → ready` is legal only with the evidence line written first;
+  anywhere else it is the forced-ready antipattern spawn_worker v2 exists to prevent.
+- Cadence numbers (~5 min heartbeats, 10 min staleness) are the runtime's documented
+  defaults — judge staleness from `dispatch-show` timestamps you actually read, not from
+  the folklore number.
 - Respawned workers inherit the ORIGINAL task spec verbatim (drift between attempts makes
   failures undiagnosable). Spec changes = new task.
 - Never respawn `PROFILE=danger` workers without re-confirming `ORCA_COORD_ALLOW_DANGER`

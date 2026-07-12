@@ -62,15 +62,19 @@ if wrong · link (reportPath / diff), never raw transcripts. Deliver ONE brief p
 checkpoint (fleet JOIN phase, or run end), not a ping per gate. A human veto becomes a
 fix task; vetoed patterns get a registry entry upgrading them.
 
-**One-way:** raise to the human immediately:
-```
-orca orchestration ask --to <human-facing terminal> --question "<the decision>" \
-  --options "A,B" --timeout-ms 570000
-```
-No human within the window → **PARK, never default**: record
-`PARKED gate <id> · one-way · waiting-human` in the ledger, `gate-create` on the blocked
-task so the DAG holds it, and let the run continue elsewhere or end. `standing-fleet`
-runs re-raise parked gates from the ledger at the next trigger.
+**One-way:** a human answers, through a channel that actually reaches one — `ask` does
+NOT: it is the runtime's worker→coordinator primitive, and a terminal handle names an
+agent, not a person. Two honest paths:
+
+- **Interactive session** (a human is driving this coordinator): put the decision to
+  them directly in-session — question, options, cost-if-wrong — and record their answer
+  in the ledger (`gate <id> · one-way · human · <answer>`).
+- **Unattended** (standing runs, AFK): **PARK immediately, never default**: record
+  `PARKED gate <id> · one-way · waiting-human · <question + options>` in the ledger's
+  HUMAN queue, `gate-create --task <id>` so the DAG holds the task, and let the run
+  continue elsewhere or wind down. The human resolves between runs (ledger edit or
+  `gate-resolve`); `standing-fleet` maps parked lines back to runtime state at the next
+  trigger. Never label an agent-to-agent message as human approval.
 
 ## Timeout handling (worker asks)
 

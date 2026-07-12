@@ -30,6 +30,7 @@
 #   PROFILE                   ro | rw (default) | danger — worker permission profile
 #   ORCA_COORD_ALLOW_DANGER   must be 1 for PROFILE=danger
 #   CLAUDE_CMD / CODEX_CMD    full override of the worker launch command (wins over PROFILE)
+#   SETTLE_SECS / SUBMIT_SECS / HB_POLL_SECS   timing knobs (defaults 20 / 8 / 40)
 set -euo pipefail
 
 step=parse-args
@@ -51,6 +52,9 @@ fi
 task="${args[0]}"; sel="${args[1]}"; title="${args[2]}"; agent="${args[3]:-claude}"; effort="${args[4]:-xhigh}"
 SP="${SP:-$(pwd)}"
 PROFILE="${PROFILE:-rw}"
+SETTLE_SECS="${SETTLE_SECS:-20}"
+SUBMIT_SECS="${SUBMIT_SECS:-8}"
+HB_POLL_SECS="${HB_POLL_SECS:-40}"
 safe_title=$(printf '%s' "$title" | tr -c 'A-Za-z0-9._-' '-')
 
 step=resolve-profile
@@ -153,7 +157,7 @@ PY
 
 step=wait-tui-idle
 orca terminal wait --terminal "$h" --for tui-idle --timeout-ms 90000 --json > /dev/null
-sleep 20  # let the TUI settle so it can receive the paste
+sleep "$SETTLE_SECS"  # let the TUI settle so it can receive the paste
 
 # --- dispatch + submit --------------------------------------------------------
 step=dispatch-inject
@@ -168,7 +172,7 @@ if err:
     raise SystemExit(1)
 PY
 
-sleep 8
+sleep "$SUBMIT_SECS"
 step=submit-enter
 orca terminal send --terminal "$h" --enter --json > /dev/null  # SUBMIT the pasted prompt
 
@@ -176,7 +180,7 @@ orca terminal send --terminal "$h" --enter --json > /dev/null  # SUBMIT the past
 step=verify-heartbeat
 hb=None
 for _ in 1 2 3; do
-  sleep 40
+  sleep "$HB_POLL_SECS"
   if out=$(orca orchestration dispatch-show --task "$task" --json 2>/dev/null); then
     hb=$(printf '%s' "$out" | python3 -c 'import sys,json;d=json.load(sys.stdin);r=d.get("result",{});x=r.get("dispatch",r);print(x.get("last_heartbeat_at") or "None")' 2>/dev/null || echo None)
   fi

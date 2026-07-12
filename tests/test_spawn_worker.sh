@@ -72,6 +72,12 @@ J
 cat > "$FAKE_DIR/tl-pending-corrupt.json" <<'J'
 {"result":{"tasks":[{"id":"t1","status":"pending","deps":"not-json["}]}}
 J
+cat > "$FAKE_DIR/tl-pending-falsey.json" <<'J'
+{"result":{"tasks":[{"id":"t1","status":"pending","deps":""}]}}
+J
+cat > "$FAKE_DIR/tl-pending-zero.json" <<'J'
+{"result":{"tasks":[{"id":"t1","status":"pending","deps":0}]}}
+J
 cat > "$FAKE_DIR/ds-hb.json"           <<'J'
 {"result":{"dispatch":{"last_heartbeat_at":"2026-07-12T00:00:00Z"}}}
 J
@@ -161,6 +167,14 @@ err=$(bash "$SW" --mark-ready t1 "path:/tmp/wt" job13 claude 2>&1 >/dev/null); r
 check "exit 2" 2 "$rc"
 case "$err" in *"deps metadata unreadable"*) PASS=$((PASS+1)); echo "  ok: unreadable-deps refusal";; *) FAIL=$((FAIL+1)); echo "  FAIL: wrong refusal: $err";; esac
 assert_no_log "no task-update on corrupt deps" "task-update"
+
+echo "S13b: FALSEY malformed deps (empty string, 0) + --mark-ready -> refusal 2, not 'no deps'"
+for fixture in pending-falsey pending-zero; do
+  reset_fake "$fixture" hb
+  bash "$SW" --mark-ready t1 "path:/tmp/wt" "job13-$fixture" claude >/dev/null 2>&1; rc=$?
+  check "exit 2 ($fixture)" 2 "$rc"
+  assert_no_log "no task-update on falsey deps ($fixture)" "task-update"
+done
 
 echo "S14: unknown agent -> refusal 2 before any orca call"
 reset_fake ready hb

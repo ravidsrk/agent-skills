@@ -129,14 +129,17 @@ t = by.get(tid)
 if not t:
     print("not-found 0")
     raise SystemExit(0)
-deps = t.get("deps") or []
-if isinstance(deps, str):
+deps = t.get("deps")
+if deps is None:
+    deps = []  # absent deps is the ONLY value that legitimately means "no deps"
+elif isinstance(deps, str):
     try:
-        deps = json.loads(deps)
+        deps = json.loads(deps)  # "" and garbage both fail here -> refusal below
     except Exception:
         deps = None
 if not isinstance(deps, list):
-    # Corrupt/unreadable dependency metadata must fail CLOSED, not count as "no deps".
+    # Corrupt/unreadable dependency metadata ("", 0, {}, bad JSON) must fail
+    # CLOSED, not count as "no deps".
     print(t.get("status", "unknown"), -1)
     raise SystemExit(0)
 unmet = sum(1 for dep in deps if (by.get(dep) or {}).get("status") != "completed")

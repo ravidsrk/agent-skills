@@ -62,7 +62,7 @@ drift ratchets, not by per-task tests.
 ## When to use
 
 - Building a non-trivial system by fanning work across many agents (parallel builders + reviewers).
-- You have a coordinator harness (Orca or similar) that spawns terminals/worktrees and dispatches tasks.
+- You have Orca as the coordinator harness (terminals, worktrees, task dispatch) — the hard base above; no substitute harness.
 - You want a PR-per-task pipeline with a real review gate (and optionally a second bot reviewer like BugBot).
 - A long autonomous run is stalling, looping on review, mis-merging, or losing loop state.
 
@@ -141,9 +141,10 @@ ledger — a task advances only when the flags read true **in the file**:
   gitleaks before every push; no NUL-byte/binary source files (a recurring builder failure — gotcha #18).
 
 Full spawn sequences, merge rules, and the bot-reconcile loop: `references/pipeline.md`. For a **bounded set
-of disjoint changes** (e.g. closing a backlog), a lighter loop — parallel subagents build the new files, the
-coordinator owns the shared spine (wiring/migration-numbers/barrels) and integrates + verifies — often beats
-the full pipeline; see `references/pipeline.md` (Lightweight mode).
+of disjoint changes** (e.g. closing a backlog), a lighter loop — same-worktree Orca workers build the new
+files (one `task-create` + `dispatch` each; no worktree-per-task), the coordinator owns the shared spine
+(wiring/migration-numbers/barrels) and integrates, and a fresh build-blind reviewer checks the combined PR —
+often beats the full pipeline; see `references/pipeline.md` (Lightweight mode).
 The ledger template + boolean-gate discipline: `references/ledger-template.md`.
 
 ## The gotchas that actually bite (read `references/gotchas.md`)

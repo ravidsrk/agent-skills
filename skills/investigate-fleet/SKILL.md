@@ -40,13 +40,16 @@ compatibility: >-
 ## Hard gate
 No fix worker until RCA doc exists and red command is recorded (see diagnose-swarm repro gates).
 
+## Requires
+Orca + gstack (investigate methodology) + Matt `/tdd` for the fix worker — install README Track C alongside Track D.
+
 ## Related
 `diagnose-swarm`, `review-matrix`.
 
 
 ## Scripts & assets
 
-- `scripts/spawn_worker.sh` · `preflight.py` · `pm.py` — call Orca
+- `scripts/spawn_worker.sh` — calls Orca (fail-closed dispatch; PROFILE=ro|rw|danger) · `preflight.py` — git/gh + BASE invariants (no Orca) · `pm.py` — inbox/check JSON parser (no Orca)
 - `assets/*_preamble.txt` — worker roles
 - `references/ledger-template.md` — copy to `docs/<skill>-progress.md`
 

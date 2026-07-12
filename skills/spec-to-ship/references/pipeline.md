@@ -1,8 +1,10 @@
 # Pipeline mechanics — spawn, dispatch, review, merge, cleanup
 
-CLI shown is Orca `orca orchestration` / `orca worktree` / `orca terminal`. Adapt verbs to your harness;
-the *shape* is the point. Parse all JSON defensively (`json.JSONDecoder().raw_decode` tolerates a stray
-log line prepended to the JSON — a real cause of "wait failed exit 1" noise).
+CLI shown is Orca `orca orchestration` / `orca worktree` / `orca terminal` — the hard base, not an
+example. Do not substitute another harness or in-process subagents; durable tasks/dispatches/gates ARE
+the loop state (SKILL.md hard-base contract). Parse all JSON defensively
+(`json.JSONDecoder().raw_decode` tolerates a stray log line prepended to the JSON — a real cause of
+"wait failed exit 1" noise).
 
 ## Worker placement
 
@@ -112,24 +114,29 @@ verification.md`) will surface *missing* work — a durable store that was never
 HTTP path, tool-wiring that was assumed done. Each discovered gap becomes its **own dispatched task**, not
 a silent patch. Expect scope to grow at the verification boundary and budget waves for it.
 
-## Lightweight mode — bounded disjoint work → parallel subagents, not the full pipeline
+## Lightweight mode — bounded disjoint work → same-worktree Orca workers, not the full pipeline
 
-Not every wave needs the full spawn/dispatch/integrate/merge machinery. When the remaining scope is a
-**bounded set of DISJOINT changes** — each a new file or a small edit in its own area (e.g. closing a
-backlog: three new adapters behind existing ports + a couple of hardening edits) — a lighter loop is faster
-and just as safe:
+Not every wave needs worktree-per-task + PR-per-task. When the remaining scope is a **bounded set of
+DISJOINT changes** — each a new file or a small edit in its own area (e.g. closing a backlog: three new
+adapters behind existing ports + a couple of hardening edits) — a lighter loop is faster and just as safe.
+It is still Orca: one `task-create` + `dispatch` per change, worker terminals in the COORDINATOR'S worktree
+(skip the per-task worktrees), `worker_done` with `filesModified`. Never in-process subagents — the durable
+task/dispatch provenance is what survives a coordinator crash.
 
-- Fan the disjoint tasks out to **parallel sub-agents** (plain task agents, no worktree-per-task), each with
-  an airtight spec: the exact interface to implement, the reference/template to mirror, and a hard rule to
-  create ONLY its own new files.
+- Fan the disjoint tasks out to **parallel worker terminals** (same worktree), each with an airtight spec:
+  the exact interface to implement, the reference/template to mirror, and a hard rule to create ONLY its
+  own new files.
 - **The coordinator owns the shared spine** — the DI/wiring file, the barrel/index, migration *numbering*,
-  and the one integration point. Forbid every subagent from touching those (parallel edits collide); you
+  and the one integration point. Forbid every worker from touching those (parallel edits collide); you
   wire it all up once, in one place, after they finish.
-- Then **integrate + verify + land yourself**: full typecheck, the hermetic suite, AND the live-service
-  integration suite the subagents couldn't run (verification.md §7), review each subagent's diff
-  (verify-never-trust — one *will* have a bug its own check missed), then land as ONE PR.
+- Then **integrate + verify**: full typecheck, the hermetic suite, AND the live-service integration suite
+  the workers couldn't run (verification.md §7), and check each worker's diff (verify-never-trust — one
+  *will* have a bug its own check missed).
+- Land as ONE PR — with the review gate intact: a FRESH build-blind reviewer terminal reviews the combined
+  diff (record the reviewed SHA), then the normal verified-merge rules apply. The coordinator never
+  review-approves its own integration.
 
-This is "coordinator owns the spine, subagents build the leaves." Reach for the full PR-per-task pipeline
+This is "coordinator owns the spine, workers build the leaves." Reach for the full PR-per-task pipeline
 when tasks are interdependent, touch hot mount-point files, or each needs its own build-blind review.
 
 ## Waiting

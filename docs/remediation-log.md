@@ -16,20 +16,20 @@ accepted/reworded with rationale).
 | A4      | P2       | Phantom references/learnings.md #23 in 31 launchers              | fixed   | PR1: learning moved to scripts/orca-coord/README.md; all copies regenerated |
 | E2      | P1       | 96 copied helpers drifted, no propagation path                   | fixed   | PR1: scripts/sync-orca-coord.py single-source sync + --check wired into validate-skills.py |
 | E3      | P2       | pm.py stops at first malformed message                           | fixed   | PR1: skip-and-count parsing, .get() defaults |
-| A1/B2   | P1       | spec-to-ship contradicts its own hard-base contract              | planned | PR2 |
-| A2      | P1       | Install matrix understates dependencies                          | planned | PR2 |
-| A3      | P1       | matt-ship references repo-root helper paths                      | planned | PR2 |
-| A5      | P2       | AGENTS.md intent map omits 11 skills                             | planned | PR2 |
-| A6      | P2       | Frontmatter copy-paste artifacts                                 | planned | PR2 |
-| B3      | P1       | headless-mode describes a mechanism gstack doesn't read          | planned | PR2 |
-| B4      | P1       | guard-policy is advisory prose posing as enforcement             | planned | PR2 |
-| B6      | P2       | Generic preambles lack skill-specific completion contracts       | planned | PR2 |
-| C1      | P1       | review-matrix invokes nonexistent Matt /code-review modes        | planned | PR2 |
-| C2      | P1       | architecture-sprint skips /to-spec                               | planned | PR2 |
-| C3      | P1       | review-prod-fleet "do not fix" vs fix-first gstack /review       | planned | PR2 |
-| C4      | P1       | gstack-ship-fleet duplicates then invalidates review work        | planned | PR2 |
-| E1      | P1       | Review ownership unpartitioned, no finding schema                | planned | PR2 |
-| E4      | P2       | Related sections define no handoff contract                      | planned | PR2 |
+| A1/B2   | P1       | spec-to-ship contradicts its own hard-base contract              | fixed   | PR2: own vendored preflight path; 'Orca or similar' removed; lightweight mode on same-worktree Orca workers + build-blind combined-PR review |
+| A2      | P1       | Install matrix understates dependencies                          | fixed   | PR2: tracks install gstack/Matt for real; scoped no-dependency claim; AGENTS.md runtime dependency matrix; composer skills declare Requires |
+| A3      | P1       | matt-ship references repo-root helper paths                      | fixed   | PR2: skill-local scripts/ paths with canonical pointer |
+| A5      | P2       | AGENTS.md intent map omits 11 skills                             | fixed   | PR2: all 11 rows added |
+| A6      | P2       | Frontmatter copy-paste artifacts                                 | fixed   | PR2: matt-ship, wayfinder-fleet, design-it-thrice |
+| B3      | P1       | headless-mode describes a mechanism gstack doesn't read          | fixed   | PR2: GSTACK_HEADLESS env via launcher overrides; correct blocking semantics; auto-decide attributed to autoplan coordinator |
+| B4      | P1       | guard-policy is advisory prose posing as enforcement             | fixed   | PR2: real /guard + /freeze hooks for claude workers, sandbox profiles for codex, danger forbidden, ADVISORY ONLY banner without gstack, precedence rules |
+| B6      | P2       | Generic preambles lack skill-specific completion contracts       | fixed   | PR2: checkable completion contracts in health, benchmark, docs, design-shotgun fleets (worst four) |
+| C1      | P1       | review-matrix invokes nonexistent Matt /code-review modes        | fixed   | PR2: own axis rubrics or one full /code-review run; matt-ship Phase 6 same |
+| C2      | P1       | architecture-sprint skips /to-spec                               | fixed   | PR2: TO-SPEC phase inserted before /to-tickets |
+| C3      | P1       | review-prod-fleet "do not fix" vs fix-first gstack /review       | fixed   | PR2: /review axis removed; report-only with ro workers |
+| C4      | P1       | gstack-ship-fleet duplicates then invalidates review work        | fixed   | PR2: consumes review artifacts via reviewed-SHA freshness; no pre-run test/review workers |
+| E1      | P1       | Review ownership unpartitioned, no finding schema                | fixed   | PR2: AGENTS.md routing table + JSON finding schema + reviewed-SHA handoff rule |
+| E4      | P2       | Related sections define no handoff contract                      | fixed   | PR2: handoff contracts in review-matrix, review-prod-fleet, full-sprint-fleet |
 
 New capability work (not review findings): PR3 adds standing-fleet, fleet-doctor, run-blackbox,
 gate-steward, merge-train; PR4 adds quorum, spec-decompose, ephemeral-fleet, fleet-memory and deepens

@@ -6,7 +6,7 @@ description: >-
   implement(+tdd) on the ticket frontier → dual-axis code-review → integrate.
   Use when the user wants the full Matt main flow under supervised multi-agent
   orchestration, "matt ship", "idea to tickets to fleet implement", or AFK
-  coding after grilling. HARD dependency: Orca runtime + orchestration skill (Orca CLI) skill + mattpocock skills.
+  coding after grilling. HARD dependency: Orca runtime + orchestration skill (Orca CLI) + mattpocock skills.
   Not for frozen-spec-only greenfield (use spec-to-ship) or audit close-out (use clean-sweep).
 license: MIT
 compatibility: >-
@@ -51,7 +51,7 @@ This skill **uses** the Orca multi-agent runtime and the `orchestration` skill. 
 - Orca up + orchestration experimental; load **`orchestration`** (Orca CLI skill).
 - Matt skills available to workers: `/grill-with-docs`, `/to-spec`, `/to-tickets`,
   `/implement`, `/tdd`, `/code-review`, `/handoff`, `/prototype`, `/domain-modeling`.
-- Helpers: `scripts/orca-coord/spawn_worker.sh`, `preflight.py`, `pm.py` (repo root).
+- Helpers: `scripts/spawn_worker.sh`, `preflight.py`, `pm.py` — vendored beside this skill (repo checkout canonical: `scripts/orca-coord/`).
 
 ## Matt coding flow (authoritative)
 
@@ -79,7 +79,7 @@ SELF-ORIENT → ALIGN (grill-with-docs HITL)
 
 Derive `{{REPO}}`, `{{MAINTAINER}}`, `{{DEFAULT_BRANCH}}`, `{{BASE}}` (integration branch
 ≠ default), toolchain, build/test commands, tracker config (`docs/agents/` from
-`/setup-matt-pocock-skills`). Run `python3 scripts/orca-coord/preflight.py --base {{BASE}}`.
+`/setup-matt-pocock-skills`). Run `python3 skills/matt-ship/scripts/preflight.py --base {{BASE}}` (repo checkout) or `python3 <skill-install-dir>/scripts/preflight.py --base {{BASE}}` (standalone install).
 Ledger: `docs/matt-ship-progress.md` (boolean gates per ticket).
 
 ## Phase 1 — Align (HITL, coordinator only)
@@ -112,7 +112,7 @@ For each **ready** frontier ticket:
 
 ```bash
 # worktree per ticket; builder = codex (or claude) with /implement + /tdd
-# Use scripts/orca-coord/spawn_worker.sh
+# Use this skill's vendored scripts/spawn_worker.sh (canonical: scripts/orca-coord/)
 # Spec must require: maintainer author, no agent trailers, real regression tests, worker_done payload
 ```
 
@@ -124,10 +124,14 @@ Rules:
 
 ## Phase 6 — Dual-axis review (build-blind)
 
-For each built ticket, **two fresh terminals** (never the builder):
+For each built ticket, review build-blind (never the builder's terminal). Two faithful shapes —
+upstream Matt `/code-review` has NO single-axis mode, so never dispatch "Standards only":
 
-1. **Standards** axis of `/code-review` (fixed-point = BASE).
-2. **Spec** axis against the ticket + parent spec.
+- **Default:** ONE fresh reviewer terminal runs Matt `/code-review` (fixed-point = BASE) once;
+  it spawns its own Standards + Spec subagents. Consume both axes from its report.
+- **Orca-native split:** two fresh terminals, each with a self-contained axis rubric from
+  `review-matrix` (Standards: repo standards + smell baseline; Spec: against ticket + parent
+  spec, quoting spec lines) pasted into the TASK — this pack's rubric, not a Matt mode.
 
 Do not merge axes. FAIL → fix task; PASS → ready to merge.
 

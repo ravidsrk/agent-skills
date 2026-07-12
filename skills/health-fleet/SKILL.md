@@ -42,13 +42,19 @@ Read-only by default. Fix only if user set fix-budget.
 agents, no bypass flags) and preflight with `--mode readonly`. Switch to `PROFILE=rw` only for the
 fix-budget tasks themselves.
 
+## Completion contract (embed verbatim in every worker TASK)
+A `worker_done` is valid ONLY with `reportPath` set and the report containing: the exact
+commands run (typecheck / lint / tests / dead-code / deps audit), their exit codes, the raw
+counts (errors, warnings, failures, unused symbols), and a scored section per category.
+"Looks healthy" with no command output is NOT done.
+
 ## Related
 `benchmark-fleet`, `docs-fleet`, `cso-fleet`.
 
 
 ## Scripts & assets
 
-- `scripts/spawn_worker.sh` · `preflight.py` · `pm.py` — call Orca
+- `scripts/spawn_worker.sh` — calls Orca (fail-closed dispatch; PROFILE=ro|rw|danger) · `preflight.py` — git/gh + BASE invariants (no Orca) · `pm.py` — inbox/check JSON parser (no Orca)
 - `assets/*_preamble.txt` — worker roles
 - `references/ledger-template.md` — copy to `docs/<skill>-progress.md`
 

@@ -57,7 +57,7 @@ Orca runtime + orchestration skill   ← HARD BASE (from Orca CLI; not this repo
                 └── worker playbooks: mattpocock/skills (/implement, /tdd, …)
 ```
 
-**We use Orca — we do not replace it.** Nothing multi-agent here runs without Orca orchestration. Matt skills are *what workers run*; Orca is *how the coordinator dispatches, waits, and gates*. Skills in this pack do **not** depend on each other at runtime (e.g. clean-sweep is not built on matt-ship).
+**We use Orca — we do not replace it.** Nothing multi-agent here runs without Orca orchestration. Matt skills are *what workers run*; Orca is *how the coordinator dispatches, waits, and gates*. MOST skills in this pack do **not** depend on each other at runtime (e.g. clean-sweep is not built on matt-ship) — the exceptions are the composers, declared per skill and in the [runtime dependency matrix](AGENTS.md#runtime-dependency-matrix): `full-sprint-fleet` (composes plan/build/verify/ship fleets), `spec-issue-fleet` (Matt ticketing + matt-ship phases), `investigate-fleet` (Matt `/tdd`), `architecture-sprint` (design-it-thrice + matt-ship), `triage-to-fleet` (ready-agent-drain).
 
 
 All require **Orca + `orchestration` skill (Orca CLI)**. Matt×Orca skills also need [mattpocock/skills](https://github.com/mattpocock/skills). Shared helpers: [`scripts/orca-coord/`](scripts/orca-coord/).
@@ -125,7 +125,7 @@ Methodology from [garrytan/gstack](https://github.com/garrytan/gstack); **runtim
 |---|---|---|
 | **A — Capability** (any agent harness) | `cloudflare-dns`, `namecheap-dns`, `fly-to-aws-migration`, `deep-research`, `terminal-poster` | Env keys only (see below) |
 | **B — Orca multi-agent** | `clean-sweep`, `spec-to-ship` | Orca + `orchestration` (Orca CLI). Peers; neither depends on the other. |
-| **D — Gstack × Orca** | `gstack-ship-fleet`, `qa-fleet`, `cso-fleet`, `autoplan-fleet`, `review-prod-fleet`, `health-fleet`, `docs-fleet`, `investigate-fleet`, `canary-fleet`, `benchmark-fleet`, `retro-cron`, `ios-qa-fleet`, `office-hours-async`, `design-shotgun-fleet`, `spec-issue-fleet`, `full-sprint-fleet`, `guard-policy`, `headless-mode` | Orca + `orchestration` + **garrytan/gstack** for worker playbooks. |
+| **D — Gstack × Orca** | `gstack-ship-fleet`, `qa-fleet`, `cso-fleet`, `autoplan-fleet`, `review-prod-fleet`, `health-fleet`, `docs-fleet`, `investigate-fleet`, `canary-fleet`, `benchmark-fleet`, `retro-cron`, `ios-qa-fleet`, `office-hours-async`, `design-shotgun-fleet`, `spec-issue-fleet`, `full-sprint-fleet`, `guard-policy`, `headless-mode` | Orca + `orchestration` + **garrytan/gstack** for worker playbooks. `investigate-fleet`, `spec-issue-fleet`, `full-sprint-fleet` ALSO need **mattpocock/skills** (Track C). |
 | **C — Matt × Orca** | `matt-ship`, `wayfinder-fleet`, `triage-to-fleet`, `ready-agent-drain`, `review-matrix`, `adversarial-ticket`, `diagnose-swarm`, `architecture-sprint`, `design-it-thrice`, `research-then-grill`, `model-jury`, `content-wayfinder` | Orca + `orchestration` + **mattpocock/skills** for worker playbooks. |
 
 🟡 **Name collision:** this repo's `deep-research` is the **monid 8-source** orchestrator. Other skill packs (e.g. makerskills) may ship a different skill with the same name. Symlinking this repo's copy will replace the other under `~/.claude/skills/deep-research`. Keep makerskills under `~/.agents/skills/` if you need both.
@@ -151,15 +151,19 @@ for name in clean-sweep spec-to-ship; do
 done
 
 
-# Track D — Gstack × Orca (also install gstack for workers):
+# Track D — Gstack × Orca. These wrappers RUN gstack methods in workers — install gstack too:
+[ -d ~/.claude/skills/gstack ] || git clone https://github.com/garrytan/gstack.git ~/.claude/skills/gstack
+(cd ~/.claude/skills/gstack && git pull --ff-only && ./setup)
 for name in gstack-ship-fleet qa-fleet cso-fleet autoplan-fleet review-prod-fleet \
   health-fleet docs-fleet investigate-fleet canary-fleet benchmark-fleet retro-cron \
   ios-qa-fleet office-hours-async design-shotgun-fleet spec-issue-fleet full-sprint-fleet \
   guard-policy headless-mode; do
   ln -sfn "$(pwd)/skills/$name" "$HOME/.claude/skills/$name"
 done
+# investigate-fleet + spec-issue-fleet + full-sprint-fleet ALSO need the Matt skills from Track C.
 
-# Track C — Matt × Orca (also: npx skills add mattpocock/skills -y):
+# Track C — Matt × Orca. Workers run Matt playbooks — install them (executed, not optional):
+npx skills add mattpocock/skills -y
 for name in matt-ship wayfinder-fleet design-it-thrice review-matrix triage-to-fleet \
   diagnose-swarm architecture-sprint research-then-grill adversarial-ticket \
   content-wayfinder model-jury ready-agent-drain; do

@@ -42,13 +42,16 @@ SPEC worker (gstack /spec → precise spec + GH issue)
 - Implementation is AFK on Orca.
 - Prefer issue as source of truth for /ship close-on-merge.
 
+## Requires
+Orca + gstack (`/spec`) + Matt skills (`/to-tickets`, and `matt-ship` phases for the implement fleet). The Gstack-only install track is NOT sufficient — install README Track C too.
+
 ## Related
 `autoplan-fleet`, `matt-ship`, `gstack-ship-fleet`.
 
 
 ## Scripts & assets
 
-- `scripts/spawn_worker.sh` · `preflight.py` · `pm.py` — call Orca
+- `scripts/spawn_worker.sh` — calls Orca (fail-closed dispatch; PROFILE=ro|rw|danger) · `preflight.py` — git/gh + BASE invariants (no Orca) · `pm.py` — inbox/check JSON parser (no Orca)
 - `assets/*_preamble.txt` — worker roles
 - `references/ledger-template.md` — copy to `docs/<skill>-progress.md`
 

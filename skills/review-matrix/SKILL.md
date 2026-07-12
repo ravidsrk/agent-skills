@@ -47,10 +47,16 @@ This skill **uses** the Orca multi-agent runtime and the `orchestration` skill. 
 
 | Axis | Worker brief |
 |------|----------------|
-| **Standards** | Matt `/code-review` Standards only (repo standards + smell baseline) |
-| **Spec** | Matt `/code-review` Spec only against originating issue/PRD |
+| **Standards** | THIS skill's Standards rubric: repo-documented standards (paste the files you find) + the Fowler smell baseline, judged per hunk. Adapted from Matt `/code-review`'s Standards axis. |
+| **Spec** | THIS skill's Spec rubric: missing/partial requirements, scope creep, implemented-but-wrong — each finding quotes the spec line. Adapted from Matt `/code-review`'s Spec axis. |
 | **Security-lite** (opt) | Secrets, authz/tenant checks, dangerous defaults in the diff |
 | **Test-adequacy** (opt) | For each claimed fix: would removing the production change fail a test? |
+
+Upstream Matt `/code-review` is ONE invocation that runs both axes via its own subagents — it
+has no "Standards only" / "Spec only" mode. Do NOT tell a worker to invoke it that way. Either
+paste this pack's axis rubric into the worker TASK (self-contained brief, the default here), or
+run Matt `/code-review` ONCE in a single fresh reviewer terminal and consume both axes from its
+report.
 
 ## Process
 
@@ -80,6 +86,12 @@ This skill **uses** the Orca multi-agent runtime and the `orchestration` skill. 
 Standards: N findings (worst: …)
 Spec: N findings (worst: …)
 ```
+
+## Handoff contract
+Emits findings in the AGENTS.md finding schema to `report_path`
+`docs/reviews/review-matrix-<sha>.md` with `reviewed_sha` = the branch HEAD reviewed.
+Consumers (merge roles, `gstack-ship-fleet`, `full-sprint-fleet`) treat the evidence as
+FRESH only while `reviewed_sha` == the HEAD they act on; stale routes back here.
 
 ## Related
 

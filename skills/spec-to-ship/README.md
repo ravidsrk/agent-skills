@@ -97,7 +97,7 @@ Captured in full in `references/gotchas.md`. The ones that bite first:
 
 | Gotcha | Fix |
 |---|---|
-| A worker reports "merged" but the PR is `UNSTABLE` forever (a hung review-bot autofix check) | Once real gates are green + review concluded, merge with `--admin`; then **verify** `state=MERGED`. |
+| A worker reports "merged" but the PR is `UNSTABLE` forever (a hung review-bot autofix check) | Once real gates are green + review concluded AND the run's human-approved merge-trap grant is recorded (ledger gate D8), merge with `--admin`; then **verify** `state=MERGED`. Never `--admin` without the grant. |
 | A fix shows `MERGED` but isn't on your integration base — a builder self-opened a PR against `main` | Builders never open PRs; integrators assert `baseRefName==BASE` before merging; verify the fix is on base. |
 | A subprocess-heavy adversarial test times out on CI but passes on a sibling run | It's a flake, not a finding — widen that test's timeout (don't re-run and hope). |
 | Migration-number collisions across parallel slices | Pre-assign lanes; the later one renumbers to next-free-above-highest-on-base, or the runner skips it. |

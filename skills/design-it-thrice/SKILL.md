@@ -8,7 +8,7 @@ description: >-
   module shapes. Replaces in-process parallel subagents with true Orca isolation.
 license: MIT
 compatibility: >-
-  HARD dependency: Orca runtime + orchestration skill (Orca CLI) (Orca CLI). Matt skills: codebase-design (and optionally
+  HARD dependency: Orca runtime + orchestration skill (Orca CLI). Matt skills: codebase-design (and optionally
   domain-modeling, prototype). codex/claude workers; git.
 ---
 

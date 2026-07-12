@@ -30,14 +30,18 @@ compatibility: >-
 **Full handoff** → `orca-cli` unless user asked to supervise / wait for `worker_done`.
 
 
-You are the **COORDINATOR**. AFK workers run tests/review/ship steps. Human gates: merge to default, deploy.
+You are the **COORDINATOR**. Human gates: merge to default, deploy. gstack `/ship` already runs
+tests, coverage, and its review army — this fleet does NOT pre-run duplicates of them.
 
 ## Phase graph
 ```
-SELF-ORIENT → PREFLIGHT (BASE, tests green baseline)
-  → TEST worker (full suite)
-  → REVIEW workers (gstack /review and/or review-prod-fleet / review-matrix)
-  → SHIP worker (gstack /ship: changelog/version if needed, push, open PR to BASE or default per policy)
+SELF-ORIENT → PREFLIGHT (BASE, clean tree)
+  → REVIEW EVIDENCE (consume, don't re-run): read prior review artifacts — review-matrix /
+    review-prod-fleet reportPaths + their reviewed SHA. FRESH = reviewed_sha == branch HEAD.
+    Missing or stale → either dispatch the owning review fleet first (AGENTS.md routing
+    matrix) or explicitly rely on /ship's built-in review army as the review for this change.
+  → SHIP worker (gstack /ship — runs tests + review army + changelog/version + push + PR to
+    BASE or default per policy)
   → human gate: merge
   → optional LAND worker only if user explicitly authorized OPS (gstack /land-and-deploy)
   → optional CANARY (canary-fleet)
@@ -46,7 +50,11 @@ SELF-ORIENT → PREFLIGHT (BASE, tests green baseline)
 ## Rules
 - Prefer PR to integration BASE, not silent merge to default.
 - MERGE ≠ DEPLOY. Never land-and-deploy without explicit human auth in this run.
-- Build-blind review before ship.
+- Never run your OWN duplicate test/review worker before /ship: /ship repeats both, and any
+  fix it applies stales the earlier build-blind result. Missing or stale evidence routes to
+  the OWNING review fleet (that fleet owns the finding artifacts — AGENTS.md routing), or
+  rely on /ship's built-in army. If /ship changed code, prior review evidence is stale —
+  route back to the owning fleet for the new SHA.
 - Ledger: `docs/gstack-ship-fleet-progress.md`.
 
 ## Related
@@ -55,7 +63,7 @@ SELF-ORIENT → PREFLIGHT (BASE, tests green baseline)
 
 ## Scripts & assets
 
-- `scripts/spawn_worker.sh` · `preflight.py` · `pm.py` — call Orca
+- `scripts/spawn_worker.sh` — calls Orca (fail-closed dispatch; PROFILE=ro|rw|danger) · `preflight.py` — git/gh + BASE invariants (no Orca) · `pm.py` — inbox/check JSON parser (no Orca)
 - `assets/*_preamble.txt` — worker roles
 - `references/ledger-template.md` — copy to `docs/<skill>-progress.md`
 

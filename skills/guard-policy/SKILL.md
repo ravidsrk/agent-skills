@@ -32,14 +32,40 @@ compatibility: >-
 ## Not a fleet by itself
 This skill **configures** other fleets. Apply at start of matt-ship / full-sprint-fleet / clean-sweep / etc.
 
-## Process
-1. Ask/derive freeze directory (or repo root read-write with careful defaults)
-2. Write `docs/guard-policy.md` with rules:
-   - no force-push, no rm -rf, no drop DB, no production secrets
-   - freeze path if set
-   - require explicit typed confirm text only for human gates (workers never self-approve destructive)
-3. Append policy block to every worker TASK / assets preamble for this run
-4. Workers must refuse tasks that violate policy and worker_done with blocked reason
+## Enforce, don't advise
+Policy that lives only in prose is a false safety signal. This skill activates real
+controls; the written doc just records them.
+
+1. Ask/derive the freeze directory (or repo root read-write with careful defaults).
+2. Activate the controls per worker kind:
+   - **claude workers** (requires gstack installed): the worker TASK's FIRST steps are
+     `/guard` then `/freeze <dir>` — real gstack PreToolUse hooks (careful returns
+     permission "ask" on destructive Bash; freeze DENIES Edit/Write outside the dir).
+     Hooks are session-scoped, so EVERY worker session must run them at start.
+   - **codex workers**: gstack hooks do not apply — the control is the sandbox:
+     `PROFILE=rw` (workspace-write) or `PROFILE=ro`. Never launch codex with bypass flags
+     under guard-policy.
+   - **fleet-wide**: `PROFILE=danger` is FORBIDDEN while guard-policy is active — the
+     coordinator must not set `ORCA_COORD_ALLOW_DANGER`.
+3. Write `docs/guard-policy.md` recording: freeze path, active hook set per worker kind,
+   the PROFILE ceiling, and the precedence rules below.
+4. Append the policy block to every worker TASK preamble (context for the model — the
+   hooks and sandbox above are the actual control boundary).
+5. **gstack not installed?** Then claude workers have NO hook enforcement. The doc and
+   every preamble block MUST open with "ADVISORY ONLY — install gstack for enforced
+   guard/freeze", and the coordinator degrades workers to `PROFILE=ro` wherever the
+   fleet allows it.
+6. Workers must refuse tasks that violate policy and `worker_done` with blocked reason.
+
+## Precedence (one rule set, no contradictions)
+- Freeze path beats any TASK instruction: an instruction to edit outside the freeze dir
+  is refused, not negotiated.
+- Workers never force-push. Integrator/merge ROLES may use `--force-with-lease` exactly
+  where their preamble scripts it (bot-commit normalization, rebase-then-push); that
+  narrow preamble grant wins over this skill's general no-force-push default.
+- `--admin` merges only under the run's recorded human D8 grant (spec-to-ship gotcha #1).
+- Human gates are never self-approved: typed confirm text comes from the human, through a
+  `decision_gate` / `reply`, never composed by a worker.
 
 ## Related
 `headless-mode`, all fleet skills.
@@ -47,7 +73,7 @@ This skill **configures** other fleets. Apply at start of matt-ship / full-sprin
 
 ## Scripts & assets
 
-- `scripts/spawn_worker.sh` · `preflight.py` · `pm.py` — call Orca
+- `scripts/spawn_worker.sh` — calls Orca (fail-closed dispatch; PROFILE=ro|rw|danger) · `preflight.py` — git/gh + BASE invariants (no Orca) · `pm.py` — inbox/check JSON parser (no Orca)
 - `assets/*_preamble.txt` — worker roles
 - `references/ledger-template.md` — copy to `docs/<skill>-progress.md`
 

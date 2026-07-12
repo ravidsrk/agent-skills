@@ -40,13 +40,19 @@ FRAME constraints
 
 Similar spirit to `design-it-thrice` but UI/visual and gstack design-shotgun methodology.
 
+## Completion contract (embed verbatim in every worker TASK)
+Each variant worker returns `reportPath` with the variant artifact path AND a named
+statement of what makes it distinct from every other variant. The coordinator's comparison
+board must list ALL variants; a missing variant means the fleet is NOT done. No variant is
+promoted before the human pick gate.
+
 ## Related
 `design-it-thrice`, `autoplan-fleet`.
 
 
 ## Scripts & assets
 
-- `scripts/spawn_worker.sh` · `preflight.py` · `pm.py` — call Orca
+- `scripts/spawn_worker.sh` — calls Orca (fail-closed dispatch; PROFILE=ro|rw|danger) · `preflight.py` — git/gh + BASE invariants (no Orca) · `pm.py` — inbox/check JSON parser (no Orca)
 - `assets/*_preamble.txt` — worker roles
 - `references/ledger-template.md` — copy to `docs/<skill>-progress.md`
 

@@ -35,7 +35,7 @@ You are the **COORDINATOR**. Phases are **sequential** (gstack: each builds on p
 ## Phase graph
 ```
 INPUT plan/spec path
-  → CEO worker (gstack /plan-ceo-review, headless AUTO_DECIDE)
+  → CEO worker (gstack /plan-ceo-review, GSTACK_HEADLESS=1 — blocks on questions)
   → DESIGN worker (/plan-design-review)
   → ENG worker (/plan-eng-review)  → produces test plan artifact
   → DEVEX worker (/plan-devex-review) if product is developer-facing
@@ -43,8 +43,24 @@ INPUT plan/spec path
   → FREEZE plan for matt-ship / implement
 ```
 
+## Execution model (matches `headless-mode`)
+Workers run with `GSTACK_HEADLESS=1`. Two layers can answer a question, in order:
+
+1. **gstack's own question preferences** (plan-tune): a question the user has tuned to
+   `never-ask` is auto-decided BY GSTACK (recommended option) before any headless fallback;
+   one-way doors always override `never-ask`. Preferences are PROJECT-persistent
+   (`~/.gstack/projects/<slug>/question-preferences.json`) — workers in the same repo
+   inherit them. Coverage is only as wide as the user's plan-tune history, so still plan
+   for layer 2.
+2. **Everything untuned BLOCKS** (headless semantics — gstack does not self-answer untuned
+   questions). That is where the COORDINATOR takes over: on a blocked question (worker
+   `ask`, or a heartbeat naming the blocking gate), it answers **mechanical** questions per
+   autoplan's decision principles via `orca orchestration reply --id <CURRENT>` with an
+   audit line in the ledger. Taste / premise / user-challenge questions become human
+   `decision_gate`s — the coordinator never answers those.
+
 ## Auto-decide vs gate
-- **AUTO_DECIDE:** mechanical, tooling, clear defaults with (recommended)
+- **AUTO_DECIDE (coordinator answers, audited):** mechanical, tooling, clear defaults with (recommended)
 - **GATE human:** premises, scope expansion, taste, irreversible product bets
 - Never skip premise gate on greenfield
 
@@ -59,7 +75,7 @@ INPUT plan/spec path
 
 ## Scripts & assets
 
-- `scripts/spawn_worker.sh` · `preflight.py` · `pm.py` — call Orca
+- `scripts/spawn_worker.sh` — calls Orca (fail-closed dispatch; PROFILE=ro|rw|danger) · `preflight.py` — git/gh + BASE invariants (no Orca) · `pm.py` — inbox/check JSON parser (no Orca)
 - `assets/*_preamble.txt` — worker roles
 - `references/ledger-template.md` — copy to `docs/<skill>-progress.md`
 

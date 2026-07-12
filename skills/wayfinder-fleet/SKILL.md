@@ -10,7 +10,7 @@ description: >-
   complete, freeze a spec and fleet-implement (Matt v1.1+ clarification).
 license: MIT
 compatibility: >-
-  HARD dependency: Orca runtime + orchestration skill (Orca CLI) skill (Orca CLI). Matt skills: wayfinder,
+  HARD dependency: Orca runtime + orchestration skill (Orca CLI). Matt skills: wayfinder,
   grilling, domain-modeling, research, prototype, handoff, to-spec, to-tickets,
   implement. git/gh/python3. Issue tracker configured via setup-matt-pocock-skills.
 ---

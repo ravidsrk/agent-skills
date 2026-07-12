@@ -41,7 +41,7 @@ orca status --json
 research-then-grill/
 ├── SKILL.md
 ├── README.md
-├── scripts/          # spawn_worker, preflight, pm (call Orca)
+├── scripts/          # spawn_worker (calls Orca) · preflight (git/gh) · pm (JSON parser)
 ├── assets/           # role preambles
 └── references/       # ledger template + skill-specific refs
 ```

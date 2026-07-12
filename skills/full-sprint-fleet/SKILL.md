@@ -39,6 +39,13 @@ compatibility: >-
 5 optional: canary-fleet, docs-fleet
 ```
 
+## Requires (runtime composition — the declared exception to the pack's no-cross-dependency norm)
+This skill DISPATCHES other skills in this pack: `office-hours-async` / `autoplan-fleet`
+(plan), `matt-ship` / `wayfinder-fleet` / `spec-to-ship` (build), `review-prod-fleet` +
+`review-matrix` + `qa-fleet` (+ `cso-fleet`) (verify), `gstack-ship-fleet` (ship), optional
+`canary-fleet` + `docs-fleet`. Install those, PLUS gstack AND the Matt skills (README
+Tracks C + D), before running. A quick-start that symlinks only this skill cannot run.
+
 ## Rules
 - Thin coordinator: dispatch only; no implementing.
 - Single ledger for the whole sprint.
@@ -48,10 +55,17 @@ compatibility: >-
 ## Related
 All gstack×Orca and Matt×Orca fleet skills.
 
+**Handoff contract:** one sprint ledger (`docs/full-sprint-progress.md`) shared across
+phases; each phase consumes the PRIOR phase's declared artifact — plan: frozen plan doc
+path; build: spec + tickets + integration branch; verify: `report_path` + `reviewed_sha`
+per the AGENTS.md finding schema; ship: merged SHA + PR number; canary: deploy URL +
+baseline report; docs: written doc paths. A phase never re-scans what the prior phase
+already produced.
+
 
 ## Scripts & assets
 
-- `scripts/spawn_worker.sh` · `preflight.py` · `pm.py` — call Orca
+- `scripts/spawn_worker.sh` — calls Orca (fail-closed dispatch; PROFILE=ro|rw|danger) · `preflight.py` — git/gh + BASE invariants (no Orca) · `pm.py` — inbox/check JSON parser (no Orca)
 - `assets/*_preamble.txt` — worker roles
 - `references/ledger-template.md` — copy to `docs/<skill>-progress.md`
 

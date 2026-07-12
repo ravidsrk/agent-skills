@@ -33,3 +33,8 @@ spec-issue-fleet
 spec-to-ship
 triage-to-fleet
 wayfinder-fleet
+standing-fleet
+fleet-doctor
+run-blackbox
+gate-steward
+merge-train

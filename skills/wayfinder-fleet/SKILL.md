@@ -54,7 +54,7 @@ spec** and hand implementation to AFK agents. Do **not** use wayfinder as the en
 coding path from grill → shipped product (v1.1 feedback).
 
 Wayfinder *can* own the whole journey for **non-coding** work (e.g. course creation) —
-see **`wayfinder-fleet`** for that path.
+use **`exit=content`** for that path.
 
 This skill **stops at map-complete for coding** and either:
 
@@ -132,7 +132,7 @@ When no open in-scope tickets remain and destination is clear:
 ## Related
 
 - `matt-ship` — coding delivery after to-spec.
-- `wayfinder-fleet` — non-coding full journey inside wayfinder.
+- `exit=content` mode — non-coding full journey (courses, curricula), stays in the map.
 - `research-then-grill` — evidence pack *before* charting.
 
 ## Scripts & assets (local to this skill)

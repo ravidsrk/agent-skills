@@ -173,8 +173,8 @@ the recurring axes). Schedulable via `standing-fleet` for continuous hardening.
 
 ## Related
 
-`red-team-harden` (single-pass audit, no re-attack loop), `review-matrix` (prod-risk
-review), `quorum`, `merge-train`, `gate-steward`, `run-supervision`, 
+`mode=single-pass` (audit-only, no re-attack loop), `review-matrix` (prod-risk
+axes), `quorum`, `merge-train`, `gate-steward`, `run-supervision`, 
 `ephemeral-fleet` (run untrusted PoCs in a sandbox).
 
 ## Scripts & assets

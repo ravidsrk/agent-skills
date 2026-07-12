@@ -55,7 +55,7 @@ that shape, parameterized — replacing the former per-command wrapper skills
 | health | typecheck · lint · tests · dead-code · deps | ro | `docs/health-report.md` | one worker per check; scored dashboard. |
 | canary | post-deploy monitor (browse/health endpoints) | ro | `docs/canary-report.md` | baseline-relative, alert on change, 2-consecutive; human rollback gate; coordinator files the incident issue. |
 | retro | gstack `/retro` on git history | ro | `docs/retros/YYYY-WW.md` | scheduling belongs to `standing-fleet`; this is the single batch run. |
-| office-hours | research pack + six forcing questions | ro→rw synth | `docs/gstack-fleet.md` | never answer the six questions as the human; stop with blockers if unanswered past timeout. |
+| office-hours | research pack + six forcing questions | ro research workers; rw synth worker | `docs/gstack-fleet.md` | never answer the six questions as the human; stop with blockers if unanswered past timeout. |
 | other | any `/gstack-command` | per command | `docs/<command>-report.md` | pick PROFILE by whether the command writes. |
 
 ## Process
@@ -92,7 +92,7 @@ Emits `{{REPORT}}`; ship mode consumes prior review evidence and hands merges to
 ## Related
 
 `qa-fleet`, `ios-qa-fleet`, `autoplan-fleet` (the gstack fleets with distinct mechanics), 
-`standing-fleet` (scheduling), `merge-train`, `full-sprint` composition in AGENTS.md.
+`standing-fleet` (scheduling), `merge-train`, and the mission-sequence composition in AGENTS.md.
 
 ## Scripts & assets
 

@@ -104,12 +104,27 @@ FRESH only while `reviewed_sha` == the HEAD they act on; stale routes back here.
 ## Variants (absorbed skills)
 
 - **axis-pack=prod-risk** (was `review-prod-fleet`): SQL/authz/LLM-trust/side-effect axes instead of Standards/Spec — the passes-CI-breaks-in-prod hunt. Report-only, `PROFILE=ro`.
-- **axis=attack** (was `adversarial-ticket`): a build-blind red-team axis scoped to one just-implemented ticket, attacking its acceptance criteria. Add it to the axis set for a freshly-built ticket.
+- **axis=attack** (was `adversarial-ticket`): a build-blind red-team axis scoped to one
+  just-implemented ticket. The attack worker is a FRESH session that did NOT build the code;
+  its brief:
+  - For each acceptance criterion, construct an ATTACK that tries to make the ticket's claim
+    false — adversarial inputs, boundary/negative cases, the refuse-surface classes
+    (cross-tenant authz, provenance/label smuggling, path traversal, spend/egress/TOCTOU,
+    injection into any parsed input). Do not re-read the builder's tests for reassurance.
+  - Evidence bar: a finding is real only with a **red-capable reproduction** — the failing
+    command + output pasted. A theorized weakness is not a finding.
+  - Response rules: **P0** (criterion actually breakable / a refuse-surface leak) → fix
+    in-branch, add the failing-then-passing test, and **audit the whole class** (every
+    `:tenant_id` route, not just the one that leaked), not only the reported instance.
+    **P1** → fix or explicitly accept with rationale. **P2** → backlog.
+  - Add this axis to the set for a freshly-built ticket; it complements Standards/Spec (which
+    check conformance) by checking *refusal under attack*. For a full audit→fix→re-attack
+    loop across a codebase, that's `red-team-harden`, not a single axis here.
 
 ## Related
 
-- Embedded after each ticket in **`matt-ship`**
-- **`review-matrix`** for refuse-surface attacks beyond review
+- Embedded after each built ticket in **`matt-ship`** (the attack axis)
+- **`red-team-harden`** for a full codebase audit→fix→re-attack loop beyond per-ticket review
 
 ## Scripts & assets (local to this skill)
 

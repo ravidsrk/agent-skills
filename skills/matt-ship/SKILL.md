@@ -150,7 +150,16 @@ promotion PR for human review. MERGE ≠ DEPLOY.
 
 ## Variants (absorbed skills)
 
-- **front-end=spec-issue** (was `spec-issue-fleet`): start from a gstack `/spec` written into a tracker issue, then run the implement phases from that issue. A thin adapter on Phase 3-4.
+- **front-end=spec-issue** (was `spec-issue-fleet`): replaces Phase 1-3 (grill→spec→freeze)
+  when the spec should live in the tracker. Steps:
+  1. Run gstack `/spec` on the intent to produce a structured spec.
+  2. Materialize it as a tracker ISSUE (`gh issue create` / `orca linear`) — the issue body
+     IS the frozen spec + acceptance criteria; that issue is the **single source of truth**
+     the human freezes (the freeze gate = the human confirming the issue).
+  3. Enter Phase 4 (to-tickets → DAG) FROM the issue; each ticket references the issue.
+  4. Preserve close-on-merge linkage: the implement PRs say `Closes #<issue>` so the source
+     issue closes when the work merges; verify the close after the promotion, like any merge.
+  Downstream (Phases 4-7) is the normal Matt flow.
 
 ## Related peers
 

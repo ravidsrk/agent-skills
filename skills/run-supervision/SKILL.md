@@ -55,6 +55,24 @@ LOOP until converged:
      PARK with a gate-create hold. `ask` is agent-to-agent; never claim it reached a human.
 ```
 
+Stale = `last_heartbeat_at` older than ~10 min, OR still `null` past the FIRST poll window
+(a worker that never heartbeated is as dead as one that stopped). Judge from the
+`dispatch-show` timestamps you actually read, not the folklore number.
+
+**Diagnose before respawning (read the evidence):**
+
+| Signal | Likely cause | Action |
+|--------|--------------|--------|
+| No heartbeat ever, terminal alive | prompt pasted, never submitted | nudge Enter once, then respawn |
+| Heartbeats stopped mid-run | worker crashed / context exhausted | respawn fresh; spec unchanged |
+| `worker_done` ignored by runtime | wrong sender / stale dispatch id | only the latest dispatch's assignee may complete it |
+| escalation with payload.taskId | worker hit a real blocker | fix the blocker (spec/env/deps) BEFORE respawning |
+| repeated failure on one task, others fine | bad task spec, not bad workers | stop; rewrite as a NEW task; escalate if unsure |
+
+Respawned workers inherit the ORIGINAL spec verbatim (drift between attempts makes failures
+undiagnosable). Before respawning a `PROFILE=danger` worker, RE-CONFIRM `ORCA_COORD_ALLOW_DANGER`
+is still intended for this run — never silently re-launch bypass-flag work.
+
 ## Mode BLACKBOX — status / resume / audit from provenance
 
 **Run scope is mandatory** (state is runtime-global; `task-list` has no run filter): scope

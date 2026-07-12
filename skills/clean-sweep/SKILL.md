@@ -5,9 +5,11 @@ description: >-
   reliability, concurrency, security, auth/authz, multi-tenant isolation, data model, cost/abuse,
   coupling, dead code, weak/tautological tests, secret leaks, accessibility, and a broken critical
   path — landing ONE PR per finding on an integration branch and leaving the repo demonstrably
-  working end to end. Use when the user asks to "clean sweep", triage-and-fix a backlog of
-  issues/findings, close out an audit/adversarial-review document, or run an autonomous
-  multi-agent fix-everything pass over a codebase. Coordinator-only: it spawns builder / reviewer /
+  working end to end. Use when the user asks to "clean sweep", "drain the backlog", "close every issue",
+  triage-and-fix a backlog of issues/findings, close out an audit/adversarial-review document, or run
+  an autonomous multi-agent fix-everything pass over a codebase. `source=tracker` drains the whole
+  issue tracker (reproduce-or-refute, re-enumerate until dry); `mode=triage-only` verifies without
+  fixing; `source=audit` (default) closes findings. Coordinator-only: it spawns builder / reviewer /
   integrator workers and holds a file-ledger; it never reviews, codes, opens PRs, or merges itself.
 compatibility: >-
   Requires the Orca multi-agent runtime (running, orchestration experimental feature on) and the companion
@@ -136,6 +138,56 @@ SELF-ORIENT ──► REVIEW/INVENTORY ──► SKEPTIC-TRIAGE ──► FREEZE
 Run the coordinator as a **manual loop** (`task-create → spawn → dispatch --inject → check --wait`),
 **not** `orchestration run` — you want the file-ledger boolean gate under your control. Fall back to
 `orchestration run` only if a long run repeatedly stalls on coordinator context limits.
+
+---
+
+## Variants — the source of items (absorbed skills)
+
+The pipeline is the same; the **source** of the items to close changes. Declare it up front.
+
+### `source=audit` (default) — findings from a scan/audit doc
+
+Phase 1 INVENTORYs findings (a security/quality scan, a review, a frozen findings doc),
+freezes them, then the per-finding pipeline closes each. This is the classic clean-sweep.
+
+### `source=tracker` (absorbs `backlog-zero`) — drain the whole issue tracker
+
+Items are OPEN TRACKER ISSUES, not audit findings. Phase 1 changes:
+
+- **Denominator (two queries, not one):** record run-start `T0` FIRST. Then enumerate
+  (1) every open issue in scope (`gh issue list --state open` / `orca linear list`),
+  **paginated to the end** — a truncated listing silently fails the run; and (2) every
+  issue CREATED or REOPENED since `T0` any state (catches issues opened+closed mid-run,
+  class `externally-resolved`). Re-run BOTH queries each loop — **re-enumerate until dry**.
+- **Skeptic-triage = reproduce-or-refute:** a bug issue is VERIFIED only by a red-capable
+  reproduction (command + failing output in the report); non-reproducible → work the
+  timing/env/state/random tree → still nothing → REFUTED with attempts logged, or
+  `needs-human` if it implies private state. Duplicates: search by domain concept, not
+  wording. Class ∈ real-bug · real-feature-small · refuted · duplicate · externally-resolved
+  · needs-human · out-of-scope. Workers NEVER mutate the tracker.
+- **Human batch gate:** closing REFUTED/duplicate issues is a one-way gate (per-batch, or a
+  once-per-run recorded grant via gate-steward).
+- **Per issue in the pipeline:** a bug gets a red repro→regression test first; a small
+  feature gets a failing acceptance test first (no prior failing behavior to reproduce).
+- **Close with evidence:** on verified merge, close the issue with the merge SHA + one
+  completion comment linking PR and test. Fix-backed closes need no extra gate — the
+  evidence chain is the authorization.
+- **Convergence:** a full enumeration finds ZERO issues that are not closed-with-evidence
+  or parked-with-a-human-approved-reason.
+
+### `mode=triage-only` (absorbs `triage-to-fleet`) — verify, don't fix
+
+Run Phase 1 (enumerate + reproduce-or-refute) behind human state-transition gates, and
+STOP — no BASE bootstrap, no fix pipeline. Terminal contract: every in-scope issue has a
+recorded verdict (verified/refuted/duplicate/needs-human) with evidence, and the human has
+gated each tracker state change. Hand the verified `ready-for-agent` set to a `source=tracker`
+run when the human wants fixes.
+
+### `scope=label` (absorbs `ready-agent-drain`) — a single ready-for-agent label
+
+`source=tracker` narrowed to one label (e.g. `ready-for-agent`) with the triage phase
+skipped (these were pre-triaged): claim the issue by assigning it, implement+tdd on the
+frontier, dual review, PR to BASE, capped concurrency. Same close-with-evidence contract.
 
 ---
 

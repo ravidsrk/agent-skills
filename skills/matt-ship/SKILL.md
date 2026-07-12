@@ -148,12 +148,29 @@ promotion PR for human review. MERGE ≠ DEPLOY.
 - Trusting `worker_done` merge claims without `gh pr view` verification.
 - Squash merges; agent trailers; live secrets in workers.
 
+## Variants (absorbed skills)
+
+- **front-end=spec-issue** (was `spec-issue-fleet`): replaces Phase 1-3 (grill→spec→freeze)
+  when the spec should live in the tracker. Steps:
+  1. Run gstack `/spec` on the intent to produce a structured spec.
+  2. Materialize it as a tracker ISSUE (`gh issue create` / `orca linear`) — the issue body
+     IS the frozen spec + acceptance criteria; that issue is the **single source of truth**
+     the human freezes (the freeze gate = the human confirming the issue).
+  3. Enter Phase 4 (to-tickets → DAG) FROM the issue; each ticket references the issue.
+  4. Close linkage — but by EVIDENCE, not the auto-close keyword: implement PRs merge into the
+     integration BASE, and GitHub's `Closes #<n>` keyword only auto-closes on a merge to the
+     DEFAULT branch, so it will NOT fire here. Reference the issue in each PR for traceability
+     (`refs #<n>`), and CLOSE it explicitly after the BASE→default promotion merges —
+     `gh issue close <n> --comment "shipped in <promotion-merge-SHA>"` — verified the same way
+     as any close (the change is greppable on default).
+  Downstream (Phases 4-7) is the normal Matt flow.
+
 ## Related peers
 
 - `wayfinder-fleet` — foggy multi-session **before** this skill’s to-spec.
 - `review-matrix` — review-only wall on an existing PR.
 - `spec-to-ship` — frozen-spec greenfield (not Matt grill path).
-- `clean-sweep` — audit findings, not tracker tickets.
+- `clean-sweep` — closing an EXISTING set of items (audit findings, or the whole tracker via `source=tracker`), not this skill's grill→spec→build-new-work path.
 
 ## Scripts & assets (local to this skill)
 

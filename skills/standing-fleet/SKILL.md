@@ -9,7 +9,7 @@ description: >-
 license: MIT
 compatibility: >-
   HARD dependency: Orca runtime + orchestration skill (Orca CLI) + `orca automations`.
-  The scheduled fleet skill (e.g. ready-agent-drain, retro-cron, canary-fleet) and its
+  The scheduled fleet skill (e.g. clean-sweep, gstack-fleet) and its
   own dependencies must be installed. Worker CLIs codex/claude; git + gh where the
   fleet needs them.
 ---
@@ -52,7 +52,7 @@ explicitly; never schedule `PROFILE=danger` work.
 The precheck runs bounded, exits 0 to proceed, nonzero to skip. Ship one per queue type:
 
 ```bash
-# gh issue queue non-empty (ready-agent-drain):
+# gh issue queue non-empty (clean-sweep):
 test -n "$(gh issue list --label ready-for-agent --limit 1 --json number -q '.[0].number')"
 # Linear queue non-empty:
 test "$(orca linear list --filter assigned --json | python3 -c 'import sys,json;print(len(json.load(sys.stdin).get("result",{}).get("issues",[])))')" != "0"
@@ -119,7 +119,7 @@ Customize `assets/standing-run-prompt.txt`. Its contract, in order:
 - Run history: `orca automations list --json` for the automation id, then
   `orca automations runs --id <automation-id> --json`; `run --id <id>` triggers now.
 - The standing ledger is the cross-run memory: parked gates, last reviewed SHA, streaks.
-- Pair with `fleet-doctor` inside the run for stalled-worker recovery, and `run-blackbox`
+- Pair with `run-supervision` inside the run for stalled-worker recovery, and `run-supervision`
   to reconstruct any run that died mid-flight.
 
 ## Completion contract (embed in the automation prompt)
@@ -127,7 +127,7 @@ Customize `assets/standing-run-prompt.txt`. Its contract, in order:
 A standing run is DONE only when the ledger holds the run header AND footer with real
 counts, every dispatched task reached `completed` / `failed` / parked-gate state (none
 left `dispatched`), and every parked gate names its `decision_gate` id. A run that ends
-without a footer is a crashed run — `run-blackbox` reconstructs it.
+without a footer is a crashed run — `run-supervision` reconstructs it.
 
 ## Rules
 
@@ -145,8 +145,8 @@ finding schema where the fleet emits findings) and parked `decision_gate` ids fo
 
 ## Related
 
-`retro-cron` (the fleet this pattern generalizes), `ready-agent-drain`, `canary-fleet`,
-`fleet-doctor`, `run-blackbox`, `gate-steward`.
+`gstack-fleet` (the fleet this pattern generalizes), `clean-sweep`, `gstack-fleet`, 
+`run-supervision`, `gate-steward`.
 
 ## Scripts & assets
 

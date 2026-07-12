@@ -45,7 +45,7 @@ Field rules:
 - `confidence`: integer **1–10**. Lines with confidence **< 5** do not inject; they wait
   for corroborating evidence (raise confidence on a later append, or supersede).
 - `fleet`: owning fleet slug (exact match for inject).
-- `tags`: optional string array for cross-cutting surfaces (`worktrees`, `merges`,
+- `tags`: optional string array for cross-cutting surfaces (`worktrees`, `merges`, 
   `migrations`, …). Empty/omitted = fleet-only matching.
 - `status`: `active` | `superseded:<newer-key>` | `retired:<reason>`. Never edit lines;
   append the superseding line.
@@ -102,17 +102,17 @@ contradicting → force the supersede decision now, not at 2 a.m. mid-run.
 | `spec` | `review-matrix` | Spec |
 | `security-lite` | `review-matrix` | Security-lite |
 | `test-adequacy` | `review-matrix` | Test-adequacy |
-| `sql` | `review-prod-fleet` | SQL / data (incl. migration safety) |
-| `authz` | `review-prod-fleet` | AuthZ |
-| `llm-trust` | `review-prod-fleet` | LLM/tool trust |
-| `side-effects` | `review-prod-fleet` | Conditional side effects |
+| `sql` | `review-matrix` | SQL / data (incl. migration safety) |
+| `authz` | `review-matrix` | AuthZ |
+| `llm-trust` | `review-matrix` | LLM/tool trust |
+| `side-effects` | `review-matrix` | Conditional side effects |
 
 Stats lines and ledger gating rows MUST use these ids verbatim.
 
 ## Adaptive review gating (stats, not vibes)
 
 **Who executes this:** the COORDINATOR of a review fleet (`review-matrix`,
-`review-prod-fleet`) that has THIS skill loaded — it checks the stats before
+`review-matrix`) that has THIS skill loaded — it checks the stats before
 `task-create`, drops a gated axis's task, and writes the ledger line. The review skills
 name this as their optional pre-step; without fleet-memory loaded, nothing gates.
 
@@ -121,7 +121,7 @@ at fleet start:
 
 - A specialist with **0 findings across its last 10+ dispatches** → gate OFF for this
   run (ledger line: `gated: <specialist>, 0/10+`), freeing its lane.
-- **NEVER_GATE** (insurance axes, zero findings is the GOAL): `security-lite`, `authz`,
+- **NEVER_GATE** (insurance axes, zero findings is the GOAL): `security-lite`, `authz`, 
   `sql`. These run regardless — their value is the miss they'd catch.
 - Any gated specialist re-enters after one exploratory dispatch per 10 runs (drift
   check) or when its surface changes (new dependency class, new data layer).
@@ -143,14 +143,14 @@ Memory with no ledger trace is superstition.
 
 ## Handoff contract
 
-Consumes: `run-blackbox` AUDIT patterns, doctor logs, REFLECT notes. Emits: the two
+Consumes: `run-supervision` AUDIT patterns, doctor logs, REFLECT notes. Emits: the two
 JSONL stores + per-run ledger lines (injected keys, echoes, gated specialists).
-`review-matrix` / `review-prod-fleet` read the gating decision at start; `retro-cron`
+`review-matrix` / `review-matrix` read the gating decision at start; `gstack-fleet`
 reports the compounding ("applied N learnings, wrote M, retired K").
 
 ## Related
 
-`retro-cron`, `run-blackbox`, `review-matrix`, `review-prod-fleet`, `standing-fleet`
+`gstack-fleet`, `run-supervision`, `review-matrix`, `standing-fleet`
 (scheduled prune), gstack `/learn` + `/retro` (upstream pattern).
 
 ## Scripts & assets

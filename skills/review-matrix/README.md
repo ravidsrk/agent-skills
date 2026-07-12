@@ -48,6 +48,6 @@ review-matrix/
 
 ## Related
 
-matt-ship, adversarial-ticket
+matt-ship, review-matrix
 
 Also: `spec-to-ship` / `clean-sweep` (Orca peers, not Matt-based).

@@ -13,7 +13,7 @@ compatibility: >-
   HARD dependency: Orca runtime + orchestration skill (Orca CLI); git + gh. Worker
   playbooks: addyosmani/agent-skills security-and-hardening (STRIDE, OWASP + LLM Top 10,
   supply-chain) and/or gstack /cso — one router per worker. In-pack: merge-train,
-  gate-steward, fleet-doctor, run-blackbox, quorum (finding verification).
+  gate-steward, run-supervision, quorum (finding verification).
 ---
 
 # Red-Team-Harden — fix it, then try to break the fix
@@ -148,7 +148,7 @@ P2 findings backlog freely under either outcome — the floor is P0/P1.
 
 ## RESUME
 
-`run-blackbox` RESUME scoped to this ledger; re-attack verdicts and audit passes are
+`run-supervision` RESUME scoped to this ledger; re-attack verdicts and audit passes are
 provenance the ledger caches. A fix marked merged is re-verified by ancestry before the
 mission trusts it.
 
@@ -167,10 +167,14 @@ Emits the security ledger (findings, votes, re-attack verdicts, class audits, ga
 findings in the AGENTS.md schema, and REFLECT learnings to `fleet-memory` (which gates
 the recurring axes). Schedulable via `standing-fleet` for continuous hardening.
 
+## Variants (absorbed skills)
+
+- **mode=single-pass** (was `cso-fleet`): the audit→fix half without the re-attack/re-audit loop — one OWASP/STRIDE pass, PR-per-finding fixes, done. Use for a quick hardening sweep; the full loop is the default.
+
 ## Related
 
-`cso-fleet` (single-pass audit, no re-attack loop), `review-prod-fleet` (prod-risk
-review), `quorum`, `merge-train`, `gate-steward`, `fleet-doctor`, `run-blackbox`,
+`red-team-harden` (single-pass audit, no re-attack loop), `review-matrix` (prod-risk
+review), `quorum`, `merge-train`, `gate-steward`, `run-supervision`, 
 `ephemeral-fleet` (run untrusted PoCs in a sandbox).
 
 ## Scripts & assets

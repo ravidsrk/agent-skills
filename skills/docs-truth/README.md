@@ -2,7 +2,7 @@
 
 # Docs-Truth
 
-Extract the falsifiable claims from the docs, verify each against the ACTUAL code (does that API/flag/path/example still exist and behave as written? run the examples where possible), fix/regenerate/remove the false ones per Diataxis PR-per-area, and loop until zero claims are untraceable. Truth-first — doc-described-but-unimplemented behavior is a bug routed to backlog-zero, never papered over.
+Extract the falsifiable claims from the docs, verify each against the ACTUAL code (does that API/flag/path/example still exist and behave as written? run the examples where possible), fix/regenerate/remove the false ones per Diataxis PR-per-area, and loop until zero claims are untraceable. Truth-first — doc-described-but-unimplemented behavior is a bug routed to clean-sweep, never papered over.
 
 ## Install
 

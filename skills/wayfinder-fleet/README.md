@@ -48,6 +48,6 @@ wayfinder-fleet/
 
 ## Related
 
-matt-ship, content-wayfinder, research-then-grill
+matt-ship, wayfinder-fleet, research-then-grill
 
 Also: `spec-to-ship` / `clean-sweep` (Orca peers, not Matt-based).

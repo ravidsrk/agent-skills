@@ -13,7 +13,7 @@ Requires Orca (runtime + `orchestration` CLI skill); python3; a repo for the com
 
 ## Use
 
-"Why does every run rediscover the worktree-selector gotcha?" → write it once at REFLECT, and run N+1's workers get "PRIOR LEARNINGS: [worktree-selector-composite-id] ..." in their TASK. Workers echo applied keys in worker_done so retro-cron can show the compounding.
+"Why does every run rediscover the worktree-selector gotcha?" → write it once at REFLECT, and run N+1's workers get "PRIOR LEARNINGS: [worktree-selector-composite-id] ..." in their TASK. Workers echo applied keys in worker_done so gstack-fleet can show the compounding.
 
 ## Structure
 

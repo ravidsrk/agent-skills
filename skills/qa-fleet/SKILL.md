@@ -77,7 +77,7 @@ human gate: accept residual risk
   accounts only (the rule above stands).
 
 ## Related
-`review-prod-fleet`, `cso-fleet`, `gstack-ship-fleet`, `full-sprint-fleet`.
+`review-matrix`, `red-team-harden`, `gstack-fleet`, `the full-sprint composition (AGENTS.md)`.
 
 
 ## Scripts & assets

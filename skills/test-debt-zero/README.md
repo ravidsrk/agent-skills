@@ -13,7 +13,7 @@ Requires Orca + `orchestration`, git + gh, a runnable suite + coverage tool, and
 
 ## Use
 
-"Close the test gap on the payments and auth paths." → map the critical surface (human-confirmed to bound it), characterize with real assertions, mutation-audit each test (it must fail at its assertion under a semantics-preserving code mutation, harness still runnable), and hand surfaced bugs to backlog-zero. A test insensitive to the behavior is worthless and the mission knows it.
+"Close the test gap on the payments and auth paths." → map the critical surface (human-confirmed to bound it), characterize with real assertions, mutation-audit each test (it must fail at its assertion under a semantics-preserving code mutation, harness still runnable), and hand surfaced bugs to clean-sweep. A test insensitive to the behavior is worthless and the mission knows it.
 
 ## Structure
 

@@ -13,7 +13,7 @@ compatibility: >-
   HARD dependency: Orca runtime + orchestration skill (Orca CLI); git + gh; a runnable
   suite + coverage tool. Worker playbooks: addyosmani/agent-skills (TDD, testing-patterns)
   or mattpocock/skills (tdd) — one router per worker (verify skill names against the
-  installed pack). In-pack: merge-train, fleet-doctor, gate-steward, run-blackbox.
+  installed pack). In-pack: merge-train, run-supervision, gate-steward, run-supervision.
 ---
 
 # Test-Debt-Zero — every critical path has a test that dies under mutation
@@ -91,7 +91,7 @@ A test that fails because the code is WRONG (not just untested) is a real bug:
   clearly-correct fix → fix in the same PR with the now-passing test. Ambiguous or
   behavior-changing (is the old behavior load-bearing? Hyrum's Law) → PARK as a
   `needs-human` decision (the "fix" might break a caller relying on the quirk), or hand
-  to `backlog-zero`. Never silently "fix" by asserting the buggy behavior as correct.
+  to `clean-sweep`. Never silently "fix" by asserting the buggy behavior as correct.
 
 ## Phase 4 — PROVE + loop
 
@@ -116,7 +116,7 @@ Loop until every row on the confirmed surface is mutation-audited. New surface �
   semantics-preserving mutation of its covered code, harness still runnable
   (mutation-audit recorded; spot-audited on a sample by a fresh worker).
 - Every surfaced bug: fixed-with-test, or PARKED as needs-human with a reason, or handed
-  to `backlog-zero` (referenced).
+  to `clean-sweep` (referenced).
 - No assertion weakened to pass (diff-audit: a test file whose assertions got looser is a
   red flag a fresh reviewer checks).
 - Coverage before/after on the critical surface pasted in the ledger — but the pass
@@ -125,7 +125,7 @@ Loop until every row on the confirmed surface is mutation-audited. New surface �
 
 ## RESUME
 
-`run-blackbox` RESUME scoped to this ledger; a test claimed merged is re-verified by
+`run-supervision` RESUME scoped to this ledger; a test claimed merged is re-verified by
 ancestry, and its mutation-audit status is re-checkable by re-running — never trusted
 from memory.
 
@@ -143,14 +143,14 @@ from memory.
 ## Handoff contract
 
 Emits the coverage ledger (paths, mutation-audits, surfaced bugs), bugs handed to
-`backlog-zero`, and REFLECT learnings to `fleet-memory`. Schedulable via `standing-fleet`
+`clean-sweep`, and REFLECT learnings to `fleet-memory`. Schedulable via `standing-fleet`
 (re-map after each merge to default; wake when critical coverage regresses).
 
 ## Related
 
-`flake-zero` (test stability sibling), `backlog-zero` (surfaced bugs go there),
-`feature-factory` (builds tests into new features), `merge-train`, `fleet-doctor`,
-`gate-steward`, `run-blackbox`, `fleet-memory`.
+`flake-zero` (test stability sibling), `clean-sweep` (surfaced bugs go there), 
+`spec-to-ship` (builds tests into new features), `merge-train`, `run-supervision`, 
+`gate-steward`, `run-supervision`, `fleet-memory`.
 
 ## Scripts & assets
 

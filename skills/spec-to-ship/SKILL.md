@@ -7,8 +7,9 @@ description: >-
   ADVERSARIAL red-team → SHIP → REFLECT — with build-blind review, a second bot reviewer, a durable
   file-ledger as external brain, and the hard-won merge/wrong-base/worktree/migration/secret gotchas
   that otherwise silently break the run. Use when
-  autonomously building a whole product/system from ready specs by fanning work across many coding agents
-  (Orca orchestration, git worktrees, sub-agents, codex/claude terminals); coordinating parallel builders
+  autonomously building a whole product/system from ready specs by fanning work across many coding agents,
+  or (with `scope=feature`) grilling one feature to a frozen spec and shipping it behind a promotion gate;
+  coordinating parallel builders
   and reviewers with BugBot/adversarial review; verifying a build actually works (anti-inflation e2e gate,
   refuse-surface suites, drift ratchets); or when a long autonomous run stalls, mis-merges, or merges to
   the wrong base.
@@ -113,6 +114,42 @@ phase; never re-open a frozen one. Mark the current phase at the top of the ledg
   the same breath: rewrite live-status docs (runbook, ops-actions) to the new truth, and **banner-close**
   historical ledgers/reports with a dated pointer forward. A stale handoff doc misleads OPS worse than a
   missing one (naming the wrong release candidate, listing shipped work as "deferred").
+
+## Variants — `scope` (absorbs feature-factory)
+
+Same decompose→slice→review→merge-train→verify pipeline; the SCOPE and front-end change.
+
+### `scope=product` (default) — a whole product from a FROZEN spec
+
+The spec is already frozen (docs handed in). No grill phase; go straight to THINK→PLAN→
+FOUNDATION→slices. The lifecycle above.
+
+### `scope=feature` (absorbs `feature-factory`) — a single feature, grill-first
+
+One front-loaded HITL phase, then hands-off, with TWO named terminal outcomes:
+
+- **Phase 1 GRILL + FREEZE (the only interactive phase):** on the COORDINATOR terminal
+  (never fan grilling to a worker — HITL leak), run Matt `grill-with-docs` (or Addy
+  `interview-me` + `spec-driven-development`) — relentless one-question-at-a-time, recommend
+  an answer to each, look facts up in the codebase, put every DECISION to the human.
+  Produce a frozen spec: objectives, **acceptance criteria per capability**, boundaries
+  (explicit NOT-in-scope), test strategy. **Human gate #1 — FREEZE:** the canonical fixed
+  point for every downstream Spec review and acceptance test; no re-open without a backlog
+  entry.
+- **Build:** `spec-decompose` the frozen spec into tracer-bullet slices; each slice worker
+  writes a **failing acceptance test FIRST** for its criterion, then the smallest
+  implementation; commit-per-slice; anything irreversible STOPS and escalates.
+- **Verify (integrated whole):** a fresh worker runs the full suite + e2e against BASE HEAD
+  and maps EVERY frozen acceptance criterion → the test that proves it (traceability table).
+  A criterion with no passing test is UNMET work, not a waiver.
+- **Two terminal outcomes — name the one reached:**
+  - **PARKED-AT-PROMOTION** (blocked, not done): all slices merged+verified on BASE, the
+    promotion PR is open with its traceability table, ledger outcome = `PARKED-AT-PROMOTION`.
+  - **SHIPPED** (done): the human merged the promotion PR (verified on default), deployment
+    verified, and — when a canary surface applies — the canary ran its FULL window green
+    (`gstack-fleet` canary mode). Ledger outcome = `SHIPPED`. Reaching BASE with an open
+    promotion PR is PARKED, never SHIPPED.
+  Merge ≠ deploy; the swarm never self-merges the promotion or deploys.
 
 ## The PR-per-task pipeline (one task = one branch = one PR = one merge-commit)
 

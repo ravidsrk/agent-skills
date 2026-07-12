@@ -13,7 +13,7 @@ compatibility: >-
   the code in one repo. Worker playbooks: addyosmani/agent-skills
   (documentation-and-adrs, source-driven-development) or gstack (document-generate) — one
   router per worker (verify names against the installed pack). In-pack: merge-train,
-  fleet-doctor, gate-steward, run-blackbox.
+  run-supervision, gate-steward, run-supervision.
 ---
 
 # Docs-Truth — every documented claim traces to the tree, or it's gone
@@ -83,7 +83,7 @@ stale/unverifiable) | evidence (file:symbol or run) | ACTION | PR | MERGED |`.
   (deleting a lie is a fix).
 - **The code is right, the doc is wrong** → fix the doc. **The doc describes intended
   behavior the code doesn't do** → that's a BUG, not a doc fix: PARK as needs-human or
-  hand to `backlog-zero` — never "fix" the doc by documenting the broken behavior as
+  hand to `clean-sweep` — never "fix" the doc by documenting the broken behavior as
   intended.
 - Add a traceability anchor where cheap (a doc-test, a `<!-- verified: file:symbol -->`
   marker) so the next run re-checks fast.
@@ -113,14 +113,14 @@ finds zero false/stale claims and every unverifiable one is parked with a human 
   spot-audited on a sample by a fresh worker re-verifying against the tree.
 - Every runnable example (when `{{EXAMPLES_RUNNABLE}}`): executed, output matches the doc,
   the run pasted.
-- Doc-described-but-unimplemented behavior: handed to `backlog-zero` or parked, never
+- Doc-described-but-unimplemented behavior: handed to `clean-sweep` or parked, never
   papered over.
 - Final re-extraction pasted showing zero untraceable claims (or the parked list).
 - Promotion to default is out of scope.
 
 ## RESUME
 
-`run-blackbox` RESUME scoped to this ledger; a doc fix claimed merged is re-verified by
+`run-supervision` RESUME scoped to this ledger; a doc fix claimed merged is re-verified by
 ancestry, and claim verdicts are re-checkable against the tree — never trusted from
 memory. Re-extract to catch claims that went stale while the coordinator was down.
 
@@ -128,7 +128,7 @@ memory. Re-extract to catch claims that went stale while the coordinator was dow
 
 - "Improving" prose without verifying the facts (polish over a false claim = a prettier
   lie).
-- Documenting broken behavior as intended (locks in the bug; route it to backlog-zero).
+- Documenting broken behavior as intended (locks in the bug; route it to clean-sweep).
 - Verifying from the model's memory of the API instead of the tree (the exact rot that
   created the drift).
 - Regenerating reference docs that then contradict hand-written how-tos (re-extract
@@ -137,14 +137,18 @@ memory. Re-extract to catch claims that went stale while the coordinator was dow
 ## Handoff contract
 
 Emits the claims ledger (verdicts, evidence, actions), doc-surfaced bugs to
-`backlog-zero`, and REFLECT learnings to `fleet-memory`. Schedulable via `standing-fleet`
+`clean-sweep`, and REFLECT learnings to `fleet-memory`. Schedulable via `standing-fleet`
 (precheck: docs or public API changed since last run).
+
+## Variants (absorbed skills)
+
+- **mode=generate** (was `docs-fleet`): generate/refresh docs per Diataxis after code lands (Phase 3 without the verify-first phases). The default `mode=verify` checks existing claims against the tree.
 
 ## Related
 
-`docs-fleet` (generation-focused sibling — docs-truth is verification-first),
-`backlog-zero` (doc-surfaced bugs), `merge-train`, `fleet-doctor`, `gate-steward`,
-`run-blackbox`, `fleet-memory`.
+`docs-truth` (generation-focused sibling — docs-truth is verification-first),
+`clean-sweep` (doc-surfaced bugs), `merge-train`, `run-supervision`, `gate-steward`, 
+`run-supervision`, `fleet-memory`.
 
 ## Scripts & assets
 

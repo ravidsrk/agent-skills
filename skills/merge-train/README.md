@@ -13,7 +13,7 @@ Requires Orca (runtime + `orchestration` CLI skill), git + gh, an integration BA
 
 ## Use
 
-"My parallel PRs keep racing each other onto the integration branch" → one conductor terminal owns the queue. Merge-to-default stays a human gate (gate-steward, one-way) — the train serves the integration BASE only. Conductor crash? run-blackbox rebuilds the queue from persisted merge_ready messages.
+"My parallel PRs keep racing each other onto the integration branch" → one conductor terminal owns the queue. Merge-to-default stays a human gate (gate-steward, one-way) — the train serves the integration BASE only. Conductor crash? run-supervision rebuilds the queue from persisted merge_ready messages.
 
 ## Structure
 

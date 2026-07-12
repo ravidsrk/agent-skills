@@ -13,7 +13,7 @@ Requires Orca (runtime + `orchestration` CLI skill + `orca automations`), plus t
 
 ## Use
 
-Ask your agent: "schedule ready-agent-drain nightly at 02:30, skip when the queue is empty" — the skill confirms cadence + budget, writes the precheck, creates the automation with the standing-run prompt, and shows you `orca automations runs` for history. Parked one-way gates wait in `docs/standing/<name>.md` for you (or gate-steward) between runs.
+Ask your agent: "schedule clean-sweep nightly at 02:30, skip when the queue is empty" — the skill confirms cadence + budget, writes the precheck, creates the automation with the standing-run prompt, and shows you `orca automations runs` for history. Parked one-way gates wait in `docs/standing/<name>.md` for you (or gate-steward) between runs.
 
 ## Structure
 

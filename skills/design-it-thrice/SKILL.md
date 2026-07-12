@@ -103,6 +103,10 @@ Do **not** pick a winner for the human unless they asked you to recommend with r
 - Coordinator rewriting designs mid-flight
 - Implementing the chosen design inside a design worktree without a new ticket
 
+## Variants (absorbed skills)
+
+- **mode=ui** (was `design-shotgun-fleet`): explore radically different UI/visual variants instead of module interfaces — parallel isolated workers, comparison board, human pick. Same machinery, different design domain.
+
 ## Scripts & assets (local to this skill)
 
 Use paths relative to this skill directory (works inside worktrees when the skill is installed/linked):

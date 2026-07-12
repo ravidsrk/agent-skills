@@ -33,12 +33,31 @@ compatibility: >-
 ## Not a fleet by itself
 Apply at coordinator start for any fleet that invokes gstack methodology.
 
-## Rules injected into every worker TASK
-1. `SESSION_KIND=headless` — do not call AskUserQuestion
-2. AUTO_DECIDE options marked (recommended); log decision in report
-3. Taste / premise / irreversible → `ask` / escalation to coordinator (not invent)
-4. On missing human: `worker_done` with status blocked + questions list
-5. Coordinator turns blocks into `decision_gate` for the user
+## What gstack actually reads (there is no prose mode)
+gstack derives its session kind from the ENVIRONMENT (`bin/gstack-session-kind`), not from
+preamble text. A TASK line saying "SESSION_KIND=headless" changes nothing.
+
+- `GSTACK_HEADLESS=1` → gstack `headless`: when a question cannot be asked, gstack
+  **BLOCKS** (Completion Status BLOCKED). It does NOT auto-select an answer.
+- Spawned sessions (e.g. OpenClaw-launched) are the mode that auto-selects the
+  `(recommended)` option.
+- Anything else is interactive.
+
+## Process
+1. Launch every worker with the env var actually set, via the launcher overrides:
+   `CLAUDE_CMD='GSTACK_HEADLESS=1 claude --permission-mode acceptEdits' scripts/spawn_worker.sh …`
+   (same pattern for `CODEX_CMD`).
+2. Rules injected into every worker TASK — written to work WITH the blocking semantics:
+   - never call AskUserQuestion (it hangs a headless session)
+   - when gstack blocks on a question, do NOT invent an answer: raise
+     `orca orchestration ask` to the coordinator, or `worker_done` with status blocked +
+     the question list
+   - taste / premise / irreversible decisions always escalate; log every decision taken
+     in the report
+3. Coordinator turns blocked questions into `decision_gate`s for the human.
+4. If you want auto-decided review questions, that is **autoplan's AUTO_DECIDE** — the
+   COORDINATOR answers per autoplan's decision principles with an audit trail. It is not
+   a gstack headless feature; do not promise workers that gstack will self-answer.
 
 ## Related
 `guard-policy`, `autoplan-fleet`, `full-sprint-fleet`.

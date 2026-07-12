@@ -42,13 +42,18 @@ Read-only. No performance-fix work without separate implement tasks.
 agents, no bypass flags) and preflight with `--mode readonly`. A measurement fleet never needs
 write-capable workers.
 
+## Completion contract (embed verbatim in every worker TASK)
+A `worker_done` is valid ONLY with `reportPath` containing a per-URL/journey metrics table
+(numeric values, tool used, run count), the baseline values compared against, and the delta
+with a regression verdict per threshold. No baseline comparison = NOT done.
+
 ## Related
 `health-fleet`, `qa-fleet`, `canary-fleet`.
 
 
 ## Scripts & assets
 
-- `scripts/spawn_worker.sh` · `preflight.py` · `pm.py` — call Orca
+- `scripts/spawn_worker.sh` — calls Orca (fail-closed dispatch; PROFILE=ro|rw|danger) · `preflight.py` — git/gh + BASE invariants (no Orca) · `pm.py` — inbox/check JSON parser (no Orca)
 - `assets/*_preamble.txt` — worker roles
 - `references/ledger-template.md` — copy to `docs/<skill>-progress.md`
 

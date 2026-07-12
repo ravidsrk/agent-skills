@@ -52,13 +52,19 @@ review army) or an explicit fix-budget run — not this skill.
 4. Aggregate; do not fix unless user asked
 5. Optional fix tasks for P0 (separate `PROFILE=rw` dispatches, never the review workers)
 
+## Handoff contract
+Emits findings in the AGENTS.md finding schema to `report_path`
+`docs/reviews/review-prod-<sha>.md` with `reviewed_sha` = the fixed point reviewed.
+Production-risk axes are owned HERE (AGENTS.md routing) — consumers read this report
+instead of re-running the axes; stale (`reviewed_sha` != HEAD) routes back here.
+
 ## Related
 `review-matrix`, `gstack-ship-fleet`, `cso-fleet`.
 
 
 ## Scripts & assets
 
-- `scripts/spawn_worker.sh` · `preflight.py` · `pm.py` — call Orca
+- `scripts/spawn_worker.sh` — calls Orca (fail-closed dispatch; PROFILE=ro|rw|danger) · `preflight.py` — git/gh + BASE invariants (no Orca) · `pm.py` — inbox/check JSON parser (no Orca)
 - `assets/*_preamble.txt` — worker roles
 - `references/ledger-template.md` — copy to `docs/<skill>-progress.md`
 

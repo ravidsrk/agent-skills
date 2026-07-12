@@ -39,13 +39,18 @@ DETECT what shipped (BASE vs default / last tag)
 
 Never invent product claims not supported by code. Human gate on user-facing doc PRs if public.
 
+## Completion contract (embed verbatim in every worker TASK)
+Every claim in generated docs must trace to a file/symbol that exists at the stated path —
+the report lists the spot-checks performed. `worker_done` lists every doc file written and
+its Diataxis quadrant. Documenting an API that does not exist in the tree fails the task.
+
 ## Related
 `gstack-ship-fleet`, `matt-ship`.
 
 
 ## Scripts & assets
 
-- `scripts/spawn_worker.sh` · `preflight.py` · `pm.py` — call Orca
+- `scripts/spawn_worker.sh` — calls Orca (fail-closed dispatch; PROFILE=ro|rw|danger) · `preflight.py` — git/gh + BASE invariants (no Orca) · `pm.py` — inbox/check JSON parser (no Orca)
 - `assets/*_preamble.txt` — worker roles
 - `references/ledger-template.md` — copy to `docs/<skill>-progress.md`
 

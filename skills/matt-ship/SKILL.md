@@ -6,7 +6,7 @@ description: >-
   implement(+tdd) on the ticket frontier → dual-axis code-review → integrate.
   Use when the user wants the full Matt main flow under supervised multi-agent
   orchestration, "matt ship", "idea to tickets to fleet implement", or AFK
-  coding after grilling. HARD dependency: Orca runtime + orchestration skill (Orca CLI) skill + mattpocock skills.
+  coding after grilling. HARD dependency: Orca runtime + orchestration skill (Orca CLI) + mattpocock skills.
   Not for frozen-spec-only greenfield (use spec-to-ship) or audit close-out (use clean-sweep).
 license: MIT
 compatibility: >-

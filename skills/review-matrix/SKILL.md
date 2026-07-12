@@ -87,6 +87,12 @@ Standards: N findings (worst: …)
 Spec: N findings (worst: …)
 ```
 
+## Handoff contract
+Emits findings in the AGENTS.md finding schema to `report_path`
+`docs/reviews/review-matrix-<sha>.md` with `reviewed_sha` = the branch HEAD reviewed.
+Consumers (merge roles, `gstack-ship-fleet`, `full-sprint-fleet`) treat the evidence as
+FRESH only while `reviewed_sha` == the HEAD they act on; stale routes back here.
+
 ## Related
 
 - Embedded after each ticket in **`matt-ship`**

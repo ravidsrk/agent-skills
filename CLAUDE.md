@@ -5,9 +5,12 @@ Production-grade skills for AI agents — DNS migration, AWS migration, deep res
 # Project Structure
 
 ```
-skills/        → 5 capability skills (each with SKILL.md + README.md + scripts/ references/ templates/)
-docs/          → Per-runtime setup guides + skill-anatomy spec
-scripts/       → Repo-level helpers (validate-skills.py)
+skills/        → 37 skills: 5 capability + 30 Orca orchestration/fleet + 2 autonomous peers
+                 (each with SKILL.md + README.md + scripts/ references/ templates/ assets/)
+docs/          → Per-runtime setup guides + skill-anatomy spec + review/remediation logs
+scripts/       → Repo-level helpers (validate-skills.py, sync-orca-coord.py, test-orca-coord.sh)
+scripts/orca-coord/ → CANONICAL shared fleet helpers; skill copies are GENERATED (see MANIFEST)
+tests/         → Behavioral tests for the orca-coord substrate
 assets/        → Banner image, screenshots
 plugin.json    → Claude Code marketplace manifest
 LICENSE        → MIT
@@ -22,6 +25,12 @@ LICENSE        → MIT
 | `fly-to-aws-migration` | 🌐 Infrastructure | 7-phase Fly.io → AWS playbook with ≤9 min downtime |
 | `deep-research` | 🔍 Research | 8-source parallel evidence orchestrator (X, Reddit, HN, GitHub, Polymarket, YouTube, Exa) |
 | `terminal-poster` | 🎨 Creative | Retro-cyberpunk image posters (5 reusable templates, Nano Banana Pro) |
+
+The 30 Orca orchestration/fleet skills and the 2 autonomous peers (`clean-sweep`,
+`spec-to-ship`) are cataloged in [README.md](README.md) and mapped in
+[AGENTS.md](AGENTS.md) (intent map, review routing, runtime dependency matrix).
+Editing a fleet skill? The `scripts/` helpers inside each skill are GENERATED from
+`scripts/orca-coord/` — edit the canonical file and run `python3 scripts/sync-orca-coord.py`.
 
 # Conventions
 

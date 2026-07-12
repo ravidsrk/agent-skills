@@ -45,6 +45,17 @@ When working in this repo:
 | "autoplan fleet" / autonomous plan gauntlet | [`autoplan-fleet`](skills/autoplan-fleet/SKILL.md) |
 | "full sprint fleet" / plan-build-verify-ship | [`full-sprint-fleet`](skills/full-sprint-fleet/SKILL.md) |
 | "headless mode" / guard policy for fleets | [`headless-mode`](skills/headless-mode/SKILL.md) / [`guard-policy`](skills/guard-policy/SKILL.md) |
+| "benchmark fleet" / perf vs baseline on staging URLs | [`benchmark-fleet`](skills/benchmark-fleet/SKILL.md) |
+| "canary fleet" / post-deploy monitoring, human rollback gate | [`canary-fleet`](skills/canary-fleet/SKILL.md) |
+| "design shotgun fleet" / parallel design variants, human pick | [`design-shotgun-fleet`](skills/design-shotgun-fleet/SKILL.md) |
+| "docs fleet" / Diataxis docs after code lands | [`docs-fleet`](skills/docs-fleet/SKILL.md) |
+| "health fleet" / typecheck-lint-tests-deps dashboard | [`health-fleet`](skills/health-fleet/SKILL.md) |
+| "investigate fleet" / evidence → root cause → fix swarm | [`investigate-fleet`](skills/investigate-fleet/SKILL.md) |
+| "ios qa fleet" / device QA over USB or Tailscale | [`ios-qa-fleet`](skills/ios-qa-fleet/SKILL.md) |
+| "office hours async" / research pack + forcing questions for the human | [`office-hours-async`](skills/office-hours-async/SKILL.md) |
+| "retro cron" / scheduled weekly retrospective batch | [`retro-cron`](skills/retro-cron/SKILL.md) |
+| "review prod fleet" / passes-CI-breaks-in-prod hunt | [`review-prod-fleet`](skills/review-prod-fleet/SKILL.md) |
+| "spec issue fleet" / gstack /spec into issue, then implement fleet | [`spec-issue-fleet`](skills/spec-issue-fleet/SKILL.md) |
 
 
 # Execution Model
@@ -143,3 +154,48 @@ Fixes:
 **All multi-agent skills in this repo are built on Orca orchestration** (runtime + the `orchestration` skill from the Orca CLI). They are strategy layers on that grammar; they do not replace it and do not substitute in-process subagents.
 
 `clean-sweep` and `spec-to-ship` require the **Orca** runtime and the companion **`orchestration` skill shipped with the Orca CLI** — it is **not** published under `skills/` in this repository. They are independent peers (neither skill depends on the other).
+
+# Review ownership and routing
+
+One owner per review concern — never "and/or". Selection rule:
+
+| Change / need                                          | Owner                | Never |
+|---------------------------------------------------------|----------------------|-------|
+| Standards + Spec of a diff/PR (Matt path)                | `review-matrix`      | Not run again inside gstack-ship-fleet |
+| Production-risk axes (SQL, authz, LLM trust, side effects) | `review-prod-fleet` | Never fixes; report-only |
+| Pre-ship umbrella (tests + review army + changelog + PR) | `gstack-ship-fleet` via gstack `/ship` | Never pre-runs a separate test/review worker |
+| Security deep audit (OWASP/STRIDE)                       | `cso-fleet`          | Not folded into review-matrix's security-lite when a real audit is wanted |
+
+**Finding schema** (every review fleet emits findings in this JSON shape so downstream skills
+can consume instead of re-scan):
+
+```json
+{"id": "RM-003", "axis": "standards|spec|sql|authz|llm-trust|side-effects|security",
+ "file": "src/x.ts", "line": 42, "severity": "P0|P1|P2",
+ "summary": "...", "reviewed_sha": "<commit reviewed>", "report_path": "docs/reviews/..."}
+```
+
+**Reviewed-SHA handoff:** a consumer (merge role, gstack-ship-fleet, full-sprint-fleet) treats
+review evidence as FRESH only when `reviewed_sha` equals the branch HEAD it is about to act on.
+Stale → route back to the owning fleet, don't re-review ad hoc.
+
+# Matt coding-flow invariant
+
+Coding workflows exit through **`/to-spec` → `/to-tickets` → `/implement`** — a frozen spec is
+the canonical fixed point for ticket acceptance criteria and Spec review. `matt-ship`,
+`wayfinder-fleet`, `architecture-sprint`, and `spec-issue-fleet` all pass through it.
+Non-coding exceptions (no spec freeze required): `content-wayfinder` (writing),
+`research-then-grill` (research), `office-hours-async` (decision prep), report-only fleets.
+
+# Runtime dependency matrix
+
+| Skill (or group)                          | Needs Orca | Needs gstack | Needs Matt skills | Needs in-pack peers |
+|--------------------------------------------|------------|--------------|-------------------|---------------------|
+| Matt×Orca group (matt-ship, wayfinder-fleet, design-it-thrice, review-matrix, triage-to-fleet, diagnose-swarm, architecture-sprint, research-then-grill, adversarial-ticket, content-wayfinder, model-jury, ready-agent-drain) | yes | no | yes (worker playbooks) | architecture-sprint → design-it-thrice, matt-ship; triage-to-fleet → ready-agent-drain |
+| Gstack fleet group (gstack-ship-fleet, qa-fleet, cso-fleet, autoplan-fleet, review-prod-fleet, health-fleet, docs-fleet, canary-fleet, benchmark-fleet, retro-cron, ios-qa-fleet, office-hours-async, design-shotgun-fleet) | yes | yes (worker methodology) | no | none |
+| `investigate-fleet`                        | yes | yes | yes (`/tdd`)      | none |
+| `spec-issue-fleet`                         | yes | yes (`/spec`) | yes (ticketing) | matt-ship phases |
+| `full-sprint-fleet`                        | yes | yes | yes | composes office-hours-async, autoplan-fleet, matt-ship / wayfinder-fleet / spec-to-ship, review-prod-fleet, review-matrix, qa-fleet, cso-fleet, gstack-ship-fleet, canary-fleet, docs-fleet |
+| Policy (guard-policy, headless-mode)       | yes | yes (hooks / env) | no | applied to other fleets |
+| Peers (clean-sweep, spec-to-ship)          | yes | no | no | none (independent peers) |
+| Utility (cloudflare-dns, namecheap-dns, fly-to-aws-migration, deep-research, terminal-poster) | no | no | no | none |

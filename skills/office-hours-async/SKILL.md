@@ -41,6 +41,8 @@ RESEARCH workers (optional research-then-grill / monid)
 - Never answer the six questions as the human.
 - If answers missing after timeout, stop with clear blockers list.
 - HITL taste preserved; only prep is AFK.
+- Launch profile: research workers `PROFILE=ro`; only the synthesis worker that writes the
+  ledger doc gets `PROFILE=rw`. Preflight with `--mode readonly` (no PRs in this fleet).
 
 ## Related
 `autoplan-fleet`, `research-then-grill`, `wayfinder-fleet`.

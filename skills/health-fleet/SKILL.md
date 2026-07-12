@@ -38,6 +38,10 @@ optional: open tickets for P0 health breaks
 
 Read-only by default. Fix only if user set fix-budget.
 
+**Launch profile:** spawn workers with `PROFILE=ro` (`scripts/spawn_worker.sh` — sandboxed/plan-mode
+agents, no bypass flags) and preflight with `--mode readonly`. Switch to `PROFILE=rw` only for the
+fix-budget tasks themselves.
+
 ## Related
 `benchmark-fleet`, `docs-fleet`, `cso-fleet`.
 

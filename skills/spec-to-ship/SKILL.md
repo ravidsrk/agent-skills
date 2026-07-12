@@ -152,13 +152,17 @@ These are silent or expensive failures observed in a real run. The headlines:
 
 1. **Merge trap** — a hung bot "autofix" check leaves the PR `UNSTABLE` forever; a plain `gh pr merge`
    **silently no-ops** and some workers report success anyway. Once real gates are green + the bot *review*
-   concluded + findings reconciled → **merge via `--admin`**. Bake auto-`--admin`-on-merge-trap into the
-   integrator spec so it doesn't hang waiting for a check that never completes.
+   concluded + findings reconciled → **merge via `--admin`, but only under the run's human-approved
+   merge-trap grant (ledger gate D8)**: ask the human ONCE per run, record the grant in the ledger, then
+   integrators apply it to verified-green PRs instead of hanging on a check that never completes.
+   Never `--admin` without the recorded grant.
 2. **A merge isn't done at `state=MERGED`** — it's done at `state=MERGED` **AND `baseRefName==<BASE>` AND
    the change is greppable on `origin/<BASE>`.** A builder self-opening a PR gets `main` as base and merges
    the fix to the *wrong* branch (gotcha #13). Builders never open PRs; verify the fix is *on base*.
-3. **Answer worker decision-gates via terminal-send** (and the CURRENT re-ask id), not only the reply
-   channel — the reply often doesn't reach the worker's blocking `ask` (it re-asks; terminal-send unblocks).
+3. **Answer worker decision-gates with `orca orchestration reply --id <CURRENT re-ask id>`** — the durable,
+   attributed channel (a blocking `ask` times out and re-asks under a NEW id; always answer the LATEST).
+   If the worker's `ask` already expired and it idles at the prompt, ALSO unblock it via terminal-send —
+   but the `reply` is what records the decision (gotchas #2, #17).
 4. **Sync the coordinator's local base before each new worktree wave** — `worktree --base-branch` resolves
    the *local* ref; a stale local base makes workers build on outdated code (they add shims / stack branches).
 5. **Env-var parity** — adding a var to the example file but not the typed env-spec (or vice-versa) breaks

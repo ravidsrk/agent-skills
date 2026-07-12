@@ -35,6 +35,8 @@ You are the **COORDINATOR**. Workers drive real browser QA (gstack `/browse` + `
 - Staging/base URL (required)
 - Optional test plan path (from plan-eng-review)
 - Mode: **report-only** (default) or **fix-budget N** (max N fix PRs)
+- Launch profile: report-only → `PROFILE=ro` workers + preflight `--mode readonly`;
+  fix-budget tasks → `PROFILE=rw` (never `danger` for QA fixes)
 
 ## Phase graph
 ```

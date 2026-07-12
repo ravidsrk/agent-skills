@@ -12,10 +12,12 @@ Rules enforced:
 Exit code: 0 if all valid, 1 if any failures.
 """
 import re
+import subprocess
 import sys
 from pathlib import Path
 
 SKILLS_DIR = Path(__file__).resolve().parent.parent / "skills"
+SYNC_SCRIPT = Path(__file__).resolve().parent / "sync-orca-coord.py"
 NAME_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 
 
@@ -121,6 +123,13 @@ def main():
                 print(f"   - {e}")
         else:
             print(f"✅ {skill_dir.name}")
+
+    # Vendored orca-coord helpers must match the canonical source (drift check).
+    if SYNC_SCRIPT.exists():
+        sync = subprocess.run([sys.executable, str(SYNC_SCRIPT), "--check"])
+        if sync.returncode != 0:
+            all_passed = False
+            print("❌ orca-coord vendored helper drift (run scripts/sync-orca-coord.py)")
 
     print()
     if all_passed:

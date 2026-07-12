@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""preflight.py — hard preflight checks for a matt-ship run.
+# GENERATED FROM scripts/orca-coord/preflight.py — DO NOT EDIT THIS COPY.
+# Edit the canonical file, then run: python3 scripts/sync-orca-coord.py
+"""preflight.py — hard preflight checks for a matt-orchestration run.
 
 Verifies the invariants that, if wrong, silently corrupt a whole run:
     1. `git` and `gh` are on PATH.
@@ -14,8 +16,13 @@ Verifies the invariants that, if wrong, silently corrupt a whole run:
     6. If `--require-gitleaks` is passed (integrator will scan diffs), `gitleaks` must be
        on PATH; otherwise a soft warning is fine.
 
+The BASE/default comparison canonicalizes ref aliases first (D1 remediation):
+`origin/main`, `refs/remotes/origin/main`, and `refs/heads/main` all reduce to `main`,
+so aliasing the default branch cannot slip past the M-5 guardrail.
+
 Usage:
     preflight.py --base <base-branch> [--default <default-branch>] [--require-gitleaks]
+    preflight.py --mode readonly        # read-only fleets: binary checks only, no gh/BASE
     # exit 0 = OK; exit 1 = usage/dependency; exit 2 = invariant violation
 
 Wire it in at Phase 0 of the run (SKILL.md) and inside the integrator preamble before the
@@ -43,12 +50,17 @@ def _default_branch_via_gh() -> str | None:
     return out if rc == 0 and out else None
 
 
-def _branch_exists(ref: str) -> bool:
-    rc, _, _ = _run(["git", "rev-parse", "--verify", "--quiet", ref])
-    if rc == 0:
-        return True
-    rc, _, _ = _run(["git", "rev-parse", "--verify", "--quiet", f"origin/{ref}"])
-    return rc == 0
+def _branch_exists(name: str) -> bool:
+    """True only for an actual local or origin BRANCH — tags and raw SHAs resolve
+    via rev-parse but are NOT acceptable as an integration BASE."""
+    if name.startswith("refs/"):
+        rc, _, _ = _run(["git", "show-ref", "--verify", "--quiet", name])
+        return rc == 0 and (name.startswith("refs/heads/") or name.startswith("refs/remotes/"))
+    for full in (f"refs/heads/{name}", f"refs/remotes/origin/{name}"):
+        rc, _, _ = _run(["git", "show-ref", "--verify", "--quiet", full])
+        if rc == 0:
+            return True
+    return False
 
 
 def _merge_base(a: str, b: str) -> str | None:
@@ -59,10 +71,48 @@ def _merge_base(a: str, b: str) -> str | None:
     return None
 
 
+def _canon_branch(ref: str) -> str:
+    """Reduce a ref alias to its canonical branch name.
+
+    `origin/main`, `refs/remotes/origin/main`, and `refs/heads/main` all reduce to
+    `main`. Prefers git's own resolution; falls back to prefix stripping when the
+    ref does not resolve to a symbolic name (e.g. a raw SHA).
+    """
+    rc, full, _ = _run(["git", "rev-parse", "--symbolic-full-name", ref])
+    if rc == 0 and full:
+        if full.startswith("refs/remotes/"):
+            rest = full[len("refs/remotes/"):]
+            return rest.split("/", 1)[1] if "/" in rest else rest
+        if full.startswith("refs/heads/"):
+            return full[len("refs/heads/"):]
+        return full
+    name = ref
+    for prefix in ("refs/remotes/", "refs/heads/"):
+        if name.startswith(prefix):
+            name = name[len(prefix):]
+    if name.startswith("origin/"):
+        name = name[len("origin/"):]
+    return name
+
+
+def _tip_sha(ref: str) -> str | None:
+    for candidate in (ref, f"origin/{ref}"):
+        rc, out, _ = _run(["git", "rev-parse", "--verify", "--quiet", candidate])
+        if rc == 0 and out:
+            return out
+    return None
+
+
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(prog="preflight.py")
-    parser.add_argument("--base", required=True, help="The integration BASE branch name.")
+    parser.add_argument("--base", help="The integration BASE branch name (required unless --mode readonly).")
     parser.add_argument("--default", help="Default branch (auto-derived via `gh` if omitted).")
+    parser.add_argument(
+        "--mode",
+        choices=("write", "readonly"),
+        default="write",
+        help="readonly: binary/repo checks only — for report-only fleets that never open PRs.",
+    )
     parser.add_argument(
         "--require-gitleaks",
         action="store_true",
@@ -70,17 +120,22 @@ def main(argv: list[str]) -> int:
     )
     args = parser.parse_args(argv)
 
+    if args.mode == "write" and not args.base:
+        parser.error("--base is required unless --mode readonly")
+
     errors: list[str] = []
     warnings: list[str] = []
 
-    # 1. Required binaries.
-    for binary in ("git", "gh"):
+    # 1. Required binaries. Read-only fleets never touch gh/PRs.
+    required = ("git",) if args.mode == "readonly" else ("git", "gh")
+    for binary in required:
         if not _which(binary):
             errors.append(f"missing required binary on PATH: {binary}")
-    if args.require_gitleaks and not _which("gitleaks"):
-        errors.append("missing required binary on PATH: gitleaks (--require-gitleaks was set)")
-    elif not _which("gitleaks"):
-        warnings.append("gitleaks not on PATH — integrator secret scan step will be skipped")
+    if args.mode == "write":
+        if args.require_gitleaks and not _which("gitleaks"):
+            errors.append("missing required binary on PATH: gitleaks (--require-gitleaks was set)")
+        elif not _which("gitleaks"):
+            warnings.append("gitleaks not on PATH — integrator secret scan step will be skipped")
 
     if errors:
         for e in errors:
@@ -93,6 +148,10 @@ def main(argv: list[str]) -> int:
         print("preflight: ERROR: not inside a git repository", file=sys.stderr)
         return 1
 
+    if args.mode == "readonly":
+        print("preflight: OK — mode=readonly (binary + repo checks only; no BASE/PR invariants)")
+        return 0
+
     rc, repo, gh_err = _run(["gh", "repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner"])
     if rc != 0 or not repo:
         print(f"preflight: ERROR: `gh repo view` failed: {gh_err or 'no output'}", file=sys.stderr)
@@ -104,22 +163,28 @@ def main(argv: list[str]) -> int:
         print("preflight: ERROR: could not derive default branch (pass --default)", file=sys.stderr)
         return 2
 
-    # 4. BASE != DEFAULT_BRANCH (the M-5 guardrail).
-    if args.base == default_branch:
+    # 4. BASE != DEFAULT_BRANCH (the M-5 guardrail), on CANONICAL names so ref
+    #    aliases (`origin/main`, `refs/remotes/origin/main`) cannot slip past.
+    canon_base = _canon_branch(args.base)
+    canon_default = _canon_branch(default_branch)
+    if canon_base == canon_default:
         print(
-            f"preflight: ERROR: BASE ({args.base!r}) equals DEFAULT_BRANCH ({default_branch!r}). "
+            f"preflight: ERROR: BASE ({args.base!r} -> {canon_base!r}) is the DEFAULT_BRANCH "
+            f"({default_branch!r} -> {canon_default!r}). "
             "Every per-finding PR is merged into BASE; if BASE is the default branch, fixes land "
             "straight on production and bypass both the anti-inflation gate and the human "
-            "promotion review. Create a dedicated integration branch (e.g. `<maintainer>/matt-ship"
+            "promotion review. Create a dedicated integration branch (e.g. `<maintainer>/matt-orchestration`) "
             "off the current run's fork point and rerun.",
             file=sys.stderr,
         )
         return 2
 
-    # 5. BASE exists.
-    if not _branch_exists(args.base):
+    # 5. BASE exists AS A BRANCH (tags and raw SHAs are rejected — a PR base must
+    #    be a branch, and accepting any rev would weaken the alias guard above).
+    if not _branch_exists(canon_base):
         print(
-            f"preflight: ERROR: BASE branch {args.base!r} does not exist locally or on origin.",
+            f"preflight: ERROR: BASE {args.base!r} is not a local or origin branch "
+            "(tags and raw SHAs are not accepted as an integration BASE).",
             file=sys.stderr,
         )
         return 2
@@ -134,6 +199,15 @@ def main(argv: list[str]) -> int:
             file=sys.stderr,
         )
         return 2
+
+    # 7. Same-tip advisory: a freshly created integration branch legitimately shares
+    #    the default tip, so this is a warning, not a violation.
+    tip_base, tip_default = _tip_sha(args.base), _tip_sha(default_branch)
+    if tip_base and tip_default and tip_base == tip_default:
+        warnings.append(
+            f"BASE tip == default tip ({tip_base[:12]}) — expected for a freshly created "
+            "integration branch; confirm BASE is not another alias of the default."
+        )
 
     if warnings:
         for w in warnings:

@@ -40,7 +40,7 @@ This skill **uses** the Orca multi-agent runtime and the `orchestration` skill. 
 
 1. Freeze ticket + acceptance criteria (no scope drift mid-jury).
 2. For each model/agent `M`:
-   - `worktree create --name jury-<ticket>-<M> --no-parent`
+   - `worktree create --name jury-<ticket>-<M> --no-parent --base-branch <BASE>` (pin the Git base — `--no-parent` only affects Orca lineage; without `--base-branch` a juror forks from the default branch and the comparison is invalid)
    - implement+tdd worker with **no access** to other jury worktrees
 3. For each implementation: `review-matrix` axes (or dual code-review).
 4. Coordinator comparison table: correctness, simplicity, test quality, standards.

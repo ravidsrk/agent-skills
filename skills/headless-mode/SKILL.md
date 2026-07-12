@@ -38,7 +38,10 @@ gstack derives its session kind from the ENVIRONMENT (`bin/gstack-session-kind`)
 preamble text. A TASK line saying "SESSION_KIND=headless" changes nothing.
 
 - `GSTACK_HEADLESS=1` → gstack `headless`: when a question cannot be asked, gstack
-  **BLOCKS** (Completion Status BLOCKED). It does NOT auto-select an answer.
+  **BLOCKS** (Completion Status BLOCKED). It does NOT auto-select an answer for UNTUNED
+  questions. (Exception: a per-question `never-ask` preference from gstack plan-tune
+  auto-decides BEFORE the headless fallback; one-way doors always override `never-ask`.
+  Fresh worker sessions typically carry no tuned preferences — plan for blocking.)
 - Spawned sessions (e.g. OpenClaw-launched) are the mode that auto-selects the
   `(recommended)` option.
 - Anything else is interactive.

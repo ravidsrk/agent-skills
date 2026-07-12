@@ -43,13 +43,19 @@ INPUT plan/spec path
   → FREEZE plan for matt-ship / implement
 ```
 
-## Execution model (matches `headless-mode` — gstack does NOT self-answer)
-Workers run with `GSTACK_HEADLESS=1`, so gstack **BLOCKS** when a review needs an answer.
-AUTO_DECIDE is the **coordinator's** job, not a gstack mode: on a blocked question (worker
-`ask`, or a heartbeat naming the blocking gate), the coordinator answers **mechanical**
-questions per autoplan's decision principles via `orca orchestration reply --id <CURRENT>`
-with an audit line in the ledger. Taste / premise / user-challenge questions become human
-`decision_gate`s — the coordinator never answers those.
+## Execution model (matches `headless-mode`)
+Workers run with `GSTACK_HEADLESS=1`. Two layers can answer a question, in order:
+
+1. **gstack's own question preferences** (plan-tune): a question the user has tuned to
+   `never-ask` is auto-decided BY GSTACK (recommended option) before any headless fallback;
+   one-way doors always override `never-ask`. Do not rely on this — fresh worker sessions
+   typically carry no tuned preferences.
+2. **Everything untuned BLOCKS** (headless semantics — gstack does not self-answer untuned
+   questions). That is where the COORDINATOR takes over: on a blocked question (worker
+   `ask`, or a heartbeat naming the blocking gate), it answers **mechanical** questions per
+   autoplan's decision principles via `orca orchestration reply --id <CURRENT>` with an
+   audit line in the ledger. Taste / premise / user-challenge questions become human
+   `decision_gate`s — the coordinator never answers those.
 
 ## Auto-decide vs gate
 - **AUTO_DECIDE (coordinator answers, audited):** mechanical, tooling, clear defaults with (recommended)

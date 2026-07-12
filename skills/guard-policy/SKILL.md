@@ -64,6 +64,8 @@ controls; the written doc just records them.
   where their preamble scripts it (bot-commit normalization, rebase-then-push); that
   narrow preamble grant wins over this skill's general no-force-push default.
 - `--admin` merges only under the run's recorded human D8 grant (spec-to-ship gotcha #1).
+- `ephemeral-fleet` sandbox lanes may use PROFILE=danger only with a human grant recorded
+  in the ledger while this policy is active — the sandbox sanction does not outrank guard.
 - Human gates are never self-approved: typed confirm text comes from the human, through a
   `decision_gate` / `reply`, never composed by a worker.
 

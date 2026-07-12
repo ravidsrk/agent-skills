@@ -38,3 +38,7 @@ fleet-doctor
 run-blackbox
 gate-steward
 merge-train
+quorum
+spec-decompose
+ephemeral-fleet
+fleet-memory

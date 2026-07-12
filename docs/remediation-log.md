@@ -13,7 +13,7 @@ accepted/reworded with rationale).
 | D4      | P1       | Raw force-push; routine --admin merges                           | fixed   | PR1: --force-with-lease everywhere; --admin requires once-per-run human grant (ledger gate D8) |
 | D5      | P2       | Read-only fleets inherit irrelevant PR preflight                 | fixed   | PR1: preflight --mode readonly + fleet launch-profile notes |
 | B5      | P1       | Gates answered via terminal-send, bypassing ask/reply            | fixed   | PR1: reply --id <CURRENT> is primary (provenance); terminal-send demoted to expired-ask unblock; literal grammar in orca-coord README |
-| A4      | P2       | Phantom references/learnings.md #23 in 31 launchers              | fixed   | PR1: learning moved to scripts/orca-coord/README.md; all copies regenerated |
+| A4      | P2       | Phantom references/learnings.md #23 in 31 launchers              | fixed   | PR1 (two steps): pointer first moved to scripts/orca-coord/README.md — re-review rated that NOT-FIXED for standalone installs — then closed by vendoring README.md beside every launcher (sync MANIFEST). docs/reviews/codex-pr1.md records both rounds. |
 | E2      | P1       | 96 copied helpers drifted, no propagation path                   | fixed   | PR1: scripts/sync-orca-coord.py single-source sync + --check wired into validate-skills.py |
 | E3      | P2       | pm.py stops at first malformed message                           | fixed   | PR1: skip-and-count parsing, .get() defaults |
 | A1/B2   | P1       | spec-to-ship contradicts its own hard-base contract              | fixed   | PR2: own vendored preflight path; 'Orca or similar' removed; lightweight mode on same-worktree Orca workers + build-blind combined-PR review |

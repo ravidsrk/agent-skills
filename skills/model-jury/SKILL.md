@@ -36,6 +36,13 @@ One ticket, **N independent implementations**, human picks.
 
 This skill **uses** the Orca multi-agent runtime and the `orchestration` skill. It is a strategy layer on top of Orca, not a substitute harness. Never reimplement task/dispatch/worker_done with in-process subagents.
 
+## Protocol home
+
+This skill is the JURY special case of `quorum` (Mode 2): independent candidates in
+isolated worktrees, then a VOTE round where jurors never judge their own candidate.
+Run the mechanics below through quorum's ballot/reduction/routing discipline — the
+consensus table and denominator rules live there.
+
 ## Process
 
 1. Freeze ticket + acceptance criteria (no scope drift mid-jury).

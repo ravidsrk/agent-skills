@@ -58,6 +58,12 @@ paste this pack's axis rubric into the worker TASK (self-contained brief, the de
 run Matt `/code-review` ONCE in a single fresh reviewer terminal and consume both axes from its
 report.
 
+## Optional pre-step — fleet-memory gating
+If `fleet-memory` is loaded, apply its specialist gating BEFORE task-create: an axis
+with 0 findings across its last 10+ dispatches (per-dispatch stats lines) is gated off
+for this run with a ledger line; security/authz and data-migration are NEVER_GATE and
+always run. After the run, append one stats line per dispatched axis.
+
 ## Process
 
 1. Pin fixed point; ensure non-empty `git diff <fp>...HEAD`.

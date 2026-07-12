@@ -65,6 +65,10 @@ When working in this repo:
 | "harden this" / security sweep / red team / close the security loop | [`red-team-harden`](skills/red-team-harden/SKILL.md) |
 | "kill the flaky tests" / deflake / flake zero | [`flake-zero`](skills/flake-zero/SKILL.md) |
 | "build and ship this feature" / feature factory / spec to shipped feature | [`feature-factory`](skills/feature-factory/SKILL.md) |
+| "close the test gap" / cover the critical paths / test debt | [`test-debt-zero`](skills/test-debt-zero/SKILL.md) |
+| "update the dependencies" / upgrade everything / framework migration | [`dep-fresh`](skills/dep-fresh/SKILL.md) |
+| "the docs are out of date" / verify the documentation / doc rot | [`docs-truth`](skills/docs-truth/SKILL.md) |
+| "the app is slow" / perf budget / Core Web Vitals sweep | [`perf-sweep`](skills/perf-sweep/SKILL.md) |
 | "vote on it" / second opinions / consensus / adversarial verify | [`quorum`](skills/quorum/SKILL.md) |
 | "decompose this spec" / build the task DAG / "No tasks found" | [`spec-decompose`](skills/spec-decompose/SKILL.md) |
 | "run it in sandboxes" / disposable workers / untrusted work | [`ephemeral-fleet`](skills/ephemeral-fleet/SKILL.md) |
@@ -222,6 +226,6 @@ TASK.
 | `full-sprint-fleet`                        | yes | yes | yes | composes office-hours-async, autoplan-fleet, matt-ship / wayfinder-fleet / spec-to-ship, review-prod-fleet, review-matrix, qa-fleet, cso-fleet, gstack-ship-fleet, canary-fleet, docs-fleet |
 | Policy (guard-policy, headless-mode)       | yes | yes (hooks / env) | no | applied to other fleets |
 | Peers (clean-sweep, spec-to-ship)          | yes | no | no | none (independent peers) |
-| Autonomous missions (backlog-zero, red-team-harden, flake-zero, feature-factory) | yes | one pack per worker | one pack per worker | compose in-pack fleet-ops (merge-train, fleet-doctor, gate-steward, run-blackbox, quorum, spec-decompose); worker methodology from Matt / gstack / Addy, ONE router per worker |
+| Autonomous missions (backlog-zero, red-team-harden, flake-zero, feature-factory, test-debt-zero, dep-fresh, docs-truth, perf-sweep) | yes | one pack per worker | one pack per worker | compose in-pack fleet-ops (merge-train, fleet-doctor, gate-steward, run-blackbox, quorum, spec-decompose); worker methodology from Matt / gstack / Addy, ONE router per worker |
 | Fleet ops (standing-fleet, fleet-doctor, run-blackbox, gate-steward, merge-train, quorum, spec-decompose, ephemeral-fleet, fleet-memory) | yes | no | no | compose WITH other fleets at runtime by design (each names its consumers), but run standalone; ephemeral-fleet additionally needs orca-per-workspace-env recipes |
 | Utility (cloudflare-dns, namecheap-dns, fly-to-aws-migration, deep-research, terminal-poster) | no | no | no | none |

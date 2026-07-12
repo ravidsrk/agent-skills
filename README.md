@@ -22,7 +22,7 @@
 
 # What's inside
 
-50 skills, organized by what they do — not by SDLC phase. These are **discrete capabilities** an agent reaches for when the task fits, not lifecycle steps that fire in sequence.
+54 skills, organized by what they do — not by SDLC phase. These are **discrete capabilities** an agent reaches for when the task fits, not lifecycle steps that fire in sequence.
 
 # 🌐 Infrastructure
 
@@ -51,10 +51,16 @@
 ```
 Orca runtime + orchestration skill   ← HARD BASE (from Orca CLI; not this repo)
         │
-        ├── clean-sweep / spec-to-ship     (this pack — product/audit peers)
-        └── matt-ship / wayfinder-fleet / … (this pack — Matt×Orca peers)
+        ├── Autonomous missions   clean-sweep · spec-to-ship · backlog-zero · red-team-harden ·
+        │                         flake-zero · feature-factory · test-debt-zero · dep-fresh ·
+        │                         docs-truth · perf-sweep
+        ├── Fleet ops             standing-fleet · fleet-doctor · run-blackbox · gate-steward ·
+        │                         merge-train · quorum · spec-decompose · ephemeral-fleet · fleet-memory
+        ├── Matt×Orca fleets      matt-ship · wayfinder-fleet · review-matrix · …
+        └── Gstack×Orca fleets    gstack-ship-fleet · qa-fleet · cso-fleet · autoplan-fleet · …
                 │
-                └── worker playbooks: mattpocock/skills (/implement, /tdd, …)
+                └── worker playbooks (ONE pack per worker):
+                    mattpocock/skills · garrytan/gstack · addyosmani/agent-skills
 ```
 
 **We use Orca — we do not replace it.** Nothing multi-agent here runs without Orca orchestration. Matt skills are *what workers run*; Orca is *how the coordinator dispatches, waits, and gates*. MOST skills in this pack do **not** depend on each other at runtime (e.g. clean-sweep is not built on matt-ship) — the exceptions are the composers, declared per skill and in the [runtime dependency matrix](AGENTS.md#runtime-dependency-matrix): `full-sprint-fleet` (composes plan/build/verify/ship fleets), `spec-issue-fleet` (Matt ticketing + matt-ship phases), `investigate-fleet` (Matt `/tdd`), `architecture-sprint` (design-it-thrice + matt-ship), `triage-to-fleet` (ready-agent-drain).
@@ -78,6 +84,10 @@ per worker (Matt / gstack / Addy — never two routers in a single worker TASK).
 | 🛡️ **[red-team-harden](skills/red-team-harden/)** | A fresh full audit finds zero unrefuted P0/P1 (fix, then re-attack) |
 | 🎯 **[flake-zero](skills/flake-zero/)** | The suite passes N consecutive green runs, no retry-wrappers |
 | 🏭 **[feature-factory](skills/feature-factory/)** | One grill in → a shipped feature behind the promotion gate |
+| 🧪 **[test-debt-zero](skills/test-debt-zero/)** | Every critical path has a test that fails when its code is reverted |
+| 📦 **[dep-fresh](skills/dep-fresh/)** | Every dependency major current or parked, CI green throughout |
+| 📖 **[docs-truth](skills/docs-truth/)** | Every documented claim traces to the code, or it's gone |
+| ⚡ **[perf-sweep](skills/perf-sweep/)** | Every journey within its budget, proven by a measured before/after |
 
 ### Fleet ops (runtime-native autonomy layer)
 
@@ -151,7 +161,7 @@ Methodology from [garrytan/gstack](https://github.com/garrytan/gstack); **runtim
 |---|---|---|
 | **A — Capability** (any agent harness) | `cloudflare-dns`, `namecheap-dns`, `fly-to-aws-migration`, `deep-research`, `terminal-poster` | Env keys only (see below) |
 | **B — Orca multi-agent** | `clean-sweep`, `spec-to-ship` | Orca + `orchestration` (Orca CLI). Peers; neither depends on the other. |
-| **F — Autonomous missions** | `backlog-zero`, `red-team-harden`, `flake-zero`, `feature-factory` | Orca + `orchestration` + ONE worker pack per mission (mattpocock/skills, garrytan/gstack, or [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills)); compose in-pack fleet-ops. |
+| **F — Autonomous missions** | `backlog-zero`, `red-team-harden`, `flake-zero`, `feature-factory`, `test-debt-zero`, `dep-fresh`, `docs-truth`, `perf-sweep` | Orca + `orchestration` + worker packs (mattpocock/skills, garrytan/gstack, and/or [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills)) — mix packs across workers, but exactly ONE router per worker; compose in-pack fleet-ops. |
 | **E — Fleet ops** | `standing-fleet`, `fleet-doctor`, `run-blackbox`, `gate-steward`, `merge-train`, `quorum`, `spec-decompose`, `ephemeral-fleet`, `fleet-memory` | Orca + `orchestration` (Orca CLI) only (`ephemeral-fleet` also needs `orca-per-workspace-env` recipes). Compose with any fleet. |
 | **D — Gstack × Orca** | `gstack-ship-fleet`, `qa-fleet`, `cso-fleet`, `autoplan-fleet`, `review-prod-fleet`, `health-fleet`, `docs-fleet`, `investigate-fleet`, `canary-fleet`, `benchmark-fleet`, `retro-cron`, `ios-qa-fleet`, `office-hours-async`, `design-shotgun-fleet`, `spec-issue-fleet`, `full-sprint-fleet`, `guard-policy`, `headless-mode` | Orca + `orchestration` + **garrytan/gstack** for worker playbooks. `investigate-fleet`, `spec-issue-fleet`, `full-sprint-fleet` ALSO need **mattpocock/skills** (Track C). |
 | **C — Matt × Orca** | `matt-ship`, `wayfinder-fleet`, `triage-to-fleet`, `ready-agent-drain`, `review-matrix`, `adversarial-ticket`, `diagnose-swarm`, `architecture-sprint`, `design-it-thrice`, `research-then-grill`, `model-jury`, `content-wayfinder` | Orca + `orchestration` + **mattpocock/skills** for worker playbooks. |
@@ -178,8 +188,9 @@ for name in clean-sweep spec-to-ship; do
   ln -sfn "$(pwd)/skills/$name" "$HOME/.claude/skills/$name"
 done
 
-# Track F — Autonomous missions (install ONE worker pack per mission; never two routers in one worker):
-for name in backlog-zero red-team-harden flake-zero feature-factory; do
+# Track F — Autonomous missions (install the worker packs your workers use; never two routers in ONE worker):
+for name in backlog-zero red-team-harden flake-zero feature-factory \
+  test-debt-zero dep-fresh docs-truth perf-sweep; do
   ln -sfn "$(pwd)/skills/$name" "$HOME/.claude/skills/$name"
 done
 
@@ -442,7 +453,7 @@ Output:
 ✅ namecheap-dns
 ✅ terminal-poster
 
-🟢 All 50 skills valid against agentskills.io spec.
+🟢 All 54 skills valid against agentskills.io spec.
 ```
 
 The validator enforces the spec rules (frontmatter shape, name/directory matching, description length). Non-zero exit code if any skill fails — perfect for CI.

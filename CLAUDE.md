@@ -5,8 +5,9 @@ Production-grade skills for AI agents — DNS migration, AWS migration, deep res
 # Project Structure
 
 ```
-skills/        → 50 skills: 5 capability + 30 Orca orchestration/fleet + 6 autonomous missions
-                 (clean-sweep, spec-to-ship, backlog-zero, red-team-harden, flake-zero, feature-factory)
+skills/        → 54 skills: 5 capability + 30 Orca orchestration/fleet + 10 autonomous missions
+                 (clean-sweep, spec-to-ship + backlog-zero, red-team-harden, flake-zero,
+                  feature-factory, test-debt-zero, dep-fresh, docs-truth, perf-sweep)
                  + 9 fleet-ops (standing/doctor/blackbox/steward/train/quorum/decompose/ephemeral/memory)
                  (each with SKILL.md + README.md; scripts/ references/ templates/ assets/ as needed)
 docs/          → Per-runtime setup guides + skill-anatomy spec + review/remediation logs
@@ -28,9 +29,11 @@ LICENSE        → MIT
 | `deep-research` | 🔍 Research | 8-source parallel evidence orchestrator (X, Reddit, HN, GitHub, Polymarket, YouTube, Exa) |
 | `terminal-poster` | 🎨 Creative | Retro-cyberpunk image posters (5 reusable templates, Nano Banana Pro) |
 
-The 30 Orca orchestration/fleet skills and the 2 autonomous peers (`clean-sweep`,
-`spec-to-ship`) are cataloged in [README.md](README.md) and mapped in
-[AGENTS.md](AGENTS.md) (intent map, review routing, runtime dependency matrix).
+The 30 Orca orchestration/fleet skills, the 10 autonomous missions (`clean-sweep`,
+`spec-to-ship`, `backlog-zero`, `red-team-harden`, `flake-zero`, `feature-factory`,
+`test-debt-zero`, `dep-fresh`, `docs-truth`, `perf-sweep`), and the 9 fleet-ops skills are cataloged in [README.md](README.md) and mapped in
+[AGENTS.md](AGENTS.md) (intent map, review routing, one-router-per-worker rule, runtime
+dependency matrix).
 Editing a fleet skill? The `scripts/` helpers inside each skill are GENERATED from
 `scripts/orca-coord/` — edit the canonical file and run `python3 scripts/sync-orca-coord.py`.
 

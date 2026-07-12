@@ -38,7 +38,7 @@ approved. You do not implement or review; you dispatch, verify, and keep the led
 skill loaded · `python3 scripts/preflight.py --base {{BASE}}` green (BASE ≠ default —
 fixes NEVER land straight on production) · tracker readable (`gh issue list` or
 `orca linear list`) · clean baseline in the coordinator worktree (`git status
---porcelain` empty — the Addy /build-auto rule: never absorb unrelated work).
+--porcelain` empty — the clean-baseline rule from the Addy build flow: never absorb unrelated work).
 
 ## Mission parameters (confirm once, then run)
 
@@ -57,16 +57,27 @@ ORIENT → ENUMERATE → TRIAGE-VERIFY wave (ro) → human batch gate (refutatio
 
 ## Phase 1 — ENUMERATE (the denominator)
 
-List EVERY open issue in scope — paginate to the end; a truncated listing is a silent
-mission failure. Ledger table (`docs/backlog-zero-progress.md`), one row per issue:
+Record the run-start timestamp `T0` in the ledger header FIRST. Then the denominator is
+two queries, not one — listing only currently-open issues misses ones created and closed
+between waves:
+
+1. Every open issue in scope (`gh issue list --state open` / `orca linear list`),
+   paginated to the end — a truncated listing is a silent mission failure.
+2. Every issue CREATED or REOPENED since `T0`, any state
+   (`gh issue list --state all --search "created:>=T0"` + a reopened-events sweep) — this
+   catches issues that opened and were externally closed mid-run; each still needs a
+   ledger row (CLASS = externally-resolved, with the closing reference) so the final
+   count is honest.
+
+Ledger table (`docs/backlog-zero-progress.md`), one row per issue:
 
 ```
 | # | title | VERIFIED | CLASS | FIXED | PR | MERGED | CLOSED | evidence |
 ```
 
-`CLASS` ∈ real-bug · real-feature-small · refuted · duplicate · needs-human (design/
-scope/one-way) · out-of-scope. Issues filed DURING the run enter the table at the next
-enumeration — the loop, not the first pass, is the mission.
+`CLASS` ∈ real-bug · real-feature-small · refuted · duplicate · externally-resolved ·
+needs-human (design/scope/one-way) · out-of-scope. Re-run BOTH queries each loop — the
+loop, not the first pass, is the mission.
 
 ## Phase 2 — TRIAGE-VERIFY wave (read-only workers)
 
@@ -91,11 +102,14 @@ Per real issue, in DAG order (issues touching the same hot files form merge chai
 
 1. Worktree per issue (`--base-branch {{BASE}}`), `PROFILE=rw` worker via
    `scripts/spawn_worker.sh`.
-2. Worker TASK embeds the Addy /build-auto contract: clean baseline · **failing test
-   FIRST** (Prove-It — the repro from Phase 2 becomes the regression test) · smallest
-   fix · commit-per-task, staged files only, author {{MAINTAINER}}, no trailers ·
-   anything irreversible (auth, destructive migration, payments, deletes, secrets)
-   STOPS and escalates via `ask` — never improvised.
+2. Worker TASK embeds an autonomous-build contract (the Addy build flow is the
+   reference; verify exact skill/command names against the installed pack): clean
+   baseline · **for a bug, a red-capable reproduction test FIRST** (the Phase-2 repro
+   becomes the regression test); **for a `real-feature-small`, a failing acceptance
+   test FIRST** (no prior failing behavior exists to reproduce) · smallest change ·
+   commit-per-task, staged files only, author {{MAINTAINER}}, no trailers · anything
+   irreversible (auth, destructive migration, payments, deletes, secrets) STOPS and
+   escalates via `ask` — never improvised.
 3. PR to `{{BASE}}` (integrator role, never the builder), body maps the issue's
    acceptance criteria.
 4. Build-blind REVIEW: fresh terminal, Matt `/code-review` ONCE (both axes) or this

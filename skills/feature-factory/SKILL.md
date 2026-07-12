@@ -11,18 +11,27 @@ description: >-
 license: MIT
 compatibility: >-
   HARD dependency: Orca runtime + orchestration skill (Orca CLI); git + gh. Worker
-  playbooks: mattpocock/skills (grill-with-docs, to-spec, to-tickets, implement, tdd) or
-  addyosmani/agent-skills (spec-driven, planning, incremental-implementation, /build
-  auto) — one router per worker. In-pack: spec-decompose, merge-train, gate-steward,
-  fleet-doctor, run-blackbox, canary-fleet.
+  playbooks: mattpocock/skills or addyosmani/agent-skills build flow — one router per
+  worker (verify skill names against the installed pack). In-pack: spec-decompose,
+  merge-train, gate-steward, fleet-doctor, run-blackbox. Canary (Phase 5) needs
+  canary-fleet + gstack when a canary surface applies.
 ---
 
 # Feature-Factory — one grill in, a shipped feature out
 
 You are the **COORDINATOR** of an autonomous mission with ONE human-in-the-loop phase
 (the grill + freeze) and ONE human gate (promotion). Between them it runs unattended.
-The end state is EVIDENCE: the feature is live behind the promotion gate, every
-acceptance criterion has a passing test, and the canary is green.
+The mission has TWO named terminal outcomes — it is not "done" until it reaches one:
+
+- **SHIPPED** — promotion PR merged (by the human), deployment verified, canary green
+  over its full window. Only this is a completed mission.
+- **PARKED-AT-PROMOTION** — every slice built, reviewed, merged to `{{BASE}}`, and
+  verified; the promotion PR is open with its traceability table; the mission is
+  BLOCKED on the one-way human gate. This is a legitimate stopping point but NOT
+  completion — the ledger says PARKED, and the mission resumes to SHIPPED when the
+  human merges.
+
+Reaching `{{BASE}}` with an open promotion PR is PARKED, never SHIPPED.
 
 ## ⚠️ HARD BASE: Orca `orchestration`
 
@@ -36,7 +45,7 @@ acceptance criterion has a passing test, and the canary is green.
 | **Worker playbooks** | grill/spec/tickets/implement/tdd | Matt main flow OR Addy DEFINE→BUILD |
 
 **Preflight:** `orca status --json` · orchestration on · `preflight.py --base {{BASE}}`
-green · clean baseline (never absorb unrelated WIP — the /build-auto rule) · tests
+green · clean baseline (never absorb unrelated WIP — the clean-baseline rule) · tests
 green at baseline (you can't tell your regressions from pre-existing ones otherwise).
 
 ## Mission parameters
@@ -86,7 +95,7 @@ Per ready ticket (DAG order), `PROFILE=rw` worker in its own worktree
   fix them (they become backlog, not scope creep).
 - Commit-per-slice, staged files only, author {{MAINTAINER}}, no trailers.
 - Anything irreversible or high-risk (auth, destructive migration, payments, deletes,
-  secrets, deploy) STOPS and escalates via `ask` — the /build-auto stop-and-ask list.
+  secrets, deploy) STOPS and escalates via `ask` — the stop-and-ask list.
 
 Build-blind REVIEW per slice (fresh terminal; Matt `/code-review` once, or review-matrix
 rubrics — Standards + Spec against the frozen criterion). FAIL → fix task (≤3 rounds
@@ -112,16 +121,25 @@ persisted) surfaces here as a task, not a shrug.
   change, 2-consecutive confirmation, human rollback gate). The mission owns opening the
   canary; OPS owns the rollout.
 
-## Completion contract (evidence)
+## Completion contract (evidence — the outcome must be named)
 
+Common to both outcomes:
 - Frozen spec exists and was human-approved (gate #1 reference in the ledger).
 - Every acceptance criterion → a passing test, in the traceability table, verified on
   `{{BASE}}` HEAD (not per-slice-only — the integrated whole).
 - Every slice: merged PR (ancestry-verified) + a test that failed before the slice
   (revert-audited on a sample).
-- Promotion PR opened with the traceability table; gate #2 recorded. If the human
-  merged: canary opened and its first-window verdict recorded.
+- Promotion PR opened with the traceability table; gate #2 recorded.
 - Backlog file of noted-not-fixed adjacent issues (scope discipline made visible).
+
+**PARKED-AT-PROMOTION** (blocked, not done): all of the above, promotion PR open,
+ledger outcome line = `PARKED-AT-PROMOTION` naming gate #2 as the blocker.
+
+**SHIPPED** (done): the human merged the promotion PR (`state=MERGED`, verified on
+default), deployment verified by OPS/handoff, AND — when `{{CANARY_URL}}` applies — the
+canary ran its FULL window green (not just the first check). Ledger outcome line =
+`SHIPPED` with the deploy reference and the canary window verdict. No canary surface →
+say so explicitly; don't claim a green canary that never ran.
 
 ## RESUME
 

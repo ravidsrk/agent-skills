@@ -102,11 +102,16 @@ that survives `{{DETECT_RUNS}}`-run diagnosis with no root cause → quarantine
 
 ## Completion contract (evidence)
 
-- Every flake detected at Phase 1: root-caused + fixed + merged (with a red-by-revert
-  ratchet recorded), or quarantined with a human-approved tracking ticket.
+- Every flake detected at Phase 1 — local AND CI-only — reaches ONE terminal state:
+  root-caused + fixed + merged (with a red-by-revert ratchet recorded), OR quarantined
+  with a human-approved tracking ticket. There is no "documented and left flaky" exit.
+- CI-only flakes specifically: the local `{{GREEN_STREAK}}` streak does NOT disprove them
+  (they flake in an environment local runs don't reproduce). Each must be fixed and its
+  fix VERIFIED in CI (the CI runs green across `{{GREEN_STREAK}}` triggers, `gh run list`
+  pasted), or enter the SAME human-approved quarantine path. Documenting the suspected CI
+  cause without a fix or a quarantine ticket does NOT satisfy the mission.
 - The `{{GREEN_STREAK}}`-run clean streak pasted in the ledger (timestamps + seeds/orders
-  per run — a streak you can't reproduce didn't happen).
-- CI-only flakes: either reproduced-and-fixed, or the CI-environment cause documented.
+  per run — a streak you can't reproduce didn't happen), local AND CI.
 - Zero `retry`/rerun wrappers added as "fixes" (grep the diff — their presence fails the
   mission).
 - Promotion to default is out of scope.

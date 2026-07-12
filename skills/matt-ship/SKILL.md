@@ -157,8 +157,12 @@ promotion PR for human review. MERGE ≠ DEPLOY.
      IS the frozen spec + acceptance criteria; that issue is the **single source of truth**
      the human freezes (the freeze gate = the human confirming the issue).
   3. Enter Phase 4 (to-tickets → DAG) FROM the issue; each ticket references the issue.
-  4. Preserve close-on-merge linkage: the implement PRs say `Closes #<issue>` so the source
-     issue closes when the work merges; verify the close after the promotion, like any merge.
+  4. Close linkage — but by EVIDENCE, not the auto-close keyword: implement PRs merge into the
+     integration BASE, and GitHub's `Closes #<n>` keyword only auto-closes on a merge to the
+     DEFAULT branch, so it will NOT fire here. Reference the issue in each PR for traceability
+     (`refs #<n>`), and CLOSE it explicitly after the BASE→default promotion merges —
+     `gh issue close <n> --comment "shipped in <promotion-merge-SHA>"` — verified the same way
+     as any close (the change is greppable on default).
   Downstream (Phases 4-7) is the normal Matt flow.
 
 ## Related peers
@@ -166,7 +170,7 @@ promotion PR for human review. MERGE ≠ DEPLOY.
 - `wayfinder-fleet` — foggy multi-session **before** this skill’s to-spec.
 - `review-matrix` — review-only wall on an existing PR.
 - `spec-to-ship` — frozen-spec greenfield (not Matt grill path).
-- `clean-sweep` — audit findings, not tracker tickets.
+- `clean-sweep` — closing an EXISTING set of items (audit findings, or the whole tracker via `source=tracker`), not this skill's grill→spec→build-new-work path.
 
 ## Scripts & assets (local to this skill)
 

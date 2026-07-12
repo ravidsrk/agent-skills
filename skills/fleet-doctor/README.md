@@ -1,4 +1,4 @@
-<img src="assets/banner.jpg" alt="Fleet-Doctor — Self-healing supervisor for running Orca fleets" width="100%">
+<!-- Banner pending OPENROUTER_API_KEY: bash skills/terminal-poster/scripts/generate.sh skills/fleet-doctor/assets/banner-prompt.txt skills/fleet-doctor/assets/banner.jpg -->
 
 # Fleet-Doctor
 

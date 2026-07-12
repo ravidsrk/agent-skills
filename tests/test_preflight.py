@@ -115,7 +115,8 @@ class PreflightTest(unittest.TestCase):
 
     def test_write_mode_requires_base(self):
         r = self.run_cli("--default", "main")
-        self.assertEqual(r.returncode, 2)  # argparse error
+        self.assertEqual(r.returncode, 1, r.stderr)  # usage → exit 1, not invariant 2
+        self.assertIn("--base is required", r.stderr)
 
     def test_rejects_tag_as_base(self):
         r = self.run_cli("--base", "v1", "--default", "main")

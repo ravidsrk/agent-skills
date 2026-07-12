@@ -1,4 +1,4 @@
-<img src="assets/banner.jpg" alt="Standing-Fleet — Scheduled coordinator runs on `orca automations`" width="100%">
+<!-- Banner pending OPENROUTER_API_KEY: bash skills/terminal-poster/scripts/generate.sh skills/standing-fleet/assets/banner-prompt.txt skills/standing-fleet/assets/banner.jpg -->
 
 # Standing-Fleet
 

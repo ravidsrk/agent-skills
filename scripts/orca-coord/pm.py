@@ -12,6 +12,10 @@
 import json
 import sys
 
+if len(sys.argv) < 2:
+    print("usage: pm.py <inbox.json>", file=sys.stderr)
+    sys.exit(1)
+
 raw = open(sys.argv[1]).read()
 
 dec = json.JSONDecoder()

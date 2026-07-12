@@ -1,4 +1,4 @@
-<img src="assets/banner.jpg" alt="Gate-Steward — Classified decision gates: mechanical auto-resolved, taste batched, one-way human-only" width="100%">
+<!-- Banner pending OPENROUTER_API_KEY: bash skills/terminal-poster/scripts/generate.sh skills/gate-steward/assets/banner-prompt.txt skills/gate-steward/assets/banner.jpg -->
 
 # Gate-Steward
 

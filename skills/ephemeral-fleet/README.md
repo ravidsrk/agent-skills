@@ -1,4 +1,4 @@
-<img src="assets/banner.jpg" alt="Ephemeral-Fleet — Disposable sandbox workers; the sanctioned home for danger-profile work" width="100%">
+<!-- Banner pending OPENROUTER_API_KEY: bash skills/terminal-poster/scripts/generate.sh skills/ephemeral-fleet/assets/banner-prompt.txt skills/ephemeral-fleet/assets/banner.jpg -->
 
 # Ephemeral-Fleet
 

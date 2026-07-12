@@ -46,10 +46,11 @@ contract. Want a fix-capable review pass? That's `gstack-ship-fleet` (via `/ship
 review army) or an explicit fix-budget run — not this skill.
 
 ## Optional pre-step — fleet-memory gating
-If `fleet-memory` is loaded, apply its specialist gating BEFORE task-create: an axis
-with 0 findings across its last 10+ dispatches (per-dispatch stats lines) is gated off
-for this run with a ledger line; security/authz and data-migration are NEVER_GATE and
-always run. After the run, append one stats line per dispatched axis.
+If `fleet-memory` is loaded, apply its specialist gating BEFORE task-create. Use the
+canonical specialist ids (`sql`, `authz`, `llm-trust`, `side-effects`) — an axis with 0
+findings across its last 10+ dispatches (per-dispatch stats lines) is gated off for this
+run with a ledger line. **NEVER_GATE** (always run): `authz`, `sql`. After the run,
+append one stats line per dispatched axis using those exact ids.
 
 ## Process
 1. Pin fixed point / PR

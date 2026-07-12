@@ -1,4 +1,4 @@
-<img src="assets/banner.jpg" alt="Merge-Train — Serialized, evidence-fresh merge queue on the runtime's merge_ready signal" width="100%">
+<!-- Banner pending OPENROUTER_API_KEY: bash skills/terminal-poster/scripts/generate.sh skills/merge-train/assets/banner-prompt.txt skills/merge-train/assets/banner.jpg -->
 
 # Merge-Train
 

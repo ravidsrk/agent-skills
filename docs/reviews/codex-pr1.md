@@ -97,3 +97,10 @@ Usage promises `agent: claude|codex`, but `scripts/orca-coord/spawn_worker.sh:85
 4. Reject unknown agents and surplus launcher arguments.
 5. Require BASE to resolve to an actual local/remote branch, not a tag or raw SHA.
 6. Replace the standalone-invalid generated README reference with a packaged/local reference.
+
+## Re-verification (same day, after fix commits c6520dd / dda3051 / b61642a)
+
+Focused codex exec re-run over the fix delta. First pass returned P1-2 PARTIAL
+(falsey malformed deps — '', 0 — still coerced to 'no deps' by the `or []` shortcut);
+fixed in b61642a with S13b regression coverage. All other items FIXED, no new P1
+regressions. Final verdict: MERGE-READY: YES.

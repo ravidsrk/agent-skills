@@ -50,12 +50,17 @@ def _default_branch_via_gh() -> str | None:
     return out if rc == 0 and out else None
 
 
-def _branch_exists(ref: str) -> bool:
-    rc, _, _ = _run(["git", "rev-parse", "--verify", "--quiet", ref])
-    if rc == 0:
-        return True
-    rc, _, _ = _run(["git", "rev-parse", "--verify", "--quiet", f"origin/{ref}"])
-    return rc == 0
+def _branch_exists(name: str) -> bool:
+    """True only for an actual local or origin BRANCH — tags and raw SHAs resolve
+    via rev-parse but are NOT acceptable as an integration BASE."""
+    if name.startswith("refs/"):
+        rc, _, _ = _run(["git", "show-ref", "--verify", "--quiet", name])
+        return rc == 0 and (name.startswith("refs/heads/") or name.startswith("refs/remotes/"))
+    for full in (f"refs/heads/{name}", f"refs/remotes/origin/{name}"):
+        rc, _, _ = _run(["git", "show-ref", "--verify", "--quiet", full])
+        if rc == 0:
+            return True
+    return False
 
 
 def _merge_base(a: str, b: str) -> str | None:
@@ -174,10 +179,12 @@ def main(argv: list[str]) -> int:
         )
         return 2
 
-    # 5. BASE exists.
-    if not _branch_exists(args.base):
+    # 5. BASE exists AS A BRANCH (tags and raw SHAs are rejected — a PR base must
+    #    be a branch, and accepting any rev would weaken the alias guard above).
+    if not _branch_exists(canon_base):
         print(
-            f"preflight: ERROR: BASE branch {args.base!r} does not exist locally or on origin.",
+            f"preflight: ERROR: BASE {args.base!r} is not a local or origin branch "
+            "(tags and raw SHAs are not accepted as an integration BASE).",
             file=sys.stderr,
         )
         return 2

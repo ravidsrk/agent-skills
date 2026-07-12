@@ -54,6 +54,7 @@ class PreflightTest(unittest.TestCase):
         cls.clone = root / "clone"
         _git(root, "clone", str(upstream), str(cls.clone))
         _git(cls.clone, "branch", "integration")  # fresh integration branch off main tip
+        _git(cls.clone, "tag", "v1")  # tag at main tip — must NOT be accepted as BASE
 
         bindir = root / "bin"
         bindir.mkdir()
@@ -115,6 +116,18 @@ class PreflightTest(unittest.TestCase):
     def test_write_mode_requires_base(self):
         r = self.run_cli("--default", "main")
         self.assertEqual(r.returncode, 2)  # argparse error
+
+    def test_rejects_tag_as_base(self):
+        r = self.run_cli("--base", "v1", "--default", "main")
+        self.assertEqual(r.returncode, 2, r.stderr)
+        self.assertIn("not accepted", r.stderr)
+
+    def test_rejects_raw_sha_as_base(self):
+        sha = subprocess.run(
+            ["git", "rev-parse", "HEAD"], cwd=self.clone, capture_output=True, text=True
+        ).stdout.strip()
+        r = self.run_cli("--base", sha, "--default", "main")
+        self.assertEqual(r.returncode, 2, r.stderr)
 
 
 if __name__ == "__main__":

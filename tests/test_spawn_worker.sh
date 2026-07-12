@@ -19,12 +19,12 @@ cat > "$BIN/orca" <<'SHIM'
 echo "$*" >> "$FAKE_DIR/calls.log"
 case "$1 $2" in
   "orchestration task-list")    cat "$FAKE_DIR/task-list.json" ;;
-  "orchestration task-update")  echo '{"result":{"ok":true}}' ;;
+  "orchestration task-update")  if [ -f "$FAKE_DIR/fail-task-update" ]; then echo '{"error":"update refused"}'; else echo '{"result":{"ok":true}}'; fi ;;
   "orchestration dispatch")     if [ -f "$FAKE_DIR/fail-dispatch" ]; then echo '{"error":"not ready"}'; else echo '{"result":{"dispatch":{"id":"d-1"}}}'; fi ;;
   "orchestration dispatch-show") cat "$FAKE_DIR/dispatch-show.json" ;;
   "terminal create")            if [ -f "$FAKE_DIR/fail-terminal-create" ]; then echo '{"error":"boom"}'; else echo '{"result":{"terminal":{"handle":"term-1"}}}'; fi ;;
-  "terminal wait")              echo '{"result":{"ok":true}}' ;;
-  "terminal send")              echo '{"result":{"ok":true}}' ;;
+  "terminal wait")              if [ -f "$FAKE_DIR/fail-wait" ]; then echo '{"error":"wait timeout"}'; else echo '{"result":{"ok":true}}'; fi ;;
+  "terminal send")              if [ -f "$FAKE_DIR/fail-send" ]; then echo '{"error":"terminal gone"}'; else echo '{"result":{"ok":true}}'; fi ;;
   *)                            echo '{"result":{}}' ;;
 esac
 SHIM
@@ -50,7 +50,8 @@ assert_no_log() {
   else PASS=$((PASS+1)); echo "  ok: $1"; fi
 }
 reset_fake() {
-  rm -f "$FAKE_DIR/calls.log" "$FAKE_DIR/fail-terminal-create" "$FAKE_DIR/fail-dispatch"
+  rm -f "$FAKE_DIR/calls.log" "$FAKE_DIR/fail-terminal-create" "$FAKE_DIR/fail-dispatch" \
+        "$FAKE_DIR/fail-task-update" "$FAKE_DIR/fail-wait" "$FAKE_DIR/fail-send"
   cp "$FAKE_DIR/tl-$1.json" "$FAKE_DIR/task-list.json"
   cp "$FAKE_DIR/ds-$2.json" "$FAKE_DIR/dispatch-show.json"
 }
@@ -67,6 +68,9 @@ cat > "$FAKE_DIR/tl-pending-unmet.json" <<'J'
 J
 cat > "$FAKE_DIR/tl-pending-met.json"  <<'J'
 {"result":{"tasks":[{"id":"t1","status":"pending","deps":["t0"]},{"id":"t0","status":"completed","deps":[]}]}}
+J
+cat > "$FAKE_DIR/tl-pending-corrupt.json" <<'J'
+{"result":{"tasks":[{"id":"t1","status":"pending","deps":"not-json["}]}}
 J
 cat > "$FAKE_DIR/ds-hb.json"           <<'J'
 {"result":{"dispatch":{"last_heartbeat_at":"2026-07-12T00:00:00Z"}}}
@@ -129,6 +133,41 @@ reset_fake ready hb
 PROFILE=danger ORCA_COORD_ALLOW_DANGER=1 bash "$SW" t1 "path:/tmp/wt" job9 codex >/dev/null 2>&1; rc=$?
 check "exit 0" 0 "$rc"
 assert_log "codex danger flags used" "dangerously-bypass-approvals-and-sandbox"
+
+echo "S10: task-update returns exit-0 error envelope -> fail-closed exit 1"
+reset_fake pending-met hb
+touch "$FAKE_DIR/fail-task-update"
+bash "$SW" --mark-ready t1 "path:/tmp/wt" job10 claude >/dev/null 2>&1; rc=$?
+check "exit 1" 1 "$rc"
+assert_no_log "no dispatch after failed task-update" "orchestration dispatch --task"
+
+echo "S11: terminal wait returns exit-0 error envelope -> fail-closed exit 1"
+reset_fake ready hb
+touch "$FAKE_DIR/fail-wait"
+bash "$SW" t1 "path:/tmp/wt" job11 claude >/dev/null 2>&1; rc=$?
+check "exit 1" 1 "$rc"
+assert_no_log "no dispatch after failed wait" "orchestration dispatch --task"
+
+echo "S12: initial submit send returns error envelope -> fail-closed exit 1"
+reset_fake ready hb
+touch "$FAKE_DIR/fail-send"
+err=$(bash "$SW" t1 "path:/tmp/wt" job12 claude 2>&1 >/dev/null); rc=$?
+check "exit 1" 1 "$rc"
+case "$err" in *"step=submit-enter"*) PASS=$((PASS+1)); echo "  ok: failed at submit-enter step";; *) FAIL=$((FAIL+1)); echo "  FAIL: wrong step: $err";; esac
+
+echo "S13: corrupt deps metadata + --mark-ready -> refusal 2 (fail closed, not 'no deps')"
+reset_fake pending-corrupt hb
+err=$(bash "$SW" --mark-ready t1 "path:/tmp/wt" job13 claude 2>&1 >/dev/null); rc=$?
+check "exit 2" 2 "$rc"
+case "$err" in *"deps metadata unreadable"*) PASS=$((PASS+1)); echo "  ok: unreadable-deps refusal";; *) FAIL=$((FAIL+1)); echo "  FAIL: wrong refusal: $err";; esac
+assert_no_log "no task-update on corrupt deps" "task-update"
+
+echo "S14: unknown agent -> refusal 2 before any orca call"
+reset_fake ready hb
+rm -f "$FAKE_DIR/calls.log"
+bash "$SW" t1 "path:/tmp/wt" job14 gemini >/dev/null 2>&1; rc=$?
+check "exit 2" 2 "$rc"
+if [ -f "$FAKE_DIR/calls.log" ]; then FAIL=$((FAIL+1)); echo "  FAIL: orca was called"; else PASS=$((PASS+1)); echo "  ok: no orca calls"; fi
 
 echo
 echo "spawn_worker tests: PASS=$PASS FAIL=$FAIL"

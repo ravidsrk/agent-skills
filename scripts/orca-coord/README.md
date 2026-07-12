@@ -3,10 +3,12 @@
 **We use Orca orchestration — we do not replace it.**
 
 These helpers wrap common `orca orchestration` / terminal flows for skills in this repo.
-This directory is the SINGLE SOURCE OF TRUTH. Each fleet skill vendors generated copies
-under `skills/<name>/scripts/` for worktree-local paths — edit here, then run
-`python3 scripts/sync-orca-coord.py` to regenerate every copy (`--check` verifies drift;
-`scripts/validate-skills.py` runs the check automatically).
+This directory is the SINGLE SOURCE OF TRUTH. Each fleet skill listed in `MANIFEST` vendors
+generated copies (all helpers + this README) under `skills/<name>/scripts/` for
+worktree-local paths — edit here, then run `python3 scripts/sync-orca-coord.py` to
+regenerate every copy. `--check` fails on drifted, MISSING, non-executable, or
+unlisted copies; `scripts/validate-skills.py` runs it automatically. Adding or removing
+a participating skill is a deliberate `MANIFEST` edit.
 
 | File                 | Purpose                                                              |
 |----------------------|----------------------------------------------------------------------|

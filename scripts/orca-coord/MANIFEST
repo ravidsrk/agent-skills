@@ -1,0 +1,35 @@
+# Skills that vendor the orca-coord helpers (spawn_worker.sh, preflight.py, pm.py, README.md).
+# sync-orca-coord.py --check REQUIRES every skill here to carry matching copies of ALL files.
+# Adding/removing a skill is a deliberate edit to this file.
+adversarial-ticket
+architecture-sprint
+autoplan-fleet
+benchmark-fleet
+canary-fleet
+clean-sweep
+content-wayfinder
+cso-fleet
+design-it-thrice
+design-shotgun-fleet
+diagnose-swarm
+docs-fleet
+full-sprint-fleet
+gstack-ship-fleet
+guard-policy
+headless-mode
+health-fleet
+investigate-fleet
+ios-qa-fleet
+matt-ship
+model-jury
+office-hours-async
+qa-fleet
+ready-agent-drain
+research-then-grill
+retro-cron
+review-matrix
+review-prod-fleet
+spec-issue-fleet
+spec-to-ship
+triage-to-fleet
+wayfinder-fleet

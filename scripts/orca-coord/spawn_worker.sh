@@ -11,7 +11,7 @@
 #       1  a spawn/dispatch step failed
 #       2  usage or policy refusal (bad args, task not ready, unmet deps, danger without opt-in)
 #       3  dispatched but NO heartbeat after retries — respawn in a FRESH terminal
-#          (re-dispatch to the same handle is a no-op; see scripts/orca-coord/README.md "Learnings")
+#          (re-dispatch to the same handle is a no-op; see the README.md beside this script)
 #
 # Still works around: `dispatch --inject` pastes the prompt into a claude worker but does not
 # SUBMIT it (codex auto-submits). Flow: create terminal -> wait tui-idle -> settle -> verify task
@@ -23,7 +23,7 @@
 #
 # NOTE: <worktree_selector> is a RAW orca selector. Orca worktree IDs are composite `uuid::path` —
 #   pass `path:/abs/worktree/path` (unambiguous) or the full composite id.
-#   See scripts/orca-coord/README.md ("Learnings").
+#   See the README.md beside this script ("Learnings"; canonical: scripts/orca-coord/README.md).
 #
 # Env:
 #   SP                        scratchpad dir for JSON artifacts (default: cwd)
@@ -31,11 +31,31 @@
 #   ORCA_COORD_ALLOW_DANGER   must be 1 for PROFILE=danger
 #   CLAUDE_CMD / CODEX_CMD    full override of the worker launch command (wins over PROFILE)
 #   SETTLE_SECS / SUBMIT_SECS / HB_POLL_SECS   timing knobs (defaults 20 / 8 / 40)
-set -euo pipefail
+set -Eeuo pipefail  # -E: ERR trap fires inside functions (orca_json) too
 
 step=parse-args
 task="?"
 trap 'rc=$?; echo "SPAWN=FAILED task=${task} step=${step} rc=${rc}" >&2; exit "${rc}"' ERR
+
+# orca_json <outfile> <orca-args...> — run orca with --json, fail on nonzero exit
+# OR on an exit-0 error envelope ({"error": ...}); fail-closed for every step.
+orca_json() {
+  local out="$1"; shift
+  orca "$@" --json > "$out"
+  python3 - "$out" <<'PY'
+import json, sys
+d = json.load(open(sys.argv[1]))
+err = None
+if isinstance(d, dict):
+    err = d.get("error")
+    res = d.get("result")
+    if not err and isinstance(res, dict):
+        err = res.get("error")
+if err:
+    print(f"orca error envelope: {err}", file=sys.stderr)
+    raise SystemExit(1)
+PY
+}
 
 MARK_READY=0
 args=()
@@ -45,11 +65,18 @@ for a in "$@"; do
     *) args+=("$a") ;;
   esac
 done
-if [ "${#args[@]}" -lt 3 ]; then
+if [ "${#args[@]}" -lt 3 ] || [ "${#args[@]}" -gt 5 ]; then
   echo "usage: [PROFILE=ro|rw|danger] spawn_worker.sh [--mark-ready] <task_id> <worktree_selector> <title> [agent] [effort]" >&2
   exit 2
 fi
 task="${args[0]}"; sel="${args[1]}"; title="${args[2]}"; agent="${args[3]:-claude}"; effort="${args[4]:-xhigh}"
+case "$agent" in
+  claude|codex) : ;;
+  *)
+    echo "SPAWN=REFUSED task=${task} unknown agent '${agent}' (want claude|codex)" >&2
+    exit 2
+    ;;
+esac
 SP="${SP:-$(pwd)}"
 PROFILE="${PROFILE:-rw}"
 SETTLE_SECS="${SETTLE_SECS:-20}"
@@ -87,7 +114,7 @@ if [ "$agent" = "codex" ]; then cmd="$CODEX_CMD"; else cmd="$CLAUDE_CMD"; fi
 # --- verify task readiness against the DAG (never force ready) ---------------
 step=verify-task-ready
 tl="$SP/tl-$safe_title.json"
-orca orchestration task-list --json > "$tl"
+orca_json "$tl" orchestration task-list
 tl_out=$(python3 - "$tl" "$task" <<'PY'
 import json, sys
 path, tid = sys.argv[1], sys.argv[2]
@@ -105,7 +132,11 @@ if isinstance(deps, str):
     try:
         deps = json.loads(deps)
     except Exception:
-        deps = []
+        deps = None
+if not isinstance(deps, list):
+    # Corrupt/unreadable dependency metadata must fail CLOSED, not count as "no deps".
+    print(t.get("status", "unknown"), -1)
+    raise SystemExit(0)
 unmet = sum(1 for dep in deps if (by.get(dep) or {}).get("status") != "completed")
 print(t.get("status", "unknown"), unmet)
 PY
@@ -119,12 +150,16 @@ case "$status" in
       echo "SPAWN=REFUSED task=${task} status=pending — pass --mark-ready only for tasks whose deps are complete" >&2
       exit 2
     fi
+    if [ "$unmet" = "-1" ]; then
+      echo "SPAWN=REFUSED task=${task} deps metadata unreadable — failing closed rather than assuming no deps" >&2
+      exit 2
+    fi
     if [ "$unmet" != "0" ]; then
       echo "SPAWN=REFUSED task=${task} status=pending unmet_deps=${unmet} — dispatching would bypass the DAG" >&2
       exit 2
     fi
     step=mark-ready
-    orca orchestration task-update --id "$task" --status ready --json > /dev/null
+    orca_json "$SP/tu-$safe_title.json" orchestration task-update --id "$task" --status ready
     ;;
   not-found)
     echo "SPAWN=REFUSED task=${task} not found in task-list" >&2
@@ -139,7 +174,7 @@ esac
 # --- create worker terminal ---------------------------------------------------
 step=create-terminal
 tj="$SP/sw-$safe_title.json"
-orca terminal create --worktree "$sel" --title "$title" --command "$cmd" --json > "$tj"
+orca_json "$tj" terminal create --worktree "$sel" --title "$title" --command "$cmd"
 h=$(python3 - "$tj" <<'PY'
 import json, sys
 d = json.load(open(sys.argv[1]))
@@ -156,27 +191,24 @@ PY
 )
 
 step=wait-tui-idle
-orca terminal wait --terminal "$h" --for tui-idle --timeout-ms 90000 --json > /dev/null
+orca_json "$SP/tw-$safe_title.json" terminal wait --terminal "$h" --for tui-idle --timeout-ms 90000
 sleep "$SETTLE_SECS"  # let the TUI settle so it can receive the paste
 
 # --- dispatch + submit --------------------------------------------------------
 step=dispatch-inject
 dj="$SP/dispatch-$safe_title.json"
-orca orchestration dispatch --task "$task" --to "$h" --inject --json > "$dj"
-python3 - "$dj" <<'PY'
-import json, sys
-d = json.load(open(sys.argv[1]))
-err = d.get("error") or (d.get("result", {}) or {}).get("error")
-if err:
-    print(f"dispatch error: {err}", file=sys.stderr)
-    raise SystemExit(1)
-PY
+orca_json "$dj" orchestration dispatch --task "$task" --to "$h" --inject
 
 sleep "$SUBMIT_SECS"
 step=submit-enter
-orca terminal send --terminal "$h" --enter --json > /dev/null  # SUBMIT the pasted prompt
+orca_json "$SP/ts-$safe_title.json" terminal send --terminal "$h" --enter  # SUBMIT the pasted prompt
 
 # --- verify a heartbeat; re-Enter up to 3x -------------------------------------
+# The bounded re-Enter loop is the documented claude paste-without-submit workaround
+# (README Learnings L1): an extra Enter on an already-submitted claude prompt is an
+# empty submit (no-op), the terminal is fresh with only our injected prompt in it, and
+# the loop is bounded at 3. Retry sends are best-effort nudges — the authoritative
+# verdict is the heartbeat check below (exit 3 on failure), never the send itself.
 step=verify-heartbeat
 hb=None
 for _ in 1 2 3; do
@@ -190,6 +222,6 @@ done
 
 echo "HANDLE=$h HB=$hb"
 if [ "$hb" = "None" ]; then
-  echo "SPAWN=NO_HEARTBEAT task=${task} handle=${h} — respawn in a FRESH terminal; re-dispatch to the same handle is a no-op (README Learnings)" >&2
+  echo "SPAWN=NO_HEARTBEAT task=${task} handle=${h} — respawn in a FRESH terminal; re-dispatch to the same handle is a no-op (see README.md beside this script)" >&2
   exit 3
 fi

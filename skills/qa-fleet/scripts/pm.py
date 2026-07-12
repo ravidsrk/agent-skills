@@ -2,8 +2,9 @@
 # GENERATED FROM scripts/orca-coord/pm.py — DO NOT EDIT THIS COPY.
 # Edit the canonical file, then run: python3 scripts/sync-orca-coord.py
 # pm.py — tolerant parser for `orca orchestration inbox/check` JSON output. (v2)
-# The stream interleaves `_heartbeat` lines with real message batches, which breaks naive json.load.
-# This strips heartbeat lines, then decodes successive JSON objects and prints each message.
+# The stream interleaves `_heartbeat` objects with real message batches, which breaks naive json.load.
+# This decodes successive JSON objects, skips heartbeat-only envelopes STRUCTURALLY (not by line
+# filtering, which could drop a mixed heartbeat+messages object), and prints each message.
 #
 # v2 (Codex review E3 remediation): a malformed segment no longer hides everything after it —
 # the parser skips to the next line and keeps going, reporting the skip count at the end.
@@ -14,9 +15,6 @@ import json
 import sys
 
 raw = open(sys.argv[1]).read()
-# drop heartbeat noise lines
-lines = [l for l in raw.splitlines() if l.strip() and '"_heartbeat"' not in l]
-raw = "\n".join(lines)
 
 dec = json.JSONDecoder()
 i = 0
@@ -41,10 +39,12 @@ while i < len(raw):
     if not isinstance(obj, dict):
         continue
     result = obj.get("result") or {}
-    if isinstance(result, dict):
-        for m in result.get("messages") or []:
-            if isinstance(m, dict):
-                msgs.append(m)
+    batch = result.get("messages") if isinstance(result, dict) else None
+    if "_heartbeat" in obj and not batch:
+        continue  # heartbeat-only envelope; a mixed object still yields its messages below
+    for m in batch or []:
+        if isinstance(m, dict):
+            msgs.append(m)
 
 print("MESSAGES:", len(msgs))
 for m in msgs:

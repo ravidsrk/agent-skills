@@ -5,20 +5,17 @@ Production-grade skills for AI agents — DNS migration, AWS migration, deep res
 # Project Structure
 
 ```
-skills/        → 33 skills: 5 capability + 8 autonomous missions + 20 Orca fleet skills
-                 missions: spec-to-ship, clean-sweep, red-team-harden, flake-zero, test-debt-zero,
-                  dep-fresh, docs-truth, perf-sweep
-                 20 fleet skills = 8 fleet-ops (standing/run-supervision/steward/train/quorum/
-                  decompose/ephemeral/memory) + 7 matt + 5 gstack
-                 (each with SKILL.md + README.md; scripts/ references/ templates/ assets/ as needed)
-docs/          → Per-runtime setup guides + skill-anatomy spec + review/remediation logs
-scripts/       → Repo-level helpers (validate-skills.py, sync-orca-coord.py, test-orca-coord.sh)
-scripts/orca-coord/ → CANONICAL shared fleet helpers; skill copies are GENERATED (see MANIFEST)
-tests/         → Behavioral tests for the orca-coord substrate
+skills/        → 5 capability skills (each with SKILL.md + README.md; scripts/ references/
+                 templates/ assets/ as needed)
+docs/          → Per-runtime setup guides + skill-anatomy spec
+scripts/       → Repo-level helpers (validate-skills.py) + banner/ (repo hero reproducer)
 assets/        → Banner image, screenshots
 .claude-plugin/plugin.json → Claude Code marketplace manifest
 LICENSE        → MIT
 ```
+
+The autonomous Orca fleets (spec-to-ship, clean-sweep, and the rest) moved to their own repo,
+[ravidsrk/orca-fleet](https://github.com/ravidsrk/orca-fleet). This repo is capability skills only.
 
 # Skills
 
@@ -30,13 +27,8 @@ LICENSE        → MIT
 | `deep-research` | 🔍 Research | 8-source parallel evidence orchestrator (X, Reddit, HN, GitHub, Polymarket, YouTube, Exa) |
 | `terminal-poster` | 🎨 Creative | Retro-cyberpunk image posters (5 reusable templates, Nano Banana Pro) |
 
-The Orca fleet/matt/gstack skills, the 8 autonomous missions (`spec-to-ship`,
-`clean-sweep`, `red-team-harden`, `flake-zero`, `test-debt-zero`, `dep-fresh`, `docs-truth`,
-`perf-sweep`), and the 8 fleet-ops skills are cataloged in [README.md](README.md) and mapped in
-[AGENTS.md](AGENTS.md) (intent map, review routing, one-router-per-worker rule, runtime
-dependency matrix).
-Editing a fleet skill? The `scripts/` helpers inside each skill are GENERATED from
-`scripts/orca-coord/` — edit the canonical file and run `python3 scripts/sync-orca-coord.py`.
+All five are cataloged in [README.md](README.md) and mapped to trigger intents in
+[AGENTS.md](AGENTS.md).
 
 # Conventions
 

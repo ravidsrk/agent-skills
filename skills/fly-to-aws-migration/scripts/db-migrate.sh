@@ -30,7 +30,10 @@ command -v psql >/dev/null    || { echo "ERROR: psql not on PATH" >&2; exit 1; }
 DUMP_FILE="/tmp/fly-dump-$(date +%Y%m%d-%H%M%S).sql"
 ROW_BEFORE="/tmp/fly-rowcounts-before.txt"
 ROW_AFTER="/tmp/aurora-rowcounts-after.txt"
-FLY_URL="postgresql://postgres:${FLY_PG_PASSWORD}@localhost:5433/${FLY_PG_DB}"
+# Password goes via PGPASSWORD, never inside the URL — a URL in argv is
+# visible to every user on the box via ps during the maintenance window.
+FLY_URL="postgresql://postgres@localhost:5433/${FLY_PG_DB}"
+export PGPASSWORD="$FLY_PG_PASSWORD"
 
 echo "=== Step 0: Open proxy to Fly Postgres (localhost:5433) ==="
 flyctl proxy 5433:5432 -a "$FLY_PG" &

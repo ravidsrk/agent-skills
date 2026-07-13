@@ -133,11 +133,14 @@ The full `SKILL.md` covers:
 
 ```
 namecheap-dns/
-├── SKILL.md     ← Manifest + full procedural docs (agent reads this)
-└── README.md    ← This file (humans installing the skill)
+├── SKILL.md            ← Manifest + full procedural docs (agent reads this)
+├── README.md           ← This file (humans installing the skill)
+└── scripts/
+    ├── getHosts.sh     ← List records (XML or --json); fails closed on API errors
+    └── setHosts.sh     ← Wholesale-replace records from JSON on stdin
 ```
 
-Single-file skill — the API surface is small enough that helper scripts would add more friction than they save.
+Two small helper scripts wrap the only awkward part of the API (the wholesale-replace `setHosts` call); everything else is documented inline in SKILL.md.
 
 # Pairs with
 

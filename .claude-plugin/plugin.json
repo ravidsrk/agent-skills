@@ -1,7 +1,7 @@
 {
   "name": "agent-skills",
   "description": "5 production-grade capability skills for AI agents: Cloudflare DNS migration + zone hardening, Namecheap DNS via XML API, Fly.io → AWS migration (7 phases, ≤9 min downtime), monid 8-source deep research, and terminal-poster retro-cyberpunk image generation (Nano Banana Pro). Capability skills, not SDLC steps. The autonomous Orca fleets moved to ravidsrk/orca-fleet. MIT.",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "author": {
     "name": "Ravindra Kumar",
     "email": "ravindrakumar8088@gmail.com",

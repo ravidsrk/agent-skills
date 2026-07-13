@@ -2,7 +2,7 @@
 name: terminal-poster
 description: "Generate dense, retro-cyberpunk terminal-aesthetic infographic posters — dark charcoal, orange accents, pixel-bitmap headlines, ASCII box-drawing, monospace. Use for product/architecture/agent-stack viral X images; Shann-Holmberg-style summaries; terminal infographics; Unicode architecture diagrams; dev-tools hero images. Triggers: 'terminal poster', 'dev infographic', 'shann-style', 'cyberpunk infographic', 'ascii architecture', 'agent stack visualization', 'image summary'. Clusters A–E. Nano Banana Pro via OpenRouter (~$0.002/image)."
 license: MIT
-compatibility: Requires bash, curl, yq (v4+), and an OPENROUTER_API_KEY env var. Calls google/gemini-3-pro-image-preview via OpenRouter.
+compatibility: Requires bash, curl, jq, yq (v4+), and an OPENROUTER_API_KEY env var. Calls google/gemini-3-pro-image-preview via OpenRouter.
 metadata:
   version: "1.0.0"
   author: "@ravidsrk"
@@ -16,7 +16,7 @@ Generate dense, on-brand infographic posters in a **terminal-aesthetic visual st
 
 Pattern reverse-engineered from 27 image-summary posts (12 of them deep-audited). 5 reusable templates — A, B, C, D, E — share one design DNA. Cluster C and D each have 2 sub-modes (C1 painterly / C2 pixel, D1 step pipeline / D2 terminal-window). Tested live with Nano Banana Pro — Cluster A audited hit **99%**, Cluster C1 painterly hit **95.6%**.
 
-> **Fresh agent? Start here:** 1) Read this SKILL.md top-to-bottom. 2) Pick a cluster using the decision tree below. 3) **Fast path** — for Cluster A or C, write a YAML spec and run `scripts/make-poster.sh spec.yaml out.png`. See example-specs/. 4) **Manual path** — for B/D/E or custom edits, open the matching `references/templates/cluster-X-*.md`, fill placeholders, run `scripts/generate.sh`. 5) Vision-audit the output. The full design rules live in `references/design-dna.md` — read it once for context.
+> **Fresh agent? Start here:** 1) Read this SKILL.md top-to-bottom. 2) Pick a cluster using the decision tree below. 3) **Fast path** — for any cluster (A–E), write a YAML spec and run `scripts/make-poster.sh spec.yaml out.png`. See example-specs/. 4) **Manual path** — for custom edits beyond what the spec covers, open the matching `references/templates/cluster-X-*.md`, fill placeholders, run `scripts/generate.sh`. 5) Vision-audit the output. The full design rules live in `references/design-dna.md` — read it once for context.
 
 # Decision tree — which template to use?
 

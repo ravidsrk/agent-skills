@@ -72,7 +72,7 @@ fi
 MIME=$(printf '%s' "$IMG_URL" | sed -n 's|^data:\(image/[^;]*\);base64,.*|\1|p')
 echo "$IMG_URL" | sed 's|^data:image/[^;]*;base64,||' | base64 -d > "$OUT_PATH"
 
-SIZE=$(stat -c%s "$OUT_PATH")
+SIZE=$(wc -c < "$OUT_PATH" | tr -d " ")   # portable (GNU stat -c fails on macOS)
 echo "[terminal-poster] ✅ wrote $OUT_PATH ($SIZE bytes, mime=$MIME)" >&2
 
 # Clean up

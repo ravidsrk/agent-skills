@@ -83,13 +83,14 @@ export OPENROUTER_API_KEY="sk-or-..."
 
 Get one at [openrouter.ai/keys](https://openrouter.ai/keys). The skill uses `google/gemini-3-pro-image-preview` (a.k.a. Nano Banana Pro) at ~$0.002/image.
 
-# 2. Install yq (one-time)
+# 2. Install jq + yq (one-time)
 
 ```bash
 # macOS
-brew install yq
+brew install jq yq
 
 # Linux
+apt-get install -y jq   # or your distro's package manager
 curl -L https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 \
   -o /usr/local/bin/yq && chmod +x /usr/local/bin/yq
 ```

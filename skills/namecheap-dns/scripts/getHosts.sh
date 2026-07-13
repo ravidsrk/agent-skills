@@ -33,6 +33,15 @@ if echo "$RESP" | grep -q '1011150'; then
   exit 2
 fi
 
+# Fail closed on ANY API error — a bad key, disabled API access, or an unknown
+# domain must never come back as a plausible-looking empty zone (an empty []
+# right before a wholesale setHosts replace would wipe real records).
+if ! echo "$RESP" | grep -q 'Status="OK"'; then
+  echo "getHosts: Namecheap API returned an error response:" >&2
+  echo "$RESP" | grep -oE '<Error[^>]*>[^<]*</Error>' >&2 || echo "$RESP" | head -5 >&2
+  exit 1
+fi
+
 if [ "$FORMAT" = "--json" ]; then
   printf '%s' "$RESP" | python3 -c '
 import re, json, sys

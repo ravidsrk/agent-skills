@@ -22,7 +22,7 @@ if [ -z "$DOMAIN" ]; then
   exit 1
 fi
 
-require_env
+REQUIRE_NAMECHEAP=1 require_env
 
 read -r SLD TLD <<< "$(domain_split "$DOMAIN")"
 DIR="$(state_dir "$DOMAIN")"

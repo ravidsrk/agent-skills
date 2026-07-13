@@ -67,7 +67,7 @@ EOF
 # ---------------------------------------------------------------------------
 step_import() {
   echo "▸ STEP: import records from Namecheap into Cloudflare zone $DOMAIN"
-  require_env
+  REQUIRE_NAMECHEAP=1 require_env
 
   local zone_id
   zone_id=$(cf_zone_id "$DOMAIN")
@@ -280,7 +280,7 @@ for r in d['result']:
 # ---------------------------------------------------------------------------
 step_flip() {
   echo "▸ STEP: flip nameservers at Namecheap → Cloudflare"
-  require_env
+  REQUIRE_NAMECHEAP=1 require_env
 
   local zone_id
   zone_id=$(cf_zone_id "$DOMAIN")
@@ -344,7 +344,7 @@ import json,sys; print(','.join(sorted(json.load(sys.stdin)['result']['name_serv
     fi
     sleep 30
   done
-  echo "  🟡 propagation still incomplete after 5min — keep checking with: $0 $DOMAIN watch"
+  echo "  🟡 propagation still incomplete after 15min — keep checking with: $0 $DOMAIN watch"
 }
 
 # ---------------------------------------------------------------------------

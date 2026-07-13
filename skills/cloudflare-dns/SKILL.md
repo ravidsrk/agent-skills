@@ -1,13 +1,13 @@
 ---
 name: cloudflare-dns
-description: Migrate DNS hosting from Namecheap (or any registrar) to Cloudflare and manage records via API — handles zone creation, bulk record import, nameserver flip at the registrar, propagation watch, and rollback. Use when the user wants to "move DNS to Cloudflare", "add a domain to Cloudflare", "manage Cloudflare DNS records", or "automate DNS setup for multiple sites".
+description: Migrate DNS hosting from Namecheap to Cloudflare and manage records via API — handles zone creation, bulk record import, nameserver flip at the registrar (Namecheap-specific; other registrars need a manual flip), propagation watch, and rollback. Zone management works for any Cloudflare zone regardless of registrar. Use when the user wants to "move DNS to Cloudflare", "add a domain to Cloudflare", "manage Cloudflare DNS records", or "automate DNS setup for multiple sites".
 license: MIT
 compatibility: Requires bash, curl, python3; CLOUDFLARE_API_KEY (account token). Zone creation also needs CLOUDFLARE_GLOBAL_API_KEY + CLOUDFLARE_EMAIL. Registrar flip via namecheap-dns env (NAMECHEAP_API_KEY + NAMECHEAP_API_USER).
 ---
 
 # Cloudflare DNS Migration & Management
 
-End-to-end automation for moving domains from any DNS host to Cloudflare,
+End-to-end automation for moving domains from Namecheap to Cloudflare,
 plus ongoing record management. Designed to be reusable across many domains.
 
 ## Required environment
@@ -90,12 +90,12 @@ Enable per-record manually after migration is verified (`/zones/{id}/dns_records
 
 ```
 1. Audit current DNS at Namecheap        → scripts/audit.sh <domain>
-2. Create zone in Cloudflare              → scripts/migrate.sh <domain> step:create
-3. Import all records to Cloudflare       → scripts/migrate.sh <domain> step:import
+2. Create zone in Cloudflare              → scripts/migrate.sh <domain> create
+3. Import all records to Cloudflare       → scripts/migrate.sh <domain> import
 4. Verify resolution via DoH against
-   Cloudflare's NS (BEFORE flipping)      → scripts/migrate.sh <domain> step:verify
-5. Flip nameservers at Namecheap          → scripts/migrate.sh <domain> step:flip
-6. Watch propagation                      → scripts/migrate.sh <domain> step:watch
+   Cloudflare's NS (BEFORE flipping)      → scripts/migrate.sh <domain> verify
+5. Flip nameservers at Namecheap          → scripts/migrate.sh <domain> flip
+6. Watch propagation                      → scripts/migrate.sh <domain> watch
 ```
 
 Pause for confirmation between steps 3 and 5 — the flip is the only
@@ -150,7 +150,7 @@ scripts/rollback.sh <domain>
 
 Sets nameservers back to the pre-migration values (saved in
 `audit-pre.json`). The Cloudflare zone is left intact — re-running
-`migrate.sh ... step:flip` will redo the cutover without re-importing.
+`migrate.sh <domain> flip` will redo the cutover without re-importing.
 
 ## Common gotchas
 
@@ -172,7 +172,9 @@ The main migration driver. Takes a domain + step, runs that step,
 saves state to `.dns-state/<domain>/`. Designed for re-runs.
 
 ```bash
-scripts/migrate.sh example.com full       # all steps with prompts
+scripts/migrate.sh example.com full       # create+import+verify, then STOPS and prints
+                                          # the flip/watch commands (flip touches live
+                                          # traffic, so it is never run implicitly)
 scripts/migrate.sh example.com create     # create zone only
 scripts/migrate.sh example.com import     # import records only
 scripts/migrate.sh example.com verify     # query CF's NS to confirm

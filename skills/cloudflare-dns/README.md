@@ -104,7 +104,7 @@ scripts/harden.sh example.com
 Adds:
 - CAA records (`letsencrypt.org`, `digicert.com`) — prevents rogue CAs issuing certs
 - DMARC monitor (`v=DMARC1; p=none; rua=mailto:postmaster@example.com`) — passive email-spoofing visibility
-- Cloudflare WAF rate-limiting rule (100 req/10s per IP on `/api/*`)
+- Cloudflare WAF rate-limiting rule (default `--rate-limit-rpm=300` → 50 req/10s per IP on `/api/*`)
 - Bot Fight Mode, Always Use HTTPS, HSTS, Min TLS 1.2
 
 # DNSSEC

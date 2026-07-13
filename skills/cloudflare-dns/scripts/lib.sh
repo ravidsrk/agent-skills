@@ -9,7 +9,13 @@ set -euo pipefail
 require_env() {
   local missing=()
   [ -n "${CLOUDFLARE_API_KEY:-}" ]        || missing+=("CLOUDFLARE_API_KEY")
-  [ -n "${NAMECHEAP_API_KEY:-}" ]         || missing+=("NAMECHEAP_API_KEY")
+
+  # Namecheap credentials only required for steps that talk to the registrar
+  # (audit, rollback, migrate import/flip). Cloudflare-only scripts skip them.
+  if [ "${REQUIRE_NAMECHEAP:-0}" = "1" ]; then
+    [ -n "${NAMECHEAP_API_KEY:-}" ]       || missing+=("NAMECHEAP_API_KEY")
+    [ -n "${NAMECHEAP_API_USER:-}" ]      || missing+=("NAMECHEAP_API_USER")
+  fi
 
   # Global key + email only required for zone creation
   if [ "${REQUIRE_GLOBAL_KEY:-0}" = "1" ]; then
@@ -149,7 +155,9 @@ print(r[0]['id'] if r else '')
 
 # --- Namecheap API wrappers ---------------------------------------------
 
-NC_USER="${NAMECHEAP_API_USER:-your-username}"
+# No placeholder fallback: REQUIRE_NAMECHEAP=1 require_env enforces this is set
+# before any nc_* call; an empty value here means a script skipped that check.
+NC_USER="${NAMECHEAP_API_USER:-}"
 
 nc_my_ip() {
   curl -s https://api.ipify.org

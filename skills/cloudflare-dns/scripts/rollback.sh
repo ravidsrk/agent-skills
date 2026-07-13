@@ -14,7 +14,7 @@ source "${SCRIPT_DIR}/lib.sh"
 
 DOMAIN="${1:-}"
 [ -z "$DOMAIN" ] && { echo "Usage: $0 <domain>"; exit 1; }
-require_env
+REQUIRE_NAMECHEAP=1 require_env
 
 read -r SLD TLD <<< "$(domain_split "$DOMAIN")"
 DIR="$(state_dir "$DOMAIN")"

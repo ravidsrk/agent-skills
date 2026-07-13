@@ -98,7 +98,7 @@ def research(
     jobs = {}
     with ThreadPoolExecutor(max_workers=len(sources)) as ex:
         if "reddit" in sources:
-            jobs[ex.submit(_run_source, "reddit", reddit.search, topic, "month", L["reddit"])] = "reddit"
+            jobs[ex.submit(_run_source, "reddit", reddit.search, topic, days, L["reddit"])] = "reddit"
         if "hn" in sources:
             jobs[ex.submit(_run_source, "hn", hackernews.search, topic, days, L["hn"])] = "hn"
         if "polymarket" in sources:

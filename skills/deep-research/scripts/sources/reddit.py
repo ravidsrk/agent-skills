@@ -86,18 +86,18 @@ def _normalize_post(p: dict) -> dict:
     }
 
 
-def search(topic: str, time_filter: str = "month", limit: int = 25, include_comments: bool = True) -> list[dict]:
+def search(topic: str, days: int = 30, limit: int = 25, include_comments: bool = True) -> list[dict]:
     """Global Reddit search for the topic.
 
     Args:
         topic: search term
-        time_filter: kept for API compatibility — Apify scraper uses postDateLimit
+        days: lookback window — becomes the Apify scraper's postDateLimit date
         limit: max posts to return
         include_comments: pull top comments per post for direct quote material
     """
     from datetime import datetime, timedelta, timezone
     # postDateLimit format is YYYY-MM-DD
-    since = (datetime.now(timezone.utc) - timedelta(days=30)).strftime("%Y-%m-%d")
+    since = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d")
     body = {
         "searches": [topic],
         "type": "posts",

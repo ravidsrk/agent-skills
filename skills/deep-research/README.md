@@ -117,7 +117,7 @@ python3 research.py "claude code skills" --out=/path/to/my/research/
 | Flag | Default | Notes |
 |---|---|---|
 | `--depth` | `default` | One of `quick`, `default`, `deep` |
-| `--days` | `30` | Time window (in days) |
+| `--days` | `30` | Time window (in days). Honored by X, HN, GitHub issues, Exa, and Reddit; YouTube results carry no reliable date and are not windowed |
 | `--sources` | all 8 | Comma-separated subset: `x,reddit,hn,github_repos,github_issues,polymarket,youtube,exa` |
 | `--yt-transcripts` | `2` | Number of YouTube transcripts to pull (each costs ~$0.0075) |
 | `--out` | `./research/<slug>/` | Custom output directory |

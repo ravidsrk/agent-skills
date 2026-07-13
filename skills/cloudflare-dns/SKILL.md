@@ -207,7 +207,7 @@ Deep script docs live under `references/`:
 | When you need… | Read |
 |---|---|
 | Zone hardening (SSL/WAF/CAA/DNSSEC tiers) | `references/harden.md` |
-| DNSSEC DS paste at registrar | `references/dnssec-instructions.md` |
+| DNSSEC DS paste at registrar | run `scripts/dnssec-instructions.sh <domain>`; background in `references/harden.md` |
 | Cloudflare Origin CA certs | `references/origin-ca.md` |
 | Export zone as YAML/JSON/TF | `references/dns-export.md` |
 | Restrict Fly origin to Cloudflare only | `references/fly-restrict-origin.md` (also under `scripts/`) |

@@ -205,7 +205,10 @@ aws secretsmanager create-secret \
 
 ```bash
 # Option A: pg_dump + restore (REQUIRES downtime equal to dump+restore duration)
-flyctl postgres connect -a <db-app> -C "pg_dump --no-owner --no-acl --schema=public" > /tmp/fly-dump.sql
+# (flyctl postgres connect has no command flag — tunnel with flyctl proxy instead)
+flyctl proxy 5433:5432 -a <db-app> &
+PGSSLMODE=prefer pg_dump "postgresql://postgres:$FLY_PG_PASSWORD@localhost:5433/<db-name>" \
+  --no-owner --no-acl --schema=public > /tmp/fly-dump.sql
 
 # Get Aurora endpoint
 AURORA_ENDPOINT=$(aws rds describe-db-clusters --db-cluster-identifier $PROJECT-$ENV-aurora \
@@ -308,7 +311,7 @@ done
 
 ```bash
 # Run parity check
-./scripts/verify-parity.sh https://api.yourdomain.com
+./scripts/verify-parity.sh https://api.yourdomain.com https://your-app.fly.dev
 
 # Watch ECS logs for 5 min
 aws logs tail /ecs/$PROJECT-$ENV-api --follow

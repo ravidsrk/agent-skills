@@ -120,15 +120,15 @@ Common Dockerfile fixes for Fly→ECS:
 # Phase 3 — Secrets + DB schema
 
 ```bash
-# Export Fly secrets, push into AWS Secrets Manager
-scripts/db-migrate.sh your-app-db your-app/prod/db
+# Export Fly secrets, push into AWS Secrets Manager (grouped by category)
+scripts/secrets-migrate.sh your-app your-app/prod            # --dry-run to preview
 ```
 
 Then **schema-only** migration to Aurora (so Phase 4 just needs a final delta sync):
 
 ```bash
 fly proxy 5432:5432 -a your-app-db &
-pg_dump --schema-only -h localhost -U postgres > schema.sql
+PGPASSWORD=$FLY_PG_PASSWORD pg_dump --schema-only -h localhost -U postgres > schema.sql
 psql "postgresql://...aurora..." < schema.sql
 ```
 
@@ -140,8 +140,9 @@ The actual outage window. Run from a checklist:
 
 ```
 [ ] Fly app set to read-only / maintenance mode
-[ ] Final pg_dump --data-only from Fly Postgres
-[ ] psql restore --data-only into Aurora (parallel jobs)
+[ ] Full dump + restore + row-count diff:
+      FLY_PG_PASSWORD=... scripts/db-migrate.sh your-app-db your-app/prod/db <db-name>
+[ ] (large DBs: pg_dump --data-only + psql restore with parallel jobs instead)
 [ ] ECS service scale 0 → desired_count
 [ ] DNS A record: example.com → ALB DNS name (TTL=60 ahead of time)
 [ ] curl health checks against new endpoint
@@ -155,7 +156,8 @@ In production, this phase typically takes **6–9 minutes of actual user-facing 
 # Phase 6 — Static sites
 
 ```bash
-scripts/cutover-dns.sh docs.example.com
+# Needs CLOUDFLARE_EMAIL, CLOUDFLARE_GLOBAL_API_KEY, CLOUDFLARE_ZONE_ID env vars
+scripts/cutover-dns.sh docs.example.com d1234abcd.cloudfront.net            # add --dry-run to preview
 ```
 
 Static sites are simpler — there's no state to migrate. Sync the build artifacts to S3, invalidate CloudFront, flip the CNAME at Cloudflare. **Zero downtime** if you do it in that order.
@@ -167,7 +169,9 @@ Static sites are simpler — there's no state to migrate. Sync the build artifac
 # Verifying parity
 
 ```bash
-scripts/verify-parity.sh https://api.example.com https://your-app.fly.dev /health /api/version /api/me
+# defaults to /health + /health/full; pass a file with one endpoint path per line for more
+printf '/health\n/api/version\n/api/me\n' > /tmp/parity-endpoints.txt
+scripts/verify-parity.sh https://api.example.com https://your-app.fly.dev /tmp/parity-endpoints.txt
 ```
 
 Hits the same endpoints on both old (Fly) and new (AWS) origins side-by-side; flags any non-matching responses. Run this *before* the DNS flip to catch ECS misconfigs while users are still on Fly.

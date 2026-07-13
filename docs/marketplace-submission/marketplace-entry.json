@@ -1,6 +1,6 @@
 {
   "name": "agent-skills",
-  "description": "19 production skills: Cloudflare/Namecheap DNS, Fly\u2192AWS, monid deep-research, terminal-poster, Orca peers (spec-to-ship, clean-sweep), and 12 Matt\u00d7Orca orchestration skills (matt-ship, wayfinder-fleet, \u2026). MIT.",
+  "description": "5 production capability skills: Cloudflare/Namecheap DNS, Fly\u2192AWS migration, monid deep-research, and terminal-poster image generation. Autonomous Orca fleets live in ravidsrk/orca-fleet. MIT.",
   "source": {
     "source": "url",
     "url": "https://github.com/ravidsrk/agent-skills.git",

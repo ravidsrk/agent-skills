@@ -2,7 +2,7 @@
 
 <p align="center">
   <strong>Production-grade capability skills for AI agents.</strong><br/>
-  DNS, AWS migration, deep research, terminal posters, and Orca multi-agent playbooks — battle-tested in production.
+  DNS migration, AWS migration, deep research, terminal posters — battle-tested in production.
 </p>
 
 <p align="center">
@@ -22,7 +22,9 @@
 
 # What's inside
 
-33 skills, organized by what they do — not by SDLC phase. These are **discrete capabilities** an agent reaches for when the task fits, not lifecycle steps that fire in sequence.
+5 capability skills, organized by what they do — not by SDLC phase. These are **discrete capabilities** an agent reaches for when the task fits, not lifecycle steps that fire in sequence.
+
+Looking for the autonomous Orca fleets that used to live here (spec-to-ship, clean-sweep, and the rest)? They moved to their own repo, [**ravidsrk/orca-fleet**](https://github.com/ravidsrk/orca-fleet), rebuilt as ten outcome-named missions over a three-layer architecture. This repo is capability skills only.
 
 # 🌐 Infrastructure
 
@@ -44,105 +46,9 @@
 |---|---|---|
 | 🎨 **[terminal-poster](skills/terminal-poster/)** | Generates dense, retro-cyberpunk infographic posters in a terminal aesthetic — pixel-bitmap headlines, ASCII box-drawing, monospace fonts. Five reusable templates (Cluster A–E). Cluster A audited at 99% fidelity. | ~$0.002 + ~30s/image |
 
-# 🤖 Multi-agent orchestration (Orca)
-
-### Architecture (all multi-agent skills)
-
-```
-Orca runtime + orchestration skill   ← HARD BASE (from Orca CLI; not this repo)
-        │
-        ├── Autonomous missions   spec-to-ship · clean-sweep · red-team-harden · flake-zero ·
-        │                         test-debt-zero · dep-fresh · docs-truth · perf-sweep
-        ├── Fleet ops             standing-fleet · run-supervision · gate-steward · merge-train ·
-        │                         quorum · spec-decompose · ephemeral-fleet · fleet-memory
-        ├── Matt×Orca fleets      matt-ship · wayfinder-fleet · review-matrix · diagnose-swarm ·
-        │                         architecture-sprint · design-it-thrice · research-then-grill
-        └── Gstack×Orca fleets    gstack-fleet · qa-fleet · ios-qa-fleet · autoplan-fleet · guard-policy
-                │
-                └── worker playbooks (ONE pack per worker):
-                    mattpocock/skills · garrytan/gstack · addyosmani/agent-skills
-```
-
-**We use Orca — we do not replace it.** Nothing multi-agent here runs without Orca orchestration. Worker packs are *what workers run*; Orca is *how the coordinator dispatches, waits, and gates*. Most skills run standalone; the fleet-ops skills (merge-train, gate-steward, run-supervision, …) compose *into* the missions rather than duplicating them. Many former one-off wrappers are now **modes of a surviving skill** — see each skill's "Variants" section and the [runtime dependency matrix](AGENTS.md#runtime-dependency-matrix).
-
-All require **Orca + `orchestration` skill (Orca CLI)**. Matt×Orca skills also need [mattpocock/skills](https://github.com/mattpocock/skills); the gstack fleets need [garrytan/gstack](https://github.com/garrytan/gstack). Shared helpers: [`scripts/orca-coord/`](scripts/orca-coord/).
-
-### Autonomous missions (goal in → finished outcome out)
-
-Give it a goal, come back to an evidence-based end state. Each is a deep mission that loops
-until done: discovery → PR-per-finding on an integration branch → build-blind review →
-merge-train → verify → repeat-until-dry. Human gates only at scope freeze, one-way
-decisions, and BASE→default promotion. Worker methodology is drawn from one upstream pack
-per worker (Matt / gstack / Addy — never two routers in a single worker TASK).
-
-| Mission | End state (definition of done) |
-|---|---|
-| 🚢 **[spec-to-ship](skills/spec-to-ship/)** | Frozen spec → shipped product (PR-per-task). Whole-product; `scope=feature` builds a single feature (grill+freeze). |
-| 🧹 **[clean-sweep](skills/clean-sweep/)** | Every real item closed. `source=audit` (findings) or `source=tracker` (drain the whole tracker); `mode=triage-only` for verify-only. |
-| 🛡️ **[red-team-harden](skills/red-team-harden/)** | CLEAN (zero unrefuted P0/P1, fix then re-attack) or HARDENED-WITH-OPEN-ITEMS; `mode=single-pass` for a quick audit. |
-| 🎯 **[flake-zero](skills/flake-zero/)** | The suite passes N consecutive green runs, no retry-wrappers |
-| 🧪 **[test-debt-zero](skills/test-debt-zero/)** | Every critical path has a test that dies under a semantics-preserving mutation |
-| 📦 **[dep-fresh](skills/dep-fresh/)** | Every dependency major current or parked, CI green throughout |
-| 📖 **[docs-truth](skills/docs-truth/)** | Every documented claim traces to the code, or it's gone; `mode=generate` to author docs |
-| ⚡ **[perf-sweep](skills/perf-sweep/)** | Every journey within its budget, proven by a measured before/after; `mode=report-only` to just benchmark |
-
-### Fleet ops (runtime-native autonomy layer)
-
-Built directly on Orca primitives no other skill exploited — automations, provenance, merge_ready, gates. No gstack or Matt dependency. These compose into the missions.
-
-| Skill | What it does |
-|---|---|
-| ⏰ **[standing-fleet](skills/standing-fleet/)** | Schedule any fleet on `orca automations`: prechecks skip empty runs, parked gates carry across runs |
-| 🩺 **[run-supervision](skills/run-supervision/)** | WATCH (self-healing respawn) + BLACKBOX (status / crash-resume / audit from persisted provenance) |
-| 🚪 **[gate-steward](skills/gate-steward/)** | Mechanical gates auto-resolved (audited), taste batched, one-way human-only |
-| 🚂 **[merge-train](skills/merge-train/)** | Serialized merge queue on `merge_ready` with reviewed-SHA freshness |
-| 🗳️ **[quorum](skills/quorum/)** | Group fan-out votes with auditable consensus tables; JURY mode for redundant implementations |
-| ✂️ **[spec-decompose](skills/spec-decompose/)** | Spec → tracer-bullet task DAG for `orchestration run` (the missing decomposition) |
-| 🫧 **[ephemeral-fleet](skills/ephemeral-fleet/)** | Disposable sandbox workers; the only sanctioned home for danger-profile work |
-| 🧠 **[fleet-memory](skills/fleet-memory/)** | Compounding learnings injected into future dispatches + adaptive review gating |
-
-### Matt × Orca (engineering process on a fleet)
-
-Coding flow (Matt v1.1+): **`/wayfinder` → `/to-spec` → `/to-tickets` → `/implement`** (AFK fleet). Do not use wayfinder as the entire coding path.
-
-| Skill | What it does |
-|---|---|
-| 🚢 **[matt-ship](skills/matt-ship/)** | Full Matt main flow on Orca: grill → to-spec → tickets → fleet implement → dual review |
-| 🧭 **[wayfinder-fleet](skills/wayfinder-fleet/)** | Parallel AFK wayfinder tickets; coding exits to to-spec → tickets → implement; `exit=content` for courses |
-| 🧪 **[review-matrix](skills/review-matrix/)** | The review wall: Standards/Spec axes + `axis-pack=prod-risk` (SQL/authz/LLM) + `axis=attack` (per-ticket red-team) |
-| 🐛 **[diagnose-swarm](skills/diagnose-swarm/)** | Repro-gate-first hard-bug swarm; `pack=matt` (diagnosing-bugs) or `pack=gstack` (investigate) |
-| 🏗️ **[architecture-sprint](skills/architecture-sprint/)** | Deepening survey → to-spec → tickets → implement |
-| 🪞 **[design-it-thrice](skills/design-it-thrice/)** | 3+ isolated radical designs; `mode=interface` (modules) or `mode=ui` (visual) |
-| 🔬 **[research-then-grill](skills/research-then-grill/)** | Parallel research pack → grounded grill |
-
-### Gstack × Orca (role fleets)
-
-Methodology from [garrytan/gstack](https://github.com/garrytan/gstack); **runtime is Orca**. The pure "run one gstack command across workers" wrappers are now one parameterized skill; only the fleets with distinctive worker mechanics stay separate.
-
-| Skill | What it does |
-|---|---|
-| 🧰 **[gstack-fleet](skills/gstack-fleet/)** | One parameterized fleet for any gstack command (ship · health · canary · retro · office-hours · …) |
-| 🧪 **[qa-fleet](skills/qa-fleet/)** | Parallel browser QA with per-page ownership (report or fix budget) |
-| 📱 **[ios-qa-fleet](skills/ios-qa-fleet/)** | Real-device / emulator iOS QA-fix lanes |
-| 📋 **[autoplan-fleet](skills/autoplan-fleet/)** | CEO→design→eng→DX plan gauntlet (sequential fresh contexts; headless execution model folded in) |
-| 🛡️ **[guard-policy](skills/guard-policy/)** | Real careful/freeze/guard hooks + sandbox profiles across all workers |
-
-
-
 ---
 
 # Quick Start
-
-## Install matrix
-
-| Track | Skills | Extra runtime |
-|---|---|---|
-| **A — Capability** (any agent harness) | `cloudflare-dns`, `namecheap-dns`, `fly-to-aws-migration`, `deep-research`, `terminal-poster` | Env keys only (see below) |
-| **B — Orca multi-agent** | `clean-sweep`, `spec-to-ship` | Orca + `orchestration` (Orca CLI). Peers; neither depends on the other. |
-| **F — Autonomous missions** | `red-team-harden`, `flake-zero`, `test-debt-zero`, `dep-fresh`, `docs-truth`, `perf-sweep` (plus the two peers `spec-to-ship`, `clean-sweep` in Track B) | Orca + `orchestration` + worker packs (mattpocock/skills, garrytan/gstack, and/or [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills)) — mix packs across workers, but exactly ONE router per worker; compose in-pack fleet-ops. |
-| **E — Fleet ops** | `standing-fleet`, `run-supervision`, `gate-steward`, `merge-train`, `quorum`, `spec-decompose`, `ephemeral-fleet`, `fleet-memory` | Orca + `orchestration` (Orca CLI) only (`ephemeral-fleet` also needs `orca-per-workspace-env` recipes). Compose with any fleet. |
-| **D — Gstack × Orca** | `gstack-fleet`, `qa-fleet`, `ios-qa-fleet`, `autoplan-fleet`, `guard-policy` | Orca + `orchestration` + **garrytan/gstack** for worker playbooks. |
-| **C — Matt × Orca** | `matt-ship`, `wayfinder-fleet`, `review-matrix`, `diagnose-swarm`, `architecture-sprint`, `design-it-thrice`, `research-then-grill` | Orca + `orchestration` + **mattpocock/skills** for worker playbooks. (`diagnose-swarm pack=gstack` uses gstack instead.) |
 
 🟡 **Name collision:** this repo's `deep-research` is the **monid 8-source** orchestrator. Other skill packs (e.g. makerskills) may ship a different skill with the same name. Symlinking this repo's copy will replace the other under `~/.claude/skills/deep-research`. Keep makerskills under `~/.agents/skills/` if you need both.
 
@@ -154,46 +60,15 @@ git clone https://github.com/ravidsrk/agent-skills.git
 cd agent-skills
 
 mkdir -p ~/.claude/skills
-# Track A only (safe default if you already have another deep-research):
+# Safe default if you already have another deep-research:
 for name in cloudflare-dns namecheap-dns fly-to-aws-migration terminal-poster; do
   ln -sfn "$(pwd)/skills/$name" "$HOME/.claude/skills/$name"
 done
 # monid deep-research (overwrites any other skill at this path):
 ln -sfn "$(pwd)/skills/deep-research" "$HOME/.claude/skills/deep-research"
-
-# Track B — Orca peers (no Matt dependency):
-for name in clean-sweep spec-to-ship; do
-  ln -sfn "$(pwd)/skills/$name" "$HOME/.claude/skills/$name"
-done
-
-# Track F — Autonomous missions (install the worker packs your workers use; never two routers in ONE worker):
-for name in red-team-harden flake-zero test-debt-zero dep-fresh docs-truth perf-sweep; do
-  ln -sfn "$(pwd)/skills/$name" "$HOME/.claude/skills/$name"
-done
-
-# Track E — Fleet ops (Orca only):
-for name in standing-fleet run-supervision gate-steward merge-train \
-  quorum spec-decompose ephemeral-fleet fleet-memory; do
-  ln -sfn "$(pwd)/skills/$name" "$HOME/.claude/skills/$name"
-done
-
-
-# Track D — Gstack × Orca. These fleets RUN gstack methods in workers — install gstack too:
-[ -d ~/.claude/skills/gstack ] || git clone https://github.com/garrytan/gstack.git ~/.claude/skills/gstack
-(cd ~/.claude/skills/gstack && git pull --ff-only && ./setup)
-for name in gstack-fleet qa-fleet ios-qa-fleet autoplan-fleet guard-policy; do
-  ln -sfn "$(pwd)/skills/$name" "$HOME/.claude/skills/$name"
-done
-
-# Track C — Matt × Orca. Workers run Matt playbooks — install them (executed, not optional):
-npx skills add mattpocock/skills -y
-for name in matt-ship wayfinder-fleet design-it-thrice review-matrix \
-  diagnose-swarm architecture-sprint research-then-grill; do
-  ln -sfn "$(pwd)/skills/$name" "$HOME/.claude/skills/$name"
-done
 ```
 
-Symlinks mean `git pull` in this clone keeps skills up to date. Shared coordinator helpers: `scripts/orca-coord/`.
+Symlinks mean `git pull` in this clone keeps skills up to date.
 
 📖 **Full guide:** [docs/claude-code-setup.md](docs/claude-code-setup.md)
 
@@ -288,9 +163,6 @@ export MONID_API_KEY=...
 
 # terminal-poster
 export OPENROUTER_API_KEY=...
-
-# clean-sweep / spec-to-ship — no API keys; need Orca runtime + orchestration skill (from Orca CLI)
-# orca status --json   # must show running; enable orchestration in Experimental settings
 ```
 
 🔴 **All skills read env vars at runtime — they're never written to disk.** Don't commit `.env` files.
@@ -310,14 +182,6 @@ Skills auto-activate based on the `description` field in their `SKILL.md`. Just 
 > 💬 *"Do a deep dive on AI agent harness engineering"* → activates `deep-research` (monid)
 >
 > 💬 *"Generate a terminal-style poster for our deployment pipeline"* → activates `terminal-poster`
->
-> 💬 *"The docs are ready — build the whole product"* → activates `spec-to-ship` (Orca)
->
-> 💬 *"Clean sweep the issues in this audit"* → activates `clean-sweep` (Orca)
->
-> 💬 *"Grill this idea then fleet-implement the tickets"* → activates `matt-ship` (Matt×Orca)
->
-> 💬 *"Chart a wayfinder map then research in parallel"* → activates `wayfinder-fleet`
 
 ---
 
@@ -376,9 +240,9 @@ agent-skills/
 ├── CLAUDE.md                     ← Claude Code session context
 ├── CONTRIBUTING.md               ← How to add a skill
 ├── LICENSE                       ← MIT
-├── plugin.json                   ← Claude Code plugin manifest
+├── .claude-plugin/plugin.json    ← Claude Code plugin manifest
 ├── assets/
-│   └── banner.png                ← Hero image (generated by terminal-poster)
+│   └── banner.jpg                ← Hero image
 ├── docs/                         ← Per-runtime setup + format spec
 │   ├── getting-started.md
 │   ├── skill-anatomy.md
@@ -388,6 +252,7 @@ agent-skills/
 │   ├── opencode-setup.md
 │   └── generic-setup.md
 ├── scripts/
+│   ├── banner/                   ← Repo hero banner prompt + reproducer
 │   └── validate-skills.py        ← Validates SKILL.md against the spec
 └── skills/
     ├── cloudflare-dns/           ← 🌐 DNS migration + zone hardening
@@ -425,7 +290,7 @@ Output:
 ✅ namecheap-dns
 ✅ terminal-poster
 
-🟢 All 33 skills valid against agentskills.io spec.
+🟢 All 5 skills valid against agentskills.io spec.
 ```
 
 The validator enforces the spec rules (frontmatter shape, name/directory matching, description length). Non-zero exit code if any skill fails — perfect for CI.
@@ -438,7 +303,7 @@ Most agent skill packs are shaped like a software lifecycle — DEFINE → PLAN 
 
 This repo is shaped differently. These are **capability skills** — tools the agent reaches for when the task fits. You don't migrate to AWS as part of a SDLC phase; you migrate when you migrate. You don't run deep research because the workflow says so; you run it when you need evidence.
 
-The two styles are complementary. For SDLC discipline, [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills) is excellent. For real-world infrastructure and content tooling, this repo is what I reach for.
+The two styles are complementary. For SDLC discipline, [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills) is excellent. For autonomous multi-agent fleets on Orca, [ravidsrk/orca-fleet](https://github.com/ravidsrk/orca-fleet). For real-world infrastructure and content tooling, this repo is what I reach for.
 
 The shared bet: **portable, public, spec-compliant** skills make agents better.
 

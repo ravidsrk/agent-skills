@@ -12,7 +12,7 @@ cd agent-skills
 mkdir -p ~/.claude/skills
 for s in skills/*/; do
   name=$(basename "$s")
-  ln -sf "$(pwd)/$s" "$HOME/.claude/skills/$name"
+  ln -sfn "$(pwd)/$s" "$HOME/.claude/skills/$name"
 done
 
 # Verify
@@ -31,15 +31,19 @@ cp -r /tmp/agent-skills/skills/* ~/.claude/skills/
 
 🟡 **Tradeoff:** updates require re-running the copy. Good for production environments where you don't want a moving target.
 
-# 🟢 Path 3: Plugin manifest (when you want full repo discovery)
+# 🟡 Path 3: Plugin manifest (marketplace distribution)
 
-The repo ships a `plugin.json` at the root, so Claude Code can treat the whole repo as a plugin bundle.
+The repo ships a plugin manifest at `.claude-plugin/plugin.json` for marketplace
+distribution. Cloning into `~/.claude/plugins/` does NOT install a plugin —
+Claude Code only loads plugins installed from a marketplace, or loaded
+explicitly for local development:
 
 ```bash
-git clone https://github.com/ravidsrk/agent-skills.git ~/.claude/plugins/agent-skills
+git clone https://github.com/ravidsrk/agent-skills.git
+claude --plugin-dir "$(pwd)/agent-skills"     # local plugin for this session
 ```
 
-Claude Code picks up `skills/`, scripts, and any `agents/` (when we add them) automatically.
+For everyday use, prefer the symlink install (Path 1).
 
 # Per-skill env vars
 
@@ -91,6 +95,9 @@ If you used Path 1 (symlinks), updates are instant. Path 2 requires re-copying.
 # Remove individual skill
 rm ~/.claude/skills/cloudflare-dns
 
-# Remove all
-rm -rf ~/.claude/skills/*
+# Remove all five skills from THIS pack (never rm -rf the whole
+# ~/.claude/skills/ — other packs' skills live there too)
+for name in cloudflare-dns namecheap-dns fly-to-aws-migration deep-research terminal-poster; do
+  rm -f "$HOME/.claude/skills/$name"
+done
 ```

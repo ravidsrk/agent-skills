@@ -28,8 +28,10 @@ cat skills/cloudflare-dns/SKILL.md \
 # Codex CLI
 
 ```bash
-# Pass skill content as part of the system message
-codex --system-file skills/deep-research/SKILL.md "research the state of AI agent harnesses"
+# Codex reads AGENTS.md from the working directory — put the skill content there
+# (there is no --system-file flag)
+cat skills/deep-research/SKILL.md >> AGENTS.md
+codex "research the state of AI agent harnesses"
 ```
 
 # Any OpenAI-API-compatible agent

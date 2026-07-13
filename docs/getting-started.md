@@ -47,7 +47,7 @@ Read its `README.md` for what it does and what env vars it needs.
 
 The pattern depends on the runtime. Pick the one matching your setup:
 
-- 🟢 **[Claude Code](claude-code-setup.md)** (recommended — has a marketplace install)
+- 🟢 **[Claude Code](claude-code-setup.md)** (recommended — symlink install)
 - 🟢 **[Mogra](mogra-setup.md)** (works out of the box if you use Mogra)
 - 🟡 **[Cursor](cursor-setup.md)** (paste `SKILL.md` into `.cursor/rules/`)
 - 🟡 **[OpenCode](opencode-setup.md)** (use `AGENTS.md` + the `skill` tool)

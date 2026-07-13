@@ -96,7 +96,10 @@ def validate_skill(skill_dir):
 
     if "compatibility" in data:
         c = data["compatibility"]
-        if c != "<object>" and not (1 <= len(c) <= 500):
+        if c == "<object>":
+            # spec requires a plain string; a nested mapping is invalid frontmatter
+            errors.append("compatibility must be a string (1-500 chars), got a mapping")
+        elif not (1 <= len(c) <= 500):
             errors.append(f"compatibility length {len(c)} out of 1-500")
 
     return errors

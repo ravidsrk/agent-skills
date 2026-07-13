@@ -50,7 +50,7 @@ Looking for the autonomous Orca fleets that used to live here (spec-to-ship, cle
 
 # Quick Start
 
-🟡 **Name collision:** this repo's `deep-research` is the **monid 8-source** orchestrator. Other skill packs (e.g. makerskills) may ship a different skill with the same name. Symlinking this repo's copy will replace the other under `~/.claude/skills/deep-research`. Keep makerskills under `~/.agents/skills/` if you need both.
+🟡 **Name collision:** this repo's `deep-research` is the **monid 8-source** orchestrator. Other skill packs (e.g. makerskills) may ship a different skill with the same name, and Claude Code discovers personal skills only under `~/.claude/skills/` — one directory per name, so only one `deep-research` can be active at a time. Link whichever you use more, and swap the symlink when you need the other.
 
 <details>
 <summary><b>🟢 Claude Code (recommended)</b></summary>
@@ -275,7 +275,7 @@ Each skill folder contains:
 
 # Validation
 
-Every push runs the validator. Run it locally before committing:
+CI runs the validator on every push to `main` and on every pull request. Run it locally before committing:
 
 ```bash
 python3 scripts/validate-skills.py

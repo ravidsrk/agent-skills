@@ -1,7 +1,0 @@
-Clean minimalist isometric illustration, Stripe documentation aesthetic.
-Aspect ~2:1 (1456×720). Soft warm cream background #F8F4EE.
-Dark slate ink #1F2937. White card faces with subtle drop shadows.
-ONE accent color for this skill. Top-left monospace label: skills/clean-sweep
-Bottom-center thin line + one-sentence caption: Find & close every real issue
-No photorealism, no cyberpunk, no dense text walls.
-Composition: tell the skill's story at a glance (journey / fan-out / central object).

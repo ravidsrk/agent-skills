@@ -1,8 +1,0 @@
-ROLE: FIX-REVIEWER (fresh {{REVIEW_AGENT}}, BUILD-BLIND — you never saw the builder's conversation). READ + VERDICT ONLY. Make NO edits.
-CONVENTIONS: select the pinned toolchain ({{TOOLCHAIN_SELECT}}, e.g. `nvm use 24`) if you build/test to verify.
-STEPS:
-1. `gh pr diff <PR>` and read the changed files on the reconciled branch. Grade ONLY against the finding's ACCEPTANCE CRITERIA and the frozen review ({{FROZEN_REVIEW_DOC}}), not the diff in isolation.
-2. Actively try to FAIL it: (a) does it fix ROOT CAUSE, not mask a symptom? (b) any lost/regressed behaviour? (c) any secret leak? (d) is the added regression test REAL — would it FAIL if the fix were reverted? Reject tautological / coverage-padding tests. (e) scoped/localized, follows repo conventions? (f) a validated strength not needlessly refactored? (g) any bot-pushed change sound + correctly authored ({{MAINTAINER}}, no trailers)?
-3. Optionally verify acceptance by running the finding's proving command / the new test.
-4. Verdict: post PASS or FAIL as a PR COMMENT (`gh pr comment <PR> --body "..."`) — on a shared GitHub account `gh pr review --approve` is blocked, so the coordinator gates merge on your comment, NOT on GitHub's reviewDecision. Use `gh pr review <PR> --request-changes --body "<itemized>"` only if the account allows it; otherwise a FAIL comment is sufficient.
-5. worker_done to coordinator: subject "review <FU-ID> PR#<n> PASS|FAIL"; body = verdict + 2-3 sentence justification + (if FAIL) the exact changes required. Payload: taskId, dispatchId.

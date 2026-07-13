@@ -207,7 +207,8 @@ aws secretsmanager create-secret \
 # Option A: pg_dump + restore (REQUIRES downtime equal to dump+restore duration)
 # (flyctl postgres connect has no command flag — tunnel with flyctl proxy instead)
 flyctl proxy 5433:5432 -a <db-app> &
-PGSSLMODE=prefer pg_dump "postgresql://postgres:$FLY_PG_PASSWORD@localhost:5433/<db-name>" \
+# PGPASSWORD keeps the credential out of argv (ps-visible otherwise)
+PGSSLMODE=prefer PGPASSWORD=$FLY_PG_PASSWORD pg_dump "postgresql://postgres@localhost:5433/<db-name>" \
   --no-owner --no-acl --schema=public > /tmp/fly-dump.sql
 
 # Get Aurora endpoint

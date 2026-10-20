@@ -260,11 +260,14 @@ cmd_round2() {
 
 cmd_run_commands() { # run in-scope command items; --passing = only items already passing
   need_ledger
-  local scope only_passing=0 n=0 id cmd
+  local scope only_passing=0 n=0 rec id cmd
   [[ "${1:-}" == "--passing" ]] && only_passing=1
   scope="$(fl_scope_n "$FD")"
-  while IFS=$'\t' read -r id cmd; do
-    [[ -n "$id" ]] || continue
+  # One compact JSON record per item, so multi-line commands stay intact.
+  while IFS= read -r rec; do
+    [[ -n "$rec" ]] || continue
+    id="$(printf '%s' "$rec" | jq -r '.[0]')"
+    cmd="$(printf '%s' "$rec" | jq -r '.[1]')"
     n=$((n + 1))
     mkdir -p ".finish/evidence/$id"
     echo "── $id: $cmd"
@@ -273,9 +276,9 @@ cmd_run_commands() { # run in-scope command items; --passing = only items alread
       echo "COMMAND ITEM FAILED: $id (full log: .finish/evidence/$id/command.log)"
       return 1
     fi
-  done < <(jq -r --argjson scope "$scope" --argjson p "$only_passing" "
+  done < <(jq -c --argjson scope "$scope" --argjson p "$only_passing" "
     .items[] | select($in_scope) | select(.verify.method == \"command\")
-    | select(\$p == 0 or .status == \"passing\") | \"\(.id)\t\(.verify.command)\"" "$LEDGER")
+    | select(\$p == 0 or .status == \"passing\") | [.id, .verify.command]" "$LEDGER")
   echo "$n command item(s) passed"
 }
 

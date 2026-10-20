@@ -1,0 +1,26 @@
+# Example only — the shape of a Finish Line mobile flow. Real flows live at .maestro/finish/<ID>.yaml.
+# Rules: criteria as comments above their steps; clearState at the start; takeScreenshot at each key step
+# (paths are relative to where `maestro test` runs — the repo root); never mark a step optional.
+# Confirm commands against the Maestro docs before relying on one you haven't used (Law 7).
+appId: com.example.app   # replace with the app's applicationId / bundle id
+---
+# Given a new email, when the user completes signup, then they land on the dashboard
+- launchApp:
+    clearState: true
+- takeScreenshot: .finish/evidence/J-001/phone-01-launch
+- tapOn: "Sign up"
+- tapOn:
+    id: "email-input"
+- inputRandomEmail
+- tapOn:
+    id: "password-input"
+- inputText: "Correct-Horse-Battery-9"
+- tapOn: "Create account"
+- assertVisible: "Dashboard"
+- takeScreenshot: .finish/evidence/J-001/phone-02-dashboard
+
+# Given a signed-up user, when they reopen the app, then they are still signed in
+- stopApp
+- launchApp
+- assertVisible: "Dashboard"
+- takeScreenshot: .finish/evidence/J-001/phone-03-reopened

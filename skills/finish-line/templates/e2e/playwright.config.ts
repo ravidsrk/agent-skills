@@ -1,6 +1,6 @@
 // e2e/finish/playwright.config.ts — Finish Line E2E config (installed by the finish-line skill).
 // Runs every spec at phone and desktop size against the real local stack started by .finish/init.sh.
-// Point at a deployed preview with BASE_URL=https://… npx playwright test -c e2e/finish/playwright.config.ts
+// Point at a deployed preview with BASE_URL=https://…, or at a fresh clone's app with PORT=3100.
 import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
@@ -14,7 +14,7 @@ export default defineConfig({
   reporter: [['list']],
   outputDir: '../../.finish/evidence/_playwright',
   use: {
-    baseURL: process.env.BASE_URL ?? 'http://localhost:3000',
+    baseURL: process.env.BASE_URL ?? `http://localhost:${process.env.PORT ?? 3000}`,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },

@@ -10,9 +10,9 @@
       "title": "Fresh clone boots with no manual steps",
       "source": "README.md#getting-started",
       "acceptance": [
-        "Given a fresh clone of the repo, when ./.finish/init.sh runs, then it exits 0 and GET / returns 200"
+        "Given a fresh clone of the repo on port 3100, when ./.finish/init.sh runs, then it exits 0 and GET / on that port returns 200"
       ],
-      "verify": { "method": "command", "command": "d=$(mktemp -d) && git clone -q . \"$d/rc\" && cd \"$d/rc\" && ./.finish/init.sh && curl -fsS -o /dev/null http://localhost:3000/" },
+      "verify": { "method": "command", "command": "d=$(mktemp -d) && git clone -q . \"$d/rc\" && cd \"$d/rc\" && PORT=3100 ./.finish/init.sh && curl -fsS -o /dev/null http://localhost:3100/; s=$?; kill \"$(cat \"$d/rc/.finish/logs/app.pid\" 2>/dev/null)\" 2>/dev/null; exit $s" },
       "status": "failing",
       "attempts": 0,
       "evidence": [],

@@ -9,7 +9,7 @@
 #   .finish/verify.sh                  gate template — fill every STAGE_*
 #   .finish/bin/{ledger,tamper,lib}.sh vendored copies (refreshed until the ledger is frozen)
 #   .claude/agents/finish-verifier.md  independent verifier subagent
-#   .gitignore entries for evidence and logs
+#   .gitignore entries for evidence, logs and browser-tool scratch dirs
 #   --web: e2e/finish/playwright.config.ts + e2e/finish/finish-fixture.ts
 
 set -uo pipefail
@@ -73,7 +73,7 @@ if [[ $web -eq 1 ]]; then
 fi
 
 touch .gitignore
-for line in '.finish/evidence/*' '!.finish/evidence/INDEX.md' '.finish/logs/'; do
+for line in '.finish/evidence/*' '!.finish/evidence/INDEX.md' '.finish/logs/' '.playwright-cli/' 'test-results/' 'playwright-report/'; do
   if ! grep -qxF -- "$line" .gitignore; then
     if [[ -s .gitignore && -n "$(tail -c1 .gitignore)" ]]; then echo >> .gitignore; fi
     echo "$line" >> .gitignore

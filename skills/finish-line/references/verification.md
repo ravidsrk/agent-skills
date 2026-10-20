@@ -21,40 +21,45 @@ Idempotent; safe to run every session. Shape:
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
+PORT="${PORT:-3000}"                                   # honour PORT: a fresh clone boots beside this checkout on 3100
+mkdir -p .finish/logs                                  # gitignored, so absent in a fresh clone
+curl -fsS -o /dev/null "http://localhost:$PORT/" 2>/dev/null && exit 0   # already up on this port
 [ -f .env.local ] || cp .env.example .env.local      # safe local defaults only
 docker compose -f .finish/compose.yml up -d --wait     # or: supabase start / firebase emulators:start
 npm ci                                                 # the stack's lockfile install
 npm run db:migrate && npm run db:seed                  # from an EMPTY database
-(npm run dev > .finish/logs/app.log 2>&1 &)            # start the app in the background
-for i in $(seq 1 60); do curl -fsS -o /dev/null http://localhost:3000/ && exit 0; sleep 2; done
+PORT="$PORT" nohup npm run dev > .finish/logs/app.log 2>&1 &
+echo $! > .finish/logs/app.pid                         # lets a fresh-clone check stop its own app
+for i in $(seq 1 60); do curl -fs -o /dev/null "http://localhost:$PORT/" && exit 0; sleep 2; done
 echo "app did not become healthy; see .finish/logs/app.log"; exit 1
 ```
 
-If the app is already up, don't start a second copy: check the health URL first.
+The app must read its port from `PORT`, so the fresh-clone gate (`PORT=3100`) proves the clone boots instead of hitting the app already running on 3000.
 
 ## 3. Real local infrastructure
 
 Never mock your own backend in E2E. Run the real dependencies locally:
 
 ```yaml
-# .finish/compose.yml
+# .finish/compose.yml — every port bound to 127.0.0.1 so test data never leaves the machine
+name: myapp-finish    # fixed project name: a fresh clone reuses these containers instead of fighting for ports
 services:
   postgres:
     image: postgres:16
     environment: { POSTGRES_PASSWORD: postgres, POSTGRES_DB: app }
-    ports: ["5432:5432"]
+    ports: ["127.0.0.1:5432:5432"]
     healthcheck: { test: ["CMD", "pg_isready", "-U", "postgres"], interval: 2s, retries: 30 }
   redis:
     image: redis:7
-    ports: ["6379:6379"]
+    ports: ["127.0.0.1:6379:6379"]
   mailpit:            # SMTP on 1025, UI + API on 8025 — assert emails via http://localhost:8025/api/v1/messages
     image: axllent/mailpit
-    ports: ["1025:1025", "8025:8025"]
+    ports: ["127.0.0.1:1025:1025", "127.0.0.1:8025:8025"]
   minio:              # S3-compatible storage on 9000
     image: minio/minio
     command: server /data
     environment: { MINIO_ROOT_USER: minio, MINIO_ROOT_PASSWORD: minio12345 }
-    ports: ["9000:9000"]
+    ports: ["127.0.0.1:9000:9000"]
 ```
 
 | Service in the code | Local stand-in |
@@ -68,7 +73,9 @@ services:
 
 ## 4. Filling `.finish/verify.sh`
 
-Every `STAGE_*` is a command or `n/a: <reason>`. Spec stages get their files from the ledger automatically (all in-scope specs in full mode, passing specs in `--quick`); use `{}` in the command to run once per spec instead of once with all of them.
+Every `STAGE_*` is a command or `n/a: <reason>`. Spec stages get their files from the ledger automatically (all in-scope specs in full mode, passing specs in `--quick`); use `{}` in the command to run once per spec instead of once with all of them. `STAGE_COMMANDS` is pre-set: it runs the ledger's `command` items the same way, logging each to `.finish/evidence/<ID>/command.log`.
+
+Get the gate right in Phase 0: once the ledger is frozen, `tamper.sh` fails on any change to `verify.sh` except filling in a stage that was empty or `n/a`. A genuine fix after that is a human re-freeze.
 
 | Stack | INSTALL | TYPECHECK | LINT | UNIT | BUILD |
 |---|---|---|---|---|---|
@@ -144,7 +151,8 @@ npx lighthouse http://localhost:3000/ --quiet --chrome-flags="--headless=new" \
 ## 10. What `tamper.sh` checks
 
 - Protected tests (any path with a `finish/` segment) contain no skip/only/fixme/xfail/ignore/`optional: true` markers and no assertions that can't fail.
-- Every spec in `ratchet.json` still exists with at least the assertion count it had when it passed; every `passing` item's spec exists.
-- Against the freeze commit: criteria hash unchanged; no test files deleted or renamed out of the test tree; no skip markers or tautologies added to any test; no changes to include/exclude/ignore/retries/only rules in test-runner configs; no `verify.sh` stage removed or turned into `n/a`, tamper stage intact; `.finish/bin/` unchanged.
+- Every `passing` item's spec exists.
+- Every spec in `ratchet.json` (max over its history since the freeze, for items still in the ledger with that spec) exists with at least that many assertions.
+- Against the freeze commit: criteria hash unchanged; no test files deleted or renamed out of the test tree; no skip markers or tautologies added to any test; no changes to include/exclude/ignore/retries/only rules in test-runner configs; `verify.sh` unchanged except stages that were empty or `n/a`; `.finish/bin/` unchanged.
 
 A false positive is the human's call: they re-freeze (`ledger.md` §8).

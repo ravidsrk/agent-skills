@@ -20,10 +20,13 @@ Act as a stranger who knows only the promise. Try to get that value. Record ever
 
 ## Report
 
+As your very last step, after every check, run `./.finish/bin/ledger.sh state` and put its output on the `STATE:` line. It fingerprints the code you verified; `ledger.sh pass` refuses if the code changes afterwards.
+
 Write the report to `.finish/evidence/<ID>/verifier/report.md` (first-user mode: `.finish/evidence/_first-user/report.md`) and print it. Exactly this shape; the first line must be the verdict:
 
 ```
 VERDICT: PASS | FAIL
+STATE: <output of ./.finish/bin/ledger.sh state>
 CRITERIA:
 - <criterion text> — met | not met — <evidence path>
 PROBLEMS:

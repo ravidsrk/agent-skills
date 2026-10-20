@@ -11,6 +11,8 @@
 #   ledger.sh show <ID>             print one item
 #   ledger.sh specs [--passing] [--method M]   existing spec paths for in-scope items
 #   ledger.sh pass <ID>             mark passing (guarded)
+#   ledger.sh state                 fingerprint of the code under test (the verifier records it)
+#   ledger.sh run-commands [--passing]  run in-scope verify.command items (used by verify.sh)
 #   ledger.sh fail <ID> "<why>"     attempts += 1; parks as stuck at 3
 #   ledger.sh stuck <ID> "<why>"    park now
 #   ledger.sh block <ID> "<why>"    needs a human (blocked_human)
@@ -164,7 +166,7 @@ cmd_specs() {
 }
 
 cmd_pass() {
-  local id="$1" method spec dir report imgs files head_t rep_t n
+  local id="$1" method spec dir report imgs files want n
   need_ledger; need_item "$id"
   [[ "$(item_field "$id" status)" == "failing" ]] || fl_die "$id is $(item_field "$id" status); only failing items can pass (use round2 for stuck items)"
   method="$(item_verify "$id" method)"
@@ -181,9 +183,9 @@ cmd_pass() {
 
   [[ -f "$report" ]] || fl_die "no verifier report at $report — spawn finish-verifier with only the item ID"
   grep -Eq '^VERDICT: *PASS' "$report" || fl_die "verifier report does not say VERDICT: PASS"
-  head_t="$(git log -1 --format=%ct 2>/dev/null || echo 0)"
-  rep_t="$(fl_mtime "$report")"
-  [[ "$rep_t" -ge "$head_t" ]] || fl_die "verifier report is older than HEAD — re-verify after the last commit, then pass before committing"
+  want="$(sed -n 's/^STATE: *\([0-9a-f][0-9a-f]*\).*/\1/p' "$report" | head -1)"
+  [[ -n "$want" ]] || fl_die "verifier report has no STATE line — the verifier must end by recording ./.finish/bin/ledger.sh state"
+  [[ "$want" == "$(fl_code_state)" ]] || fl_die "the code changed after the verifier checked it (STATE mismatch) — re-verify, then pass before committing"
 
   if [[ -n "$spec" ]]; then
     [[ -f "$spec" ]] || fl_die "spec $spec does not exist"
@@ -220,6 +222,7 @@ cmd_fail() {
   local id="$1" msg="${2:-}" a
   need_ledger; need_item "$id"
   [[ -n "$msg" ]] || fl_die "fail needs a one-line reason"
+  retire_report "$id"
   update_item "$id" ".attempts += 1 | (if .attempts >= 3 then .status = \"stuck\" else .status = \"failing\" end) | $note_filter" \
     --arg stamp "$(fl_now)" --arg msg "attempt failed: $msg"
   a="$(item_field "$id" attempts)"
@@ -230,10 +233,17 @@ cmd_fail() {
   fi
 }
 
+# A verdict belongs to one attempt: retire the report whenever the item leaves passing or is retried.
+retire_report() {
+  local r=".finish/evidence/$1/verifier/report.md"
+  if [[ -f "$r" ]]; then mv "$r" ".finish/evidence/$1/verifier/report.stale-$(date +%Y%m%d-%H%M%S).md"; fi
+}
+
 set_status() {
   local id="$1" st="$2" msg="$3" extra="${4:-}"
   need_ledger; need_item "$id"
   [[ -n "$msg" ]] || fl_die "a one-line reason is required"
+  retire_report "$id"
   update_item "$id" ".status = \"$st\"$extra | $note_filter" --arg stamp "$(fl_now)" --arg msg "$msg"
   echo "$id → $st"
 }
@@ -246,6 +256,27 @@ cmd_round2() {
     fl_die "$id already had round 2 — use: ledger.sh block $id \"<what a human must do>\""
   fi
   set_status "$id" failing "round 2: re-read code and docs from scratch" " | .attempts = 0"
+}
+
+cmd_run_commands() { # run in-scope command items; --passing = only items already passing
+  need_ledger
+  local scope only_passing=0 n=0 id cmd
+  [[ "${1:-}" == "--passing" ]] && only_passing=1
+  scope="$(fl_scope_n "$FD")"
+  while IFS=$'\t' read -r id cmd; do
+    [[ -n "$id" ]] || continue
+    n=$((n + 1))
+    mkdir -p ".finish/evidence/$id"
+    echo "── $id: $cmd"
+    if ! bash -c "$cmd" > ".finish/evidence/$id/command.log" 2>&1; then
+      tail -20 ".finish/evidence/$id/command.log"
+      echo "COMMAND ITEM FAILED: $id (full log: .finish/evidence/$id/command.log)"
+      return 1
+    fi
+  done < <(jq -r --argjson scope "$scope" --argjson p "$only_passing" "
+    .items[] | select($in_scope) | select(.verify.method == \"command\")
+    | select(\$p == 0 or .status == \"passing\") | \"\(.id)\t\(.verify.command)\"" "$LEDGER")
+  echo "$n command item(s) passed"
 }
 
 cmd_lock() {
@@ -289,6 +320,8 @@ case "$sub" in
   regress) [[ -n "${2:-}" ]] || fl_die "regress needs a one-line reason"; set_status "${1:-}" failing "regressed: $2" ;;
   round2) cmd_round2 "${1:-}" ;;
   hash) need_ledger; fl_criteria_hash "$LEDGER" ;;
+  state) fl_code_state ;;
+  run-commands) cmd_run_commands "${1:-}" ;;
   check) cmd_check ;;
   lock) cmd_lock "${1:-}" ;;
   ""|-h|--help|help) awk 'NR > 1 && /^#/ { sub(/^# ?/, ""); print; next } NR > 1 { exit }' "${BASH_SOURCE[0]}" ;;

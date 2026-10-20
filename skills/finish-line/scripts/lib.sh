@@ -56,3 +56,15 @@ fl_is_test_path() { printf '%s\n' "$1" | grep -Eq "$FL_TEST_PATH_RE"; }
 fl_is_protected_path() { printf '%s\n' "$1" | grep -Eq "$FL_PROTECTED_RE"; }
 
 fl_assert_count() { grep -Ec "$FL_ASSERT_RE" "$1" 2>/dev/null || true; }
+
+# Fingerprint of the code under test: HEAD + uncommitted and untracked changes outside .finish/.
+# Run from the repo root. Gitignored files (node_modules, evidence, tool caches) don't count.
+fl_code_state() {
+  {
+    git rev-parse HEAD 2>/dev/null
+    git diff HEAD --no-color --no-ext-diff -- . ':(exclude).finish' 2>/dev/null
+    git ls-files --others --exclude-standard -- . ':(exclude).finish' 2>/dev/null | while IFS= read -r f; do
+      printf '%s %s\n' "$(git hash-object -- "$f" 2>/dev/null)" "$f"
+    done
+  } | fl_sha
+}

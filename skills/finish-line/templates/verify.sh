@@ -13,6 +13,12 @@
 #   - if the command contains {}, once per spec with {} replaced by the path.
 # No specs yet → the stage is skipped.
 #
+# COMMANDS runs the ledger's `command` items (all in scope, or passing only
+# with --quick). Command items must never call verify.sh themselves.
+#
+# After the freeze this file is locked: tamper.sh fails on any change except
+# filling in a stage that was empty or n/a. Fill every stage in Phase 0.
+#
 # Commands per stack: references/verification.md in the finish-line skill.
 
 # shellcheck disable=SC2034  # STAGE_* are read indirectly via ${!var}
@@ -27,12 +33,13 @@ STAGE_BUILD=""        # production build of every surface        e.g. npm run bu
 STAGE_E2E_WEB=""      # Playwright, spec paths appended          e.g. npx playwright test -c e2e/finish/playwright.config.ts
 STAGE_E2E_MOBILE=""   # Maestro, one run per flow                e.g. maestro test {}
 STAGE_API=""          # API tests against the running server     e.g. npx vitest run
+STAGE_COMMANDS="./.finish/bin/ledger.sh run-commands"
 STAGE_TAMPER="./.finish/bin/tamper.sh"
 STAGE_SECRETS=""      # secrets scan, whole history              e.g. gitleaks git --no-banner
 STAGE_DEPS=""         # dependency audit, fail on critical only  e.g. npm audit --audit-level=critical --omit=dev
 
-FULL="INSTALL TYPECHECK LINT UNIT BUILD E2E_WEB E2E_MOBILE API TAMPER SECRETS DEPS"
-QUICK="TYPECHECK E2E_WEB E2E_MOBILE API TAMPER"
+FULL="INSTALL TYPECHECK LINT UNIT BUILD E2E_WEB E2E_MOBILE API COMMANDS TAMPER SECRETS DEPS"
+QUICK="TYPECHECK E2E_WEB E2E_MOBILE API COMMANDS TAMPER"
 
 mode=full; stages="$FULL"; passing_flag=""
 if [[ "${1:-}" == "--quick" ]]; then mode=quick; stages="$QUICK"; passing_flag="--passing"; fi
@@ -78,6 +85,9 @@ for s in $stages; do
         echo "── $s: $cmd$quoted"
         bash -c "$cmd$quoted" || rc=1
       fi ;;
+    COMMANDS)
+      if [[ ! -f .finish/ledger.json ]]; then line "$s" SKIP 0 "no ledger yet"; continue; fi
+      rc=0; bash -c "$cmd $passing_flag" || rc=1 ;;
     *)
       echo "── $s: $cmd"
       rc=0; bash -c "$cmd" || rc=1 ;;

@@ -6,13 +6,15 @@
 # Always checked:
 #   - protected tests (any path with a finish/ segment) contain no skip/only/
 #     fixme/xfail/ignore/optional markers and no assertions that can't fail
-#   - every spec recorded in .finish/ratchet.json still exists with at least
-#     as many assertions as when its item passed; every passing item's spec exists
+#   - every spec recorded in .finish/ratchet.json (max over its history since the
+#     freeze) still exists with at least as many assertions as when its item
+#     passed; every passing item's spec exists
 # Checked against the freeze commit (once the ledger is frozen):
 #   - frozen criteria hash matches .finish/LEDGER.lock
 #   - no test files deleted; no skip markers or tautologies added to any test
 #   - test-runner configs: no changes to include/exclude/ignore/retries/only rules
-#   - .finish/verify.sh: no stage removed or turned into "n/a", tamper stage intact
+#   - .finish/verify.sh unchanged, except stages that were empty or n/a at the
+#     freeze may be filled in
 #   - .finish/bin/ unchanged
 #
 # Exit 0 = clean, 1 = tampering found, 2 = usage/environment error.
@@ -46,7 +48,7 @@ MARKER_RE="$FL_SKIP_RE|$FL_TAUTOLOGY_RE"
 findings=0
 report() { findings=$((findings + 1)); printf 'TAMPER: %s\n' "$*"; }
 TMP="$(mktemp)"
-trap 'rm -f "$TMP" "$TMP.max" "$TMP.cur"' EXIT
+trap 'rm -f "$TMP" "$TMP.max" "$TMP.cur" "$TMP.old" "$TMP.new"' EXIT
 # Report every line a producer wrote to $TMP (producers run in subshells, so they can't count).
 flush() { if [[ -s "$TMP" ]]; then while IFS= read -r l; do report "$l"; done < "$TMP"; fi; : > "$TMP"; }
 
@@ -62,16 +64,24 @@ done > "$TMP"
 flush
 
 # 2. Ratchet + passing specs exist. The ratchet is the max over every committed
-#    version of ratchet.json, so lowering the file itself doesn't help.
-if [[ -f "$FD/ratchet.json" || -n "$(git log -1 --format=%H -- .finish/ratchet.json 2>/dev/null)" ]]; then
+#    version of ratchet.json since the freeze (inclusive), so lowering the file
+#    itself doesn't help. Entries count only while the ledger still has that item
+#    with that spec, so a human re-freeze that removes or re-specs an item retires them.
+hist=""
+if [[ -n "$base" ]] && git cat-file -e "${base}^{commit}" 2>/dev/null; then
+  hist="$(git log --format=%H "$base..HEAD" -- .finish/ratchet.json 2>/dev/null)"
+  git cat-file -e "$base:.finish/ratchet.json" 2>/dev/null && hist="$hist $base"
+fi
+if [[ -f "$FD/ratchet.json" || -n "$hist" ]]; then
   {
-    for c in $(git log --format=%H -- .finish/ratchet.json 2>/dev/null); do git show "$c:.finish/ratchet.json" 2>/dev/null; done
+    for c in $hist; do git show "$c:.finish/ratchet.json" 2>/dev/null || true; done
     cat "$FD/ratchet.json" 2>/dev/null || true   # pipefail: a missing file must not void the history
   } | jq -s '[.[] | objects | to_entries[]] | group_by(.key)
              | map({key: .[0].key, value: {spec: .[-1].value.spec, assertions: (map(.value.assertions) | max)}}) | from_entries' \
     > "$TMP.max" 2>/dev/null || echo '{}' > "$TMP.max"
   curf="$FD/ratchet.json"
   if [[ ! -f "$curf" ]]; then echo '{}' > "$TMP.cur"; curf="$TMP.cur"; fi
+  ledgerf="$FD/ledger.json"; [[ -f "$ledgerf" ]] || ledgerf="$TMP.cur"
   while IFS=$'\t' read -r id spec n cur; do
     [[ -n "$id" ]] || continue
     [[ "$cur" == "null" || "$cur" -lt "$n" ]] && report "ratchet: .finish/ratchet.json lowered for $id (now $cur, was $n)"
@@ -81,7 +91,10 @@ if [[ -f "$FD/ratchet.json" || -n "$(git log -1 --format=%H -- .finish/ratchet.j
       now="$(fl_assert_count "$spec")"
       [[ "${now:-0}" -ge "$n" ]] || report "ratchet: $id spec $spec has $now assertions, had $n when it passed"
     fi
-  done < <(jq -r --slurpfile cur "$curf" 'to_entries[] | "\(.key)\t\(.value.spec)\t\(.value.assertions)\t\($cur[0][.key].assertions // "null")"' "$TMP.max" 2>/dev/null)
+  done < <(jq -r --slurpfile cur "$curf" --slurpfile led "$ledgerf" '
+      ([$led[0].items[]? | {key: .id, value: (.verify.spec // "")}] | from_entries) as $specs
+      | to_entries[] | select($specs[.key] == .value.spec)
+      | "\(.key)\t\(.value.spec)\t\(.value.assertions)\t\($cur[0][.key].assertions // "null")"' "$TMP.max" 2>/dev/null)
   rm -f "$TMP.max" "$TMP.cur"
 fi
 if [[ -f "$FD/ledger.json" ]]; then
@@ -139,23 +152,30 @@ while IFS= read -r f; do
 done < <(git diff --name-only "${diffargs[@]}" 2>/dev/null) > "$TMP"
 flush
 
-# 3d. verify.sh stages.
-stage_val() { local v="${1#*=}"; v="${v#\"}"; v="${v%\"}"; v="${v#\'}"; v="${v%\'}"; printf '%s' "$v"; }
+# 3d. verify.sh: frozen except stages that were empty or n/a at the freeze.
+stage_val() { local v="${1#*=}"; v="${v%%#*}"; v="${v%"${v##*[![:space:]]}"}"; v="${v#\"}"; v="${v%\"}"; v="${v#\'}"; v="${v%\'}"; printf '%s' "$v"; }
 if git cat-file -e "$base:.finish/verify.sh" 2>/dev/null; then
-  while IFS= read -r line; do
-    name="${line%%=*}"
-    old="$(stage_val "$line")"
-    cur_line="$(grep -E "^${name}=" .finish/verify.sh 2>/dev/null | head -1 || true)"
-    cur="$(stage_val "$cur_line")"
-    case "$old" in ""|n/a*) [[ "$name" == "STAGE_TAMPER" ]] || continue ;; esac
-    if [[ -z "$cur_line" ]]; then
-      report "verify.sh: $name removed"
-    elif [[ "$cur" == n/a* ]]; then
-      report "verify.sh: $name changed to \"$cur\" after freeze"
-    elif [[ "$name" == "STAGE_TAMPER" && "$cur" != "$old" ]]; then
-      report "verify.sh: STAGE_TAMPER changed from \"$old\" to \"$cur\""
+  if [[ ! -f .finish/verify.sh ]]; then
+    report "verify.sh deleted after freeze"
+  else
+    relaxed=""
+    while IFS= read -r line; do
+      case "$(stage_val "$line")" in ""|n/a*) relaxed="$relaxed ${line%%=*}" ;; esac
+    done < <(git show "$base:.finish/verify.sh" | grep -E '^STAGE_[A-Z0-9_]+=')
+    norm() {
+      RELAXED="$relaxed" awk 'BEGIN { n = split(ENVIRON["RELAXED"], r, " "); for (i = 1; i <= n; i++) rel[r[i]] = 1 }
+        /^STAGE_[A-Z0-9_]+=/ { k = $0; sub(/=.*/, "", k); if (k in rel) { print k "=<may be filled in>"; next } }
+        { print }'
+    }
+    git show "$base:.finish/verify.sh" | norm > "$TMP.old"
+    norm < .finish/verify.sh > "$TMP.new"
+    if ! cmp -s "$TMP.old" "$TMP.new"; then
+      diff "$TMP.old" "$TMP.new" | grep -E '^[<>]' | head -8 | while IFS= read -r l; do
+        printf 'verify.sh changed after freeze (only stages empty or n/a at the freeze may change): %s\n' "$l"
+      done > "$TMP"
+      flush
     fi
-  done < <(git show "$base:.finish/verify.sh" | grep -E '^STAGE_[A-Z0-9_]+=')
+  fi
 fi
 
 # 3e. Vendored scripts.

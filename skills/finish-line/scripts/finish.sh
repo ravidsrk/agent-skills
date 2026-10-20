@@ -16,6 +16,7 @@
 #
 # Exit: 0 launch-ready or blocked on a human · 1 setup error · 2 stalled
 #       3 session cap · 4 guard tripped (frozen files edited, ratchet lowered, tamper)
+#       5 the agent CLI exited non-zero STALL_LIMIT sessions in a row
 #
 # The default agent runs with --dangerously-skip-permissions. Run this in a
 # container, VM or a separate OS user with no production credentials.
@@ -53,9 +54,10 @@ export FINISH_SKILL_DIR="$SKILL"
 head_sha() { git rev-parse HEAD 2>/dev/null || echo none; }
 status_now() { tr -d '[:space:]' < .finish/STATUS 2>/dev/null || echo NEW; }
 progress() { "$HERE/ledger.sh" status --line 2>/dev/null || echo "P0 ?"; }
+BIN="lib.sh ledger.sh tamper.sh"
 guarded() { # hashes of files the agent must never change after the freeze
   local f
-  for f in .finish/FREEZE .finish/LEDGER.lock .finish/bin/lib.sh .finish/bin/ledger.sh .finish/bin/tamper.sh; do
+  for f in .finish/FREEZE .finish/LEDGER.lock .finish/SCOPE .finish/bin/lib.sh .finish/bin/ledger.sh .finish/bin/tamper.sh; do
     if [[ -f "$f" ]]; then printf '%s %s\n' "$(fl_sha < "$f")" "$f"; else printf 'absent %s\n' "$f"; fi
   done
 }
@@ -79,6 +81,7 @@ $(cat "$PROTOCOL")"
 trip() { echo "■ Guard tripped: $*"; echo "  Nothing was reverted. Inspect: git log -p -3 ; .finish/bin/ledger.sh check ; .finish/bin/tamper.sh"; exit 4; }
 
 stall=0
+agent_fail=0
 last_head="$(head_sha)"
 
 for ((i = 1; i <= MAX_SESSIONS; i++)); do
@@ -90,18 +93,44 @@ for ((i = 1; i <= MAX_SESSIONS; i++)); do
   before_ratchet="$(cat .finish/ratchet.json 2>/dev/null || echo '{}')"
 
   run_agent 2>&1 | tee "$log"
+  rc=${PIPESTATUS[0]}
 
   if [[ $frozen -eq 1 ]]; then
-    [[ "$(guarded)" == "$before_guard" ]] || trip "the agent changed FREEZE, LEDGER.lock or .finish/bin/ during session $i"
-    "$HERE/ledger.sh" check >/dev/null 2>&1 || trip "frozen ledger criteria were edited (ledger.sh check)"
+    [[ "$(guarded)" == "$before_guard" ]] || trip "the agent changed FREEZE, LEDGER.lock, SCOPE or .finish/bin/ during session $i"
     after_ratchet="$(cat .finish/ratchet.json 2>/dev/null || echo '{}')"
     jq -en --argjson a "$before_ratchet" --argjson b "$after_ratchet" \
       '[$a | to_entries[] | . as $e | ($b[$e.key].assertions // -1) >= $e.value.assertions] | all' >/dev/null 2>&1 \
       || trip "ratchet lowered: a passing spec lost assertions or was removed from .finish/ratchet.json"
+  elif [[ -f .finish/FREEZE ]]; then
+    # Froze during this session: the baseline must be trustworthy. Vendored scripts the
+    # agent touched must be the skill's own copies; SCOPE must be what it was at the start.
+    for s in $BIN; do
+      if ! printf '%s\n' "$before_guard" | grep -qxF "$(fl_sha < ".finish/bin/$s" 2>/dev/null) .finish/bin/$s"; then
+        cmp -s "$HERE/$s" ".finish/bin/$s" || trip "session $i froze the ledger with a modified .finish/bin/$s"
+      fi
+    done
+    [[ "$(printf '%s\n' "$before_guard" | grep ' .finish/SCOPE$')" == "$(guarded | grep ' .finish/SCOPE$')" ]] \
+      || trip "session $i changed .finish/SCOPE (human-only)"
+  fi
+  if [[ -f .finish/FREEZE ]]; then
+    "$HERE/ledger.sh" check >/dev/null 2>&1 || trip "frozen ledger criteria were edited (ledger.sh check)"
     "$HERE/tamper.sh" > ".finish/logs/tamper-$i.txt" 2>&1 || { cat ".finish/logs/tamper-$i.txt"; trip "tamper.sh found gate gaming after session $i"; }
   fi
 
   [[ -z "$(git status --porcelain 2>/dev/null)" ]] || echo "⚠ working tree not clean after session $i (protocol requires a clean end)"
+
+  if [[ $rc -ne 0 ]]; then
+    # A failed session proves nothing, so a terminal STATUS left over from before doesn't count.
+    agent_fail=$((agent_fail + 1))
+    echo "⚠ agent exited $rc in session $i ($agent_fail/$STALL_LIMIT in a row)"
+    if [[ $agent_fail -ge $STALL_LIMIT ]]; then
+      echo "■ Agent failing: $STALL_LIMIT sessions in a row exited non-zero. Read $log"
+      exit 5
+    fi
+    h="$(head_sha)"; [[ "$h" == "$last_head" ]] || { stall=0; last_head="$h"; }
+    continue
+  fi
+  agent_fail=0
 
   st="$(status_now)"
   if [[ "$st" == "LAUNCH_READY" || "$st" == "BLOCKED_ON_HUMAN" ]]; then

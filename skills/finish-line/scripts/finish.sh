@@ -109,8 +109,12 @@ for ((i = 1; i <= MAX_SESSIONS; i++)); do
         cmp -s "$HERE/$s" ".finish/bin/$s" || trip "session $i froze the ledger with a modified .finish/bin/$s"
       fi
     done
-    [[ "$(printf '%s\n' "$before_guard" | grep ' .finish/SCOPE$')" == "$(guarded | grep ' .finish/SCOPE$')" ]] \
-      || trip "session $i changed .finish/SCOPE (human-only)"
+    scope_before="$(printf '%s\n' "$before_guard" | grep ' .finish/SCOPE$')"
+    scope_after="$(guarded | grep ' .finish/SCOPE$')"
+    # Creating the default (absent → P0, what scaffold.sh writes) is allowed; any other change is not.
+    if [[ "$scope_before" != "$scope_after" ]] && ! [[ "$scope_before" == "absent .finish/SCOPE" && "$(tr -d '[:space:]' < .finish/SCOPE)" == "P0" ]]; then
+      trip "session $i changed .finish/SCOPE (human-only)"
+    fi
   fi
   if [[ -f .finish/FREEZE ]]; then
     "$HERE/ledger.sh" check >/dev/null 2>&1 || trip "frozen ledger criteria were edited (ledger.sh check)"

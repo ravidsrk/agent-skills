@@ -60,8 +60,8 @@ Never run the build loop without the protocol: the laws in its §0 are what keep
 |---|---|
 | `scripts/finish.sh [repo]` | Unattended runner. Env: `MAX_SESSIONS` (40), `STALL_LIMIT` (3), `CLAUDE_MODEL`, `FINISH_AGENT`. After each frozen session it re-checks the lock, the ratchet and tamper, and stops (exit 4) if the agent touched them. |
 | `scripts/scaffold.sh [--web]` | Phase 0: creates `.finish/`, vendors `ledger.sh` / `tamper.sh` / `lib.sh` into `.finish/bin/`, installs `verify.sh`, the verifier agent and (web) the Playwright config + fixture. Never overwrites. |
-| `.finish/bin/ledger.sh` | `validate` · `status` · `next` · `show` · `specs` · `pass` · `fail` · `stuck` · `block` · `round2` · `reopen` · `regress` · `lock` · `check`. Mutations touch only status/attempts/evidence/notes. |
-| `.finish/bin/tamper.sh` | Fails on skipped/focused tests, tautologies, deleted tests, weakened specs, test-config filter edits, `n/a`'d gate stages, edited frozen files. |
+| `.finish/bin/ledger.sh` | `validate` · `status` · `next` · `show` · `specs` · `pass` · `fail` · `stuck` · `block` · `round2` · `reopen` · `regress` · `state` · `run-commands` · `lock` · `check`. Mutations touch only status/attempts/evidence/notes; a verdict is bound to the code `STATE` it checked. |
+| `.finish/bin/tamper.sh` | Fails on skipped/focused tests, tautologies, deleted tests, weakened specs, test-config filter edits, any post-freeze change to `verify.sh`, edited frozen files. |
 | `scripts/portfolio.sh [dir]` | Offline table of every repo under a folder. |
 
 # Human-only
@@ -73,8 +73,9 @@ Credentials, accounts, paid plans; production data; real emails/SMS/payments; DN
 | Gotcha | Fix |
 |---|---|
 | Runner exits 2 (stalled) | Three sessions without a commit. Read the last `.finish/logs/session-*.log`; usually a boot failure or a missing credential that should be a blocker. |
-| Runner exits 4 (guard) | The agent edited `FREEZE`, `LEDGER.lock`, `.finish/bin/`, the ratchet, or gamed a test. Inspect `git log -p -3`; revert; rerun. |
-| `ledger.sh pass` refuses | It says why: missing screenshots, no or stale verifier report, tamper failing, spec with no assertions. Fix that; never work around it. |
+| Runner exits 4 (guard) | The agent edited `FREEZE`, `LEDGER.lock`, `SCOPE`, `.finish/bin/`, `verify.sh`, the ratchet, or gamed a test. Inspect `git log -p -3`; revert; rerun. |
+| Runner exits 5 | The agent CLI itself failed 3 sessions in a row (auth, rate limit, crash). Fix the CLI, rerun. |
+| `ledger.sh pass` refuses | It says why: missing screenshots, no PASS report, code changed since the verifier's `STATE`, tamper failing, spec with no assertions. Fix that; never work around it. |
 | Tamper false positive (e.g. a legit `exclude` change in `pyproject.toml`) | Human re-freezes: `references/ledger.md` §8. |
 | Laptop sleeps mid-run | macOS: `caffeinate -i scripts/finish.sh <repo>`. |
 | `--dangerously-skip-permissions` | The default runner uses it. Run in a container, VM, or a separate OS user without production credentials. |

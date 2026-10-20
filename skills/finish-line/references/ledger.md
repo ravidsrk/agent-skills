@@ -32,7 +32,7 @@ When in doubt, it's P1. A smaller P0 that ships beats a complete P0 that never d
 
 | Gate | Usual `verify.method` |
 |---|---|
-| Fresh clone → `.finish/init.sh` → app runs, no manual steps (**always item 1**, `G-000`) | `command` |
+| Fresh clone → `.finish/init.sh` → app runs, no manual steps (**always item 1**, `G-000`; boot the clone on its own port, e.g. `PORT=3100`) | `command` |
 | Production build succeeds for every surface | `command` |
 | No console errors, unhandled rejections or unexpected 4xx/5xx on any P0 journey | covered by the web fixture in every journey spec |
 | Auth complete: sign up, log in, log out, password reset or magic link, session survives reload | `e2e-web` / `e2e-mobile` journeys |
@@ -87,7 +87,7 @@ IDs: `G-###` gates, `J-###` journeys, `F-###` features. Never reuse an ID.
 | `type` | `journey` · `feature` · `gate` |
 | `priority` | `P0` · `P1` · `P2` |
 | `platforms` | non-empty list, e.g. `web`, `android`, `ios`, `api`, `cli` |
-| `verify.method` | `e2e-web` (spec `e2e/finish/<ID>.spec.ts`) · `e2e-mobile` (`.maestro/finish/<ID>.yaml`) · `api` (`<backend tests>/finish/…`) · `command` (`verify.command`, a shell command that exits 0) |
+| `verify.method` | `e2e-web` (spec `e2e/finish/<ID>.spec.ts`) · `e2e-mobile` (`.maestro/finish/<ID>.yaml`) · `api` (`<backend tests>/finish/…`) · `command` (`verify.command`, a shell command that exits 0; `verify.sh` re-runs it, so it must never call `verify.sh`) |
 | `status` | `failing` · `passing` · `stuck` · `blocked_human` — all items start `failing`, `attempts` 0, `evidence` `[]`, `notes` `""` |
 
 Spec paths must sit under a `finish/` directory: that's what makes them protected by `tamper.sh`. A full worked example: `templates/ledger.example.json`.
@@ -113,5 +113,7 @@ git add .finish/ledger.json && git commit -m "chore(finish): revise definition o
 .finish/bin/ledger.sh lock --refreeze
 git add .finish/FREEZE .finish/LEDGER.lock && git commit -m "chore(finish): re-freeze ledger"
 ```
+
+If a passing spec legitimately loses assertions under the new definition, lower its entry in `.finish/ratchet.json` in the same commit as the ledger edit; entries for removed items or changed spec paths stop counting on their own.
 
 The runner treats an agent that does this as a guard trip and stops.

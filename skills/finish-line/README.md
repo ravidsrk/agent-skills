@@ -72,7 +72,8 @@ FINISH_AGENT="codex exec --full-auto" ~/.claude/skills/finish-line/scripts/finis
 | `0` | `LAUNCH_READY`, or `BLOCKED_ON_HUMAN` — read `.finish/LAUNCH_REPORT.md` and `.finish/BLOCKERS.md` |
 | `2` | Stalled: 3 sessions with no commit — read the last `.finish/logs/session-*.log` |
 | `3` | Hit `MAX_SESSIONS` |
-| `4` | Guard tripped: the agent edited the frozen ledger, `.finish/bin/`, the ratchet, or gamed a test |
+| `4` | Guard tripped: the agent edited the frozen ledger, `SCOPE`, `.finish/bin/`, `verify.sh`, the ratchet, or gamed a test |
+| `5` | The agent CLI exited non-zero 3 sessions in a row (auth, rate limit, crash) |
 
 **Interactive alternative:** in Claude Code inside the repo, *"Run one Finish Line session"* — the skill loads and the agent follows [`references/protocol.md`](references/protocol.md) for one session.
 

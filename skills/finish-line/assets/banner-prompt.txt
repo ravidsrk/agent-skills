@@ -1,0 +1,30 @@
+A horizontal banner image for a README, 2:1 aspect ratio (about 1200×600 feel).
+
+STYLE: Clean minimalist isometric illustration. Soft warm cream background, single green accent. Modern technical illustration — Stripe documentation aesthetic. NOT photorealistic. NO dense text.
+
+PALETTE:
+  - Background: soft warm cream #F8F4EE
+  - Primary accent: launch green #16A34A
+  - Ink: dark slate #1F2937
+  - White #FFFFFF for card faces
+
+COMPOSITION (a left → right journey):
+
+  LEFT: a loose, slightly messy stack of five white isometric app-screen cards, tilted at different angles, some with a corner peeling up. Each card face is blank except for faint abstract gray bars. No text on them.
+
+  CENTER: a single isometric checkpoint gate — a white arch with a small camera lens mounted on top (suggesting screenshots) and a short vertical checklist panel beside it with four rows; each row is a small green check mark followed by an abstract gray bar. No words in the checklist.
+
+  RIGHT: one white app-screen card, upright and neatly aligned, crossing a thin black-and-white checkered finish-line ribbon on the ground. A small green circular badge with a white check mark sits on the card's top-right corner.
+
+  A thin dashed slate path connects left → center → right along the ground.
+
+  TOP-LEFT corner: small monospace text exactly: "skills/finish-line"
+  BOTTOM-CENTER: a thin horizontal line with ink text exactly: "From half-built to launch-ready, proven by evidence"
+
+FEEL: Calm, premium, orderly. The left side feels unfinished; the right side feels done.
+
+CRITICAL RULES — DO NOT VIOLATE:
+  - The ONLY text in the image: "skills/finish-line" top-left and the bottom-center caption, each exactly once
+  - No words, letters or numbers on any card, gate, checklist or badge
+  - Do not duplicate any label; do not render garbled or made-up text
+  - NO photorealism, NO emoji, NO neon, NO cyberpunk, NO people

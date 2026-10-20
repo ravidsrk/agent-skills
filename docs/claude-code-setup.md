@@ -17,7 +17,7 @@ done
 
 # Verify
 ls ~/.claude/skills/
-# cloudflare-dns  namecheap-dns  fly-to-aws-migration  deep-research  terminal-poster
+# cloudflare-dns  namecheap-dns  fly-to-aws-migration  deep-research  finish-line  terminal-poster
 ```
 
 🟢 **Why this approach:** edits to your clone instantly reflect in Claude Code. Skills update via `git pull`. No reinstall step.
@@ -56,6 +56,7 @@ Each skill needs different secrets. Set them in your shell or in Claude Code's e
 | `fly-to-aws-migration` | `AWS_PROFILE`, `FLY_API_TOKEN`, `CLOUDFLARE_API_KEY` |
 | `deep-research` | `MONID_API_KEY` |
 | `terminal-poster` | `OPENROUTER_API_KEY` |
+| `finish-line` | none — optional `FINISH_GIT_NAME`, `FINISH_GIT_EMAIL`, `FINISH_NO_AI_TRAILERS=1` |
 
 ```bash
 # Example: add to ~/.zshrc or ~/.bashrc
@@ -95,9 +96,9 @@ If you used Path 1 (symlinks), updates are instant. Path 2 requires re-copying.
 # Remove individual skill
 rm ~/.claude/skills/cloudflare-dns
 
-# Remove all five skills from THIS pack (never rm -rf the whole
+# Remove all six skills from THIS pack (never rm -rf the whole
 # ~/.claude/skills/ — other packs' skills live there too)
-for name in cloudflare-dns namecheap-dns fly-to-aws-migration deep-research terminal-poster; do
+for name in cloudflare-dns namecheap-dns fly-to-aws-migration deep-research finish-line terminal-poster; do
   rm -f "$HOME/.claude/skills/$name"
 done
 ```

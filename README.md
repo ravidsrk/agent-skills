@@ -2,7 +2,7 @@
 
 <p align="center">
   <strong>Production-grade capability skills for AI agents.</strong><br/>
-  DNS migration, AWS migration, deep research, terminal posters — battle-tested in production.
+  DNS migration, AWS migration, deep research, product finishing, terminal posters — battle-tested in production.
 </p>
 
 <p align="center">
@@ -22,7 +22,7 @@
 
 # What's inside
 
-5 capability skills, organized by what they do — not by SDLC phase. These are **discrete capabilities** an agent reaches for when the task fits, not lifecycle steps that fire in sequence.
+6 capability skills, organized by what they do — not by SDLC phase. These are **discrete capabilities** an agent reaches for when the task fits, not lifecycle steps that fire in sequence.
 
 Looking for the autonomous Orca fleets that used to live here (spec-to-ship, clean-sweep, and the rest)? They moved to their own repo, [**ravidsrk/orca-fleet**](https://github.com/ravidsrk/orca-fleet), rebuilt as ten outcome-named missions over a three-layer architecture. This repo is capability skills only.
 
@@ -39,6 +39,12 @@ Looking for the autonomous Orca fleets that used to live here (spec-to-ship, cle
 | Skill | What it does | Cost / latency |
 |---|---|---|
 | 🔬 **[deep-research](skills/deep-research/)** | Parallel multi-source research orchestrator. Fans out across **8 sources** (X, Reddit, HN, GitHub repos + issues, Polymarket, YouTube with transcripts, Exa neural search) via [monid](https://monid.dev). One auth, one balance, structured + human-readable evidence dumps. | ~$0.10–0.20 + ~60–90s/run |
+
+# 🛠️ Dev workflow
+
+| Skill | What it does | Cost / latency |
+|---|---|---|
+| 🏁 **[finish-line](skills/finish-line/)** | Drives a half-built, AI-coded product to verified launch-readiness. Forensic audit of what really works, a hash-locked definition of done frozen from the product's docs, a one-item-at-a-time build loop with Playwright / Maestro screenshots, an independent verifier subagent, and tamper checks that catch skipped or weakened tests. Runs unattended across fresh-context sessions until `LAUNCH_READY` or a clear list of what only you can do. | Agent compute only, capped by `MAX_SESSIONS` |
 
 # 🎨 Creative
 
@@ -61,7 +67,7 @@ cd agent-skills
 
 mkdir -p ~/.claude/skills
 # Safe default if you already have another deep-research:
-for name in cloudflare-dns namecheap-dns fly-to-aws-migration terminal-poster; do
+for name in cloudflare-dns namecheap-dns fly-to-aws-migration finish-line terminal-poster; do
   ln -sfn "$(pwd)/skills/$name" "$HOME/.claude/skills/$name"
 done
 # monid deep-research (overwrites any other skill at this path):
@@ -163,6 +169,9 @@ export MONID_API_KEY=...
 
 # terminal-poster
 export OPENROUTER_API_KEY=...
+
+# finish-line — no API keys; optional identity for the commits its sessions make
+export FINISH_GIT_NAME="Your Name" FINISH_GIT_EMAIL=you@example.com
 ```
 
 🔴 **All skills read env vars at runtime — they're never written to disk.** Don't commit `.env` files.
@@ -180,6 +189,8 @@ Skills auto-activate based on the `description` field in their `SKILL.md`. Just 
 > 💬 *"Migrate my Fly project to AWS"* → activates `fly-to-aws-migration`
 >
 > 💬 *"Do a deep dive on AI agent harness engineering"* → activates `deep-research` (monid)
+>
+> 💬 *"Finish this product and take it to launch"* → activates `finish-line`
 >
 > 💬 *"Generate a terminal-style poster for our deployment pipeline"* → activates `terminal-poster`
 
@@ -259,6 +270,7 @@ agent-skills/
     ├── namecheap-dns/            ← 🌐 Namecheap XML API wrapper
     ├── fly-to-aws-migration/     ← 🌐 Fly → AWS playbook (7 phases)
     ├── deep-research/            ← 🔍 8-source parallel research
+    ├── finish-line/              ← 🛠️ Half-built product → verified launch
     └── terminal-poster/          ← 🎨 Retro-cyberpunk image posters
 ```
 
@@ -286,11 +298,12 @@ Output:
 ```
 ✅ cloudflare-dns
 ✅ deep-research
+✅ finish-line
 ✅ fly-to-aws-migration
 ✅ namecheap-dns
 ✅ terminal-poster
 
-🟢 All 5 skills valid against agentskills.io spec.
+🟢 All 6 skills valid against agentskills.io spec.
 ```
 
 The validator enforces the spec rules (frontmatter shape, name/directory matching, description length). Non-zero exit code if any skill fails — perfect for CI.
@@ -328,6 +341,7 @@ PRs welcome — new skills, fixes to existing ones, better docs. Quality bar:
 
 - 🏗️ **Repo structure** — inspired by [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills). The plugin manifest pattern, multi-runtime setup docs, expandable installs, and `AGENTS.md` conventions came from there.
 - 🎨 **`terminal-poster`** — visual pattern reverse-engineered from public posts by [@shannholmberg](https://x.com/shannholmberg) on X. The skill makes the look reproducible across topics; Shann designed the look itself.
+- 🏁 **`finish-line`** — built on Anthropic's published harness patterns for long-running agents (feature list with pass flags, progress file, browser-verified completion, a separate skeptical evaluator), hardened with mechanical guards against test gaming.
 - 🔍 **`deep-research`** — originally inspired by [`mvanhorn/last30days-skill`](https://github.com/mvanhorn/last30days-skill). The 30-day default window came from that upstream; the 8-source fan-out and monid routing were rebuilt from scratch.
 
 ---

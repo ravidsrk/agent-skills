@@ -2,7 +2,7 @@
 
 ## The skills
 
-Five capability skills — cloudflare-dns, namecheap-dns, fly-to-aws-migration, deep-research (monid), terminal-poster. Work on any harness; set the env vars listed in each README.
+Six capability skills — cloudflare-dns, namecheap-dns, fly-to-aws-migration, deep-research (monid), finish-line, terminal-poster. Work on any harness; set the env vars listed in each README.
 
 The autonomous Orca fleets that used to live here moved to [ravidsrk/orca-fleet](https://github.com/ravidsrk/orca-fleet).
 
@@ -38,7 +38,7 @@ cd agent-skills
 
 ```bash
 ls skills/
-# cloudflare-dns  namecheap-dns  fly-to-aws-migration  deep-research  terminal-poster
+# cloudflare-dns  namecheap-dns  fly-to-aws-migration  deep-research  finish-line  terminal-poster
 ```
 
 Read its `README.md` for what it does and what env vars it needs.
@@ -55,7 +55,7 @@ The pattern depends on the runtime. Pick the one matching your setup:
 
 # 4. Set the env vars
 
-Each skill's `README.md` lists what it needs. Quick reference for all 5:
+Each skill's `README.md` lists what it needs. Quick reference (finish-line needs none):
 
 ```bash
 # cloudflare-dns
@@ -91,6 +91,7 @@ In your agent, ask something the skill should respond to:
 | `namecheap-dns` | *"Add a CNAME for docs.example.com pointing at my Fly app"* |
 | `fly-to-aws-migration` | *"Migrate my Fly project to AWS"* |
 | `deep-research` | *"Do a deep dive on AI agent harness engineering"* |
+| `finish-line` | *"Finish this product and take it to launch"* |
 | `terminal-poster` | *"Generate a terminal-style poster for our agent stack"* |
 
 The agent should announce that it's loading the matching skill before proceeding.

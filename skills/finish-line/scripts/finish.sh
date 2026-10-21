@@ -330,7 +330,7 @@ while :; do
   between_sessions
   if [[ $sessions -ge $MAX_SESSIONS ]]; then
     echo "■ Session cap MAX_SESSIONS=$MAX_SESSIONS reached · $(status_now) · $(progress)"
-    "$HERE/ledger.sh" next 2>/dev/null | sed -n '2,$p' | sed 's/^/  unresolved/'
+    "$HERE/ledger.sh" open 2>/dev/null | sed 's/^/  open — /'
     echo "  Nothing was abandoned: rerun with a higher MAX_SESSIONS to keep going; research so far is in .finish/research/"
     exit 3
   fi

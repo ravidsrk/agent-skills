@@ -12,6 +12,7 @@
 #   ledger.sh status [--line]       summary, P0 progress, next item
 #   ledger.sh next                  next failing item to work on (exit 1 if none)
 #   ledger.sh next --stuck          the stuck item with the fewest research rounds (exit 1 if none)
+#   ledger.sh open                  every in-scope item that isn't passing, with its status and rounds
 #   ledger.sh show <ID>             print one item
 #   ledger.sh specs [--passing] [--method M]   existing spec paths for in-scope items
 #   ledger.sh pass <ID>             mark passing (guarded)
@@ -172,6 +173,14 @@ cmd_next() {
     return 1
   fi
   printf '%s\n' "$out"
+}
+
+cmd_open() {
+  need_ledger
+  local scope
+  scope="$(fl_scope_n "$FD")"
+  jq -r --argjson scope "$scope" ".items[] | select($in_scope) | select(.status != \"passing\")
+    | \"\(.status): \(.id) — \(.title)\(if .status == \"stuck\" or $rounds > 0 then \" (research rounds: \($rounds))\" else \"\" end)\"" "$LEDGER"
 }
 
 cmd_specs() {
@@ -735,6 +744,7 @@ case "$sub" in
   validate) cmd_validate "${1:-}" ;;
   status) cmd_status "${1:-}" ;;
   next) cmd_next "${1:-}" ;;
+  open) cmd_open ;;
   show) need_ledger; need_item "${1:-}"; jq --arg id "$1" '.items[] | select(.id == $id)' "$LEDGER" ;;
   specs) cmd_specs "$@" ;;
   pass) cmd_pass "${1:-}" ;;

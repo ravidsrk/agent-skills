@@ -63,6 +63,8 @@ ROOT="$(fl_root)"
 FD="$ROOT/.finish"
 LEDGER="$FD/ledger.json"
 BRIEF="$FD/product.json"
+# Source files that are code, never docs (a doc claim can't rest on them).
+CODE_EXT_RE='\.(c|cc|cpp|cs|cjs|css|dart|ex|exs|go|h|hpp|java|js|jsx|kt|kts|lua|m|mjs|php|pl|py|rb|rs|scala|scss|sh|sql|svelte|swift|ts|tsx|vue|zig)$|(^|/)(package\.json|package-lock\.json|pnpm-lock\.yaml|yarn\.lock|Cargo\.toml|go\.mod|pyproject\.toml|requirements[^/]*\.txt|Gemfile|Podfile|build\.gradle(\.kts)?)$'
 cd "$ROOT" || exit 2
 
 need_ledger() { [[ -f "$LEDGER" ]] || fl_die "no ledger at .finish/ledger.json (Phase 1 creates it)"; }
@@ -470,19 +472,24 @@ cmd_check() {
 FLAT_SED="$(printf "s/\xe2\x80\x99/'/g; s/\xe2\x80\x98/'/g; s/\xe2\x80\x9c/\"/g; s/\xe2\x80\x9d/\"/g; s/\xe2\x80\x94/-/g; s/\xe2\x80\x93/-/g; s/\xc2\xa0/ /g")"
 flat() { LC_ALL=C sed -e "$FLAT_SED" | LC_ALL=C tr '\r\n\t' '   ' | LC_ALL=C tr -d '*`' | LC_ALL=C tr -s ' ' | LC_ALL=C tr '[:upper:]' '[:lower:]'; }
 
-brief_kind() { # <file> → image | pdf | text | binary
+brief_kind() { # <file> → image | pdf | json | text | binary
   case "$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')" in
     *.png|*.jpg|*.jpeg|*.gif|*.webp|*.svg|*.avif|*.heic|*.fig|*.sketch) echo image; return ;;
     *.pdf) echo pdf; return ;;
+    *.json) jq -e . "$1" >/dev/null 2>&1 && { echo json; return; } ;;
   esac
   if [[ ! -s "$1" ]] || grep -Iq . "$1" 2>/dev/null; then echo text; else echo binary; fi
 }
 
 brief_quote_found() { # <file> <kind> <quote>
+  # grep reads everything (no -q): under pipefail an early exit would fail the writer with SIGPIPE.
   local q
   q="$(printf '%s' "$3" | flat)"; q="${q# }"; q="${q% }"
-  if [[ "$2" == pdf ]]; then pdftotext -q "$1" - 2>/dev/null | flat | grep -qF -e "$q"
-  else flat < "$1" | grep -qF -e "$q"; fi
+  case "$2" in
+    pdf) pdftotext -q "$1" - 2>/dev/null | flat | grep -F -e "$q" >/dev/null ;;
+    json) { flat < "$1"; echo; jq -r '[.. | strings] | join(" ")' "$1" | flat; } | grep -F -e "$q" >/dev/null ;;   # raw, or its strings unescaped
+    *) flat < "$1" | grep -F -e "$q" >/dev/null ;;
+  esac
 }
 
 cmd_brief() {
@@ -538,6 +545,9 @@ cmd_brief() {
       esac
     fi
     if [[ -z "$e" ]] && fl_is_protected_path "$file"; then e="$file is one of Finish Line's own tests, not a source about the product"; fi
+    if [[ -z "$e" && "$basis" == doc ]] && printf '%s\n' "$file" | grep -Eqi "$CODE_EXT_RE"; then
+      e="$file is code: code shows what exists, never what the product is for (basis code, or cite the doc that says it)"
+    fi
     if [[ -z "$e" && "$basis" == doc ]] && ! printf '%s\n' "$docs" | grep -qxF -- "$file"; then
       e="$file isn't in docs (list every doc you read)"
     fi

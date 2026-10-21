@@ -113,7 +113,9 @@ trap 'rmdir "$LOCK" 2>/dev/null; rm -f "$GITDIR/finish-line.ledger.json"; rm -rf
 # Env files are where owner actions put keys: a stash must never take them.
 # (Literal excludes of ignored paths make `git stash push` fail, so logs are filtered separately.)
 KEEP=(':(exclude,glob)**/.env' ':(exclude,glob)**/.env.*')
-dirty() { git status --porcelain -uall -- . "${KEEP[@]}" 2>/dev/null | grep -qv ' \.finish/logs/'; }
+# (grep -c reads everything: under pipefail, grep -q stopping early would fail git with SIGPIPE on a
+# long status and read as clean.)
+dirty() { [[ "$(git status --porcelain -uall -- . "${KEEP[@]}" 2>/dev/null | grep -cv ' \.finish/logs/')" -gt 0 ]]; }
 stash() { git stash push -u -q -m "$1" -- . "${KEEP[@]}" && ! dirty; }
 
 # Start from a clean tree: the run reverts by commit, so stash anything local first.
@@ -241,7 +243,7 @@ $(cat "$PROTOCOL")"
     $FINISH_AGENT "$prompt" < /dev/null
   else
     local extra=(--dangerously-skip-permissions --disallowedTools "AskUserQuestion,EnterPlanMode,ExitPlanMode")
-    claude --help 2>/dev/null | grep -q -- '--permission-prompts' && extra+=(--permission-prompts none)
+    claude --help 2>/dev/null | grep -- '--permission-prompts' >/dev/null && extra+=(--permission-prompts none)
     [[ -n "${CLAUDE_MODEL:-}" ]] && extra+=(--model "$CLAUDE_MODEL")
     [[ -n "$POLICY" ]] && extra+=(--settings "$POLICY")   # flag scope: outranks the repo's and the user's settings
     claude -p "$prompt" "${extra[@]}" < /dev/null

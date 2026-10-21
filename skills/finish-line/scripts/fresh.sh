@@ -48,7 +48,8 @@ if [[ -d "$GITDIR/finish-line.lock" && "${FINISH_FRESH_UNDER_RUNNER:-}" != 1 ]];
   refuse "a finish.sh run is active in this repo; stop it first, or use finish.sh --fresh"
 fi
 # Env files hold the owner's keys and logs are being written: neither counts as a change.
-if git status --porcelain -uall -- . ':(exclude,glob)**/.env' ':(exclude,glob)**/.env.*' 2>/dev/null | grep -qv ' \.finish/logs/'; then
+# grep -c reads everything: under pipefail, grep -q stopping early fails git with SIGPIPE and reads as clean.
+if [[ "$(git status --porcelain -uall -- . ':(exclude,glob)**/.env' ':(exclude,glob)**/.env.*' 2>/dev/null | grep -cv ' \.finish/logs/')" -gt 0 ]]; then
   refuse "uncommitted changes: commit or stash them first (finish.sh --fresh stashes them for you)"
 fi
 

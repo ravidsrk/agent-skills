@@ -548,7 +548,7 @@ cmd_brief() {
     if [[ -z "$e" && "$basis" == doc ]] && printf '%s\n' "$file" | grep -Eqi "$CODE_EXT_RE"; then
       e="$file is code: code shows what exists, never what the product is for (basis code, or cite the doc that says it)"
     fi
-    if [[ -z "$e" && "$basis" == doc ]] && ! printf '%s\n' "$docs" | grep -qxF -- "$file"; then
+    if [[ -z "$e" && "$basis" == doc ]] && ! printf '%s\n' "$docs" | grep -xF -- "$file" >/dev/null; then
       e="$file isn't in docs (list every doc you read)"
     fi
     if [[ -z "$e" ]]; then

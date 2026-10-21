@@ -101,6 +101,7 @@ Get the gate right in Phase 0: once the ledger is frozen, `tamper.sh` fails on a
 - Import `{ test, expect }` from `./finish-fixture`. Never from `@playwright/test` directly.
 - One `test()` per acceptance criterion, titled with the criterion text verbatim.
 - Real backend, real database. Make data unique per run (`finish+<timestamp>@example.test`). Don't depend on test order.
+- Expected values come from the criterion, the docs or a row you query yourself — never copied from the app's own output or from a constant the code under test also uses.
 - Prefer `getByRole` / `getByLabel` / `getByText` locators; they double as accessibility checks.
 - `snap('<step>')` at each key step; `a11y()` on each P0 screen.
 - `allowHttpError({ status, url })` only for a response a criterion expects (duplicate signup → 409). Everything else fails the test.
@@ -153,6 +154,7 @@ npx lighthouse http://localhost:3000/ --quiet --chrome-flags="--headless=new" \
 - Protected tests (any path with a `finish/` segment) contain no skip/only/fixme/xfail/ignore/`optional: true` markers and no assertions that can't fail.
 - Every `passing` item's spec exists.
 - Every spec in `ratchet.json` (max over its history since the freeze, for items still in the ledger with that spec) exists with at least that many assertions.
-- Against the freeze commit: criteria hash unchanged; no test files deleted or renamed out of the test tree; no skip markers or tautologies added to any test; no changes to include/exclude/ignore/retries/only rules in test-runner configs; `verify.sh` unchanged except stages that were empty or `n/a`; `.finish/bin/` unchanged.
+- Against the freeze commit: criteria hash unchanged; no test files deleted or renamed out of the test tree; no skip markers or tautologies added to any test; no changes to include/exclude/ignore/retries/only rules or coverage thresholds in test-runner and coverage configs; `verify.sh` unchanged except stages that were empty or `n/a`; `.finish/bin/` unchanged.
+- Floor guard (after Addy Osmani's `constraint-driven-development`): the tree may not hold more lint, type, coverage or scanner suppression comments than it did at the freeze — `@ts-ignore`, `@ts-expect-error`, `eslint-disable`, `biome-ignore`, `istanbul`/`c8`/`v8 ignore`, `# type: ignore`, `# noqa`, `# pragma: no cover`, `# pylint: disable`, `# shellcheck disable`, `//nolint`, `NOSONAR`, `nosemgrep`, `gitleaks:allow`, `Stryker disable`, `swiftlint:disable`, `rubocop:disable`, `@Suppress…(`, Dart `// ignore:`, Rust `#[allow(`. The count is over the whole tree (docs, `.finish/`, `node_modules`, `vendor`, `dist`, `build`, lockfiles excluded), so moving code doesn't trip it. Scanner and linter ignore files (`.gitleaksignore`, `.semgrepignore`, `.eslintignore`, `.trivyignore`, `.snyk`, `audit-ci.json`, `osv-scanner.toml`, `.secrets.baseline`, …) may not grow.
 
 A false positive caused by a legitimate change is handled without a human: commit it, `ledger.sh amend --rebaseline "<why>"`, and the verifier approves or rejects it (`ledger.md` §8).

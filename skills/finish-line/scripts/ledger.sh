@@ -8,7 +8,8 @@
 # `amend` (independent verifier approval instead of a person), and owner actions
 # are re-checked automatically by `owner-check`.
 #
-#   ledger.sh validate              schema + rule check (exit 1 on errors)
+#   ledger.sh validate              schema + rule check (exit 1 on errors); with a brief, every item
+#                                   but a defect cites the brief claims it comes from
 #   ledger.sh status [--line]       summary, P0 progress, next item
 #   ledger.sh next                  next failing item to work on (exit 1 if none)
 #   ledger.sh next --stuck          the stuck item with the fewest research rounds (exit 1 if none)
@@ -39,6 +40,8 @@
 #   ledger.sh regress <ID> "<why>"  passing → failing (test broke)
 #   ledger.sh hash                  criteria hash
 #   ledger.sh check                 criteria hash matches .finish/LEDGER.lock (exit 1 if not)
+#   ledger.sh brief                 check .finish/product.json — every claim's source exists and every
+#                                   quote is really in it — and write .finish/PRODUCT.md (exit 1 on errors)
 #   ledger.sh lock                  first freeze: write .finish/FREEZE + .finish/LEDGER.lock
 #   ledger.sh amend "<why>"         change the definition of done from .finish/ledger.proposed.json
 #   ledger.sh amend --rebaseline "<why>"   move FREEZE to HEAD (a gate change tamper.sh flags)
@@ -56,6 +59,7 @@ fl_need git jq
 ROOT="$(fl_root)"
 FD="$ROOT/.finish"
 LEDGER="$FD/ledger.json"
+BRIEF="$FD/product.json"
 cd "$ROOT" || exit 2
 
 need_ledger() { [[ -f "$LEDGER" ]] || fl_die "no ledger at .finish/ledger.json (Phase 1 creates it)"; }
@@ -86,8 +90,11 @@ note_filter='.notes = ((if (.notes // "") == "" then "" else .notes + "\n" end) 
 cmd_validate() {
   local file="${1:-$LEDGER}"
   [[ -f "$file" ]] || fl_die "no ledger at ${file#"$ROOT"/}"
-  local errs
-  errs="$(jq -r --arg st "$FL_STATUSES" --arg ty "$FL_TYPES" --arg me "$FL_METHODS" '
+  local errs brief=null
+  # With a brief, the ledger is built on it: same product and promise, and every item cites the
+  # claims it comes from (defects found later cite their evidence instead).
+  if [[ -f "$BRIEF" ]]; then brief="$(jq -c . "$BRIEF" 2>/dev/null)" || fl_die ".finish/product.json is not valid JSON"; fi
+  errs="$(jq -r --arg st "$FL_STATUSES" --arg ty "$FL_TYPES" --arg me "$FL_METHODS" --argjson brief "$brief" '
     ($st | split(" ")) as $S | ($ty | split(" ")) as $T | ($me | split(" ")) as $M |
     def err(id; m): "\(id): \(m)";
     [
@@ -115,7 +122,18 @@ cmd_validate() {
         (if ($i.evidence | type) != "array" then err($id; "evidence must be an array") else empty end),
         (if ($i.notes | type) != "string" then err($id; "notes must be a string") else empty end)
       ),
-      (if any((.items // [])[]; .priority == "P0" and .type == "journey") | not then "ledger: at least one P0 journey required" else empty end)
+      (if any((.items // [])[]; .priority == "P0" and .type == "journey") | not then "ledger: at least one P0 journey required" else empty end),
+      (if $brief == null then empty else
+        ([($brief.claims // [])[] | objects | select((.id | type) == "string") | {key: .id, value: (.basis // "")}] | from_entries) as $C |
+        (if .product != $brief.product then "ledger: product must be the brief'"'"'s (.finish/product.json): \($brief.product)" else empty end),
+        (if .one_liner != $brief.one_liner then "ledger: one_liner must be the brief'"'"'s: \($brief.one_liner)" else empty end),
+        ((.items // [])[] | select(.type != "issue") | . as $i | (($i.source // "") | tostring | [scan("B-[0-9]{3}")]) as $cited |
+          (if ($cited | length) == 0 then err($i.id; "source must cite the brief claims this item comes from, e.g. \"B-003, B-007\"") else empty end),
+          ($cited[] | select($C[.] == null) | err($i.id; "cites \(.), which isn'"'"'t in the brief")),
+          (if ($i.type == "journey" or $i.type == "feature") and ($cited | length) > 0 and all($cited[]; $C[.] != null)
+              and ([$cited[] | $C[.] | select(. == "doc" or . == "seen")] | length) == 0
+           then err($i.id; "a \($i.type) must rest on a doc or seen claim, never on code alone") else empty end))
+      end)
     ] | .[]' "$file" 2>&1)" || fl_die "${file#"$ROOT"/} is not valid JSON"
   if [[ -n "$errs" ]]; then
     printf '%s\n' "$errs"
@@ -424,6 +442,139 @@ cmd_check() {
   fi
 }
 
+# ── The product brief ─────────────────────────────────────────────────────────
+# .finish/product.json is what the run understands the product to be, one claim per fact, each
+# resting on a source: a doc (with a verbatim quote), something watched in the running app (a
+# screenshot or log), or code (what exists, never what it's for). `brief` checks that every
+# quote really is in its source, so the understanding can't drift from what the docs say.
+
+# Text as compared for quotes: one line, collapsed spaces, lower case, typographic quotes and
+# dashes made plain, markdown emphasis and code marks dropped.
+FLAT_SED="$(printf "s/\xe2\x80\x99/'/g; s/\xe2\x80\x98/'/g; s/\xe2\x80\x9c/\"/g; s/\xe2\x80\x9d/\"/g; s/\xe2\x80\x94/-/g; s/\xe2\x80\x93/-/g; s/\xc2\xa0/ /g")"
+flat() { LC_ALL=C sed -e "$FLAT_SED" | LC_ALL=C tr '\r\n\t' '   ' | LC_ALL=C tr -d '*`' | LC_ALL=C tr -s ' ' | LC_ALL=C tr '[:upper:]' '[:lower:]'; }
+
+brief_kind() { # <file> → image | pdf | text | binary
+  case "$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')" in
+    *.png|*.jpg|*.jpeg|*.gif|*.webp|*.svg|*.avif|*.heic|*.fig|*.sketch) echo image; return ;;
+    *.pdf) echo pdf; return ;;
+  esac
+  if [[ ! -s "$1" ]] || grep -Iq . "$1" 2>/dev/null; then echo text; else echo binary; fi
+}
+
+brief_quote_found() { # <file> <kind> <quote>
+  local q
+  q="$(printf '%s' "$3" | flat)"; q="${q# }"; q="${q% }"
+  if [[ "$2" == pdf ]]; then pdftotext -q "$1" - 2>/dev/null | flat | grep -qF -e "$q"
+  else flat < "$1" | grep -qF -e "$q"; fi
+}
+
+cmd_brief() {
+  [[ -f "$BRIEF" ]] || fl_die "no brief at .finish/product.json — write it from the docs first (protocol §3.2; template: \$FINISH_SKILL_DIR/templates/product.example.json)"
+  jq -e 'type == "object"' "$BRIEF" >/dev/null 2>&1 || fl_die ".finish/product.json is not a JSON object"
+  local errs rec id basis src quote file kind unchecked="" words
+  errs="$(jq -r '
+    [
+      (if (.product | type) != "string" or .product == "" then "brief: product must be a non-empty string" else empty end),
+      (if (.one_liner | type) != "string" or .one_liner == "" then "brief: one_liner must be a non-empty string" else empty end),
+      (if (.claims | type) != "array" or (.claims | length) == 0 then "brief: claims must be a non-empty array" else empty end),
+      (if (.docs | type) != "array" then "brief: docs must list every doc you read in full (an array of paths)" else empty end),
+      (if (.unknowns | type) != "array" then "brief: unknowns must be an array (empty only when the docs answer everything)" else empty end),
+      ((.claims // []) | map(select(type == "object")) | group_by(.id)[] | select(length > 1) | "\(.[0].id): duplicate claim id"),
+      ((.claims // [])[] | . as $c | (if type == "object" then (.id // "?") else "?" end) as $id |
+        if type != "object" then "brief: every claim is an object" else
+        (if ($id | tostring | test("^B-[0-9]{3}$")) | not then "\($id): claim id must look like B-001" else empty end),
+        (if (["doc","seen","code"] | index($c.basis)) == null then "\($id): basis must be doc, seen or code" else empty end),
+        (if ($c.claim | type) != "string" or $c.claim == "" then "\($id): claim text required" else empty end),
+        (if ($c.source | type) != "string" or $c.source == "" then "\($id): source required (a file path)" else empty end),
+        (if has("quote") and (.quote | type) != "string" then "\($id): quote must be a string" else empty end)
+        end),
+      ([(.claims // [])[] | objects | select((.id | type) == "string") | {key: .id, value: (.basis // "")}] | from_entries) as $B |
+      (if (.one_liner_claims | type) != "array" or (.one_liner_claims | length) == 0
+       then "brief: one_liner_claims must name the doc or seen claims the one_liner rests on"
+       else (.one_liner_claims[] | select((type != "string") or (($B[.] // "") | IN("doc", "seen") | not))
+             | "brief: one_liner_claims: \(.) is not a doc or seen claim in this brief") end),
+      ((.unknowns // []) | if type == "array" then .[] | select(type != "string" or . == "") | "brief: every unknown is a non-empty string" else empty end),
+      ((.docs // []) | if type == "array" then .[] | select(type != "string" or . == "") | "brief: every docs entry is a path" else empty end)
+    ] | .[]' "$BRIEF" 2>&1)"
+
+  # Every source is a file in the repo; every quote is really in its source.
+  local docs
+  docs="$(jq -r '.docs // [] | if type == "array" then .[] | strings else empty end' "$BRIEF")"
+  while IFS= read -r file; do
+    [[ -n "$file" ]] || continue
+    [[ -e "$file" ]] || errs="$errs${errs:+$'\n'}brief: docs lists $file, which doesn't exist"
+  done <<< "$docs"
+  while IFS= read -r rec; do
+    [[ -n "$rec" ]] || continue
+    id="$(jq -r '.id' <<< "$rec")"; basis="$(jq -r '.basis' <<< "$rec")"
+    src="$(jq -r '.source' <<< "$rec")"; quote="$(jq -r '.quote' <<< "$rec")"
+    file="${src%%#*}"; file="$(printf '%s' "$file" | sed -E 's/:[0-9]+(-[0-9]+)?$//')"
+    local e=""
+    case "$file" in /*|../*|*/../*|..) e="source must be a path inside the repo" ;; esac
+    if [[ -z "$e" && ! -f "$file" ]]; then e="source $file doesn't exist"; fi
+    if [[ -z "$e" ]]; then
+      case "$basis:$file" in
+        doc:.finish/sources/*) ;;
+        seen:.finish/evidence/*) ;;
+        seen:*) e="a seen claim cites what you captured in .finish/evidence/ (a screenshot, a log)" ;;
+        *:.finish/*) e="$file is the run's own notes, not a source about the product" ;;
+      esac
+    fi
+    if [[ -z "$e" ]] && fl_is_protected_path "$file"; then e="$file is one of Finish Line's own tests, not a source about the product"; fi
+    if [[ -z "$e" && "$basis" == doc ]] && ! printf '%s\n' "$docs" | grep -qxF -- "$file"; then
+      e="$file isn't in docs (list every doc you read)"
+    fi
+    if [[ -z "$e" ]]; then
+      kind="$(brief_kind "$file")"
+      if [[ "$kind" == pdf ]] && ! command -v pdftotext >/dev/null 2>&1; then kind=image; fi
+      if [[ -n "$quote" && "$kind" != image && "$kind" != binary ]]; then
+        words="$(printf '%s' "$quote" | wc -w | tr -d ' ')"
+        if [[ "$words" -lt 3 ]]; then e="quote is too short to locate (3 words or more, copied verbatim)"
+        elif ! brief_quote_found "$file" "$kind" "$quote"; then e="quote not found in $file — copy it verbatim from the file, or drop the claim"; fi
+      elif [[ "$basis" != seen && "$kind" == text ]]; then
+        e="a $basis claim needs the verbatim quote from $file that it rests on"
+      elif [[ "$kind" == image || "$kind" == binary ]]; then
+        unchecked="$unchecked $id"
+      fi
+    fi
+    [[ -z "$e" ]] || errs="$errs${errs:+$'\n'}$id: $e"
+  done < <(jq -c '(.claims // [])[]? | objects | select((.source | type) == "string") | {id: (.id // "?"), basis: (.basis // ""), source, quote: ((.quote // "") | tostring)}' "$BRIEF" 2>/dev/null)
+
+  if [[ -n "$errs" ]]; then
+    printf '%s\n' "$errs"
+    echo "BRIEF: INVALID ($(printf '%s\n' "$errs" | wc -l | tr -d ' ') errors)"
+    return 1
+  fi
+  jq -r '"BRIEF: VALID (\(.claims | length) claims: \([.claims[] | select(.basis == "doc")] | length) doc, \([.claims[] | select(.basis == "seen")] | length) seen, \([.claims[] | select(.basis == "code")] | length) code · \(.unknowns | length) unknowns)"' "$BRIEF"
+  [[ -z "$unchecked" ]] || echo "not machine-checked (images, PDFs): ${unchecked# } — the verifier opens these itself"
+  brief_md
+}
+
+brief_md() { # .finish/PRODUCT.md: the brief, readable — what the run thinks the product is
+  jq -r '
+    def cites: "(\(. | join(", ")))";
+    def line: "- **\(.id)** \(.claim) — `\(.source)`" + (if (.quote // "") != "" then ": “\(.quote)”" else "" end);
+    "# \(.product) — the product as this run understands it",
+    "",
+    "> \(.one_liner) \(.one_liner_claims | cites)",
+    "",
+    "Built only from the docs and the running app. Every line cites its source, and `ledger.sh brief` checks each quote against it. If something here is wrong, the docs are unclear: fix them and start fresh (`finish.sh --fresh`).",
+    "",
+    "## What the docs say",
+    ([.claims[] | select(.basis == "doc") | line] | if length > 0 then .[] else "None." end),
+    "",
+    "## Seen in the running app",
+    ([.claims[] | select(.basis == "seen") | line] | if length > 0 then .[] else "None." end),
+    "",
+    "## What exists in the code",
+    ([.claims[] | select(.basis == "code") | line] | if length > 0 then .[] else "None." end),
+    "",
+    "## Unknown — the docs don'"'"'t say",
+    (.unknowns | if length > 0 then .[] | "- \(.)" else "None." end),
+    "",
+    "## Docs read",
+    (.docs | if length > 0 then .[] | "- `\(.)`" else "None." end)' "$BRIEF" > "$FD/PRODUCT.md"
+}
 
 # ── Owner actions ─────────────────────────────────────────────────────────────
 # Things only the product owner can do (a credential, an account, DNS, a store
@@ -782,12 +933,20 @@ cmd_amend() {
       || fl_die "commit the change first; a rebaseline freezes HEAD as it is"
     git diff --quiet "$freeze_before" HEAD -- .finish/bin 2>/dev/null \
       || fl_die "refusing: .finish/bin changed since the freeze; vendored scripts can't be rebaselined"
+    if ! git diff --quiet "$freeze_before" HEAD -- .finish/product.json 2>/dev/null && ! cmd_brief >/dev/null; then
+      cmd_brief; fl_die "the changed brief doesn't check out — fix .finish/product.json, commit, then propose the rebaseline"
+    fi
     {
       echo "# Amendment $n — rebaseline"
       echo; echo "KIND: rebaseline"; echo "REASON: $reason"; echo "HEAD: $(git rev-parse HEAD)"; echo "FREEZE: $freeze_before"
       echo; echo "## What tamper.sh flags now"; echo '```'; "$HERE/tamper.sh" 2>&1 | head -40; echo '```'
       echo; echo "## Changes since the freeze in flagged areas"; echo '```'
       git diff --stat "$freeze_before" HEAD 2>/dev/null | tail -40; echo '```'
+      if ! git diff --quiet "$freeze_before" HEAD -- .finish/product.json 2>/dev/null; then
+        echo; echo "## Brief changes (.finish/product.json) — check each against its source"; echo '```diff'
+        git diff "$freeze_before" HEAD -- .finish/product.json 2>/dev/null | head -200; echo '```'
+        echo; echo '```'; cmd_brief 2>&1; echo '```'
+      fi
     } > "$req"
     echo "amendment $n needs review (rebaseline). Spawn finish-verifier in amendment mode with: $req"
     echo "then: ledger.sh amend --apply $n"
@@ -887,6 +1046,7 @@ case "$sub" in
   state) fl_code_state ;;
   run-commands) cmd_run_commands "${1:-}" ;;
   check) cmd_check ;;
+  brief) cmd_brief ;;
   lock) cmd_lock "${1:-}" ;;
   ""|-h|--help|help) awk 'NR > 1 && /^#/ { sub(/^# ?/, ""); print; next } NR > 1 { exit }' "${BASH_SOURCE[0]}" ;;
   *) fl_die "unknown subcommand: $sub (try --help)" ;;

@@ -1,0 +1,100 @@
+{
+  "product": "Tasklet",
+  "one_liner": "A to-do list that a new user can sign up for and use in under a minute, on phone or desktop.",
+  "one_liner_claims": ["B-001", "B-002"],
+  "docs": [
+    "README.md",
+    "docs/PRD.md",
+    "docs/specs/auth.md",
+    "docs/mockups/dashboard.png",
+    ".finish/sources/issue-12.json"
+  ],
+  "claims": [
+    {
+      "id": "B-001",
+      "basis": "doc",
+      "claim": "Tasklet is a to-do list for individuals",
+      "source": "docs/PRD.md",
+      "quote": "Tasklet is a to-do list for people who want one place for their tasks"
+    },
+    {
+      "id": "B-002",
+      "basis": "doc",
+      "claim": "A new user signs up and adds a first task in under a minute, on a phone or a laptop",
+      "source": "docs/PRD.md",
+      "quote": "sign up and add their first task in under a minute, on a phone or a laptop"
+    },
+    {
+      "id": "B-003",
+      "basis": "doc",
+      "claim": "Users sign up and log in with an email address and a password",
+      "source": "docs/specs/auth.md",
+      "quote": "Users sign up and log in with an email address and a password"
+    },
+    {
+      "id": "B-004",
+      "basis": "doc",
+      "claim": "A forgotten password is reset through an emailed link that expires after an hour",
+      "source": "docs/specs/auth.md",
+      "quote": "a reset link is emailed and expires after one hour"
+    },
+    {
+      "id": "B-005",
+      "basis": "doc",
+      "claim": "A returning user finds their tasks where they left them",
+      "source": "docs/PRD.md",
+      "quote": "when they come back, their tasks are where they left them"
+    },
+    {
+      "id": "B-006",
+      "basis": "doc",
+      "claim": "The dashboard lists tasks in one column, with an empty state that invites adding the first task",
+      "source": "docs/mockups/dashboard.png"
+    },
+    {
+      "id": "B-007",
+      "basis": "doc",
+      "claim": "Dark mode follows the system setting",
+      "source": "docs/PRD.md",
+      "quote": "Dark mode follows the system setting"
+    },
+    {
+      "id": "B-008",
+      "basis": "doc",
+      "claim": "Google Calendar sync for tasks with due dates is planned for phase 2, not for launch",
+      "source": "docs/PRD.md",
+      "quote": "Phase 2: tasks with due dates sync to Google Calendar"
+    },
+    {
+      "id": "B-009",
+      "basis": "doc",
+      "claim": "The README says how to run it locally",
+      "source": "README.md",
+      "quote": "npm install, then npm run dev, then open http://localhost:3000"
+    },
+    {
+      "id": "B-010",
+      "basis": "doc",
+      "claim": "New tasks appear at the top of the list",
+      "source": ".finish/sources/issue-12.json",
+      "quote": "a new task should show up at the top of the list"
+    },
+    {
+      "id": "B-011",
+      "basis": "seen",
+      "claim": "Submitting the sign-up form at 375x812 leaves a blank page",
+      "source": ".finish/evidence/_audit/signup-375.png"
+    },
+    {
+      "id": "B-012",
+      "basis": "code",
+      "claim": "The app stores its data in Postgres through Prisma",
+      "source": "prisma/schema.prisma",
+      "quote": "provider = \"postgresql\""
+    }
+  ],
+  "unknowns": [
+    "Whether Tasklet charges at launch: no doc mentions pricing or payment, so the ledger has no payment journey",
+    "Which deploy target the owner wants: no doc names one (the deploy decision is in DECISIONS.md)"
+  ]
+}

@@ -117,7 +117,7 @@ Write the complete new ledger to `.finish/ledger.proposed.json`, then:
 | Anything else: remove or reword a criterion, demote, change a spec path, remove an item | Exit 3 and a request file `.finish/amendments/<NNN>.request.md`. The verifier reviews it in amendment mode against the docs. `VERDICT: APPROVE` → `ledger.sh amend --apply <NNN>`. `REJECT` → drop it and keep working. |
 | A legitimate change `tamper.sh` flags (a real fix to `verify.sh`, a test config the stack needs) | Commit it, then `ledger.sh amend --rebaseline "<why>"` — same review; on approval FREEZE moves to HEAD. Changes to `.finish/bin/` can never be rebaselined. |
 
-Non-additive amendments are capped at `FINISH_MAX_AMENDMENTS` (default 5) per product. Every amendment is logged in `.finish/amendments.jsonl` with the before/after criteria hash and FREEZE, and the runner checks that chain after every session: a lock or FREEZE change it can't explain is reverted.
+Non-additive amendments are capped at `FINISH_MAX_AMENDMENTS` (default 5) per product. Every amendment is logged in `.finish/amendments.jsonl` with the before/after criteria hash and FREEZE, and each ledger change keeps a snapshot (`amendments/<NNN>.ledger.json`). After every session the runner re-derives each step from the snapshots — it never trusts the logged class — and reverts any lock or FREEZE change it can't explain. A request applies only to the definition of done it was reviewed against, and only once.
 
 Commit after each amendment: `git add .finish && git commit -m "chore(finish): amendment <NNN> — <reason>"`. Ratchet entries for removed items or changed spec paths stop counting on their own.
 

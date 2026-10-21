@@ -74,9 +74,9 @@ Never run the build loop without the protocol: the laws in its §0 are what keep
 
 | Script | Does |
 |---|---|
-| `scripts/finish.sh [repo]` | Autonomous runner. Env: `MAX_SESSIONS` (40), `STALL_LIMIT` (3), `FINISH_UNTIL` (P0), `FINISH_MAX_TRIPS` (3), `FINISH_BACKOFF` (60), `CLAUDE_MODEL`, `FINISH_AGENT`. Exit 0 `LAUNCH_READY`/`READY_FOR_OWNER` · 2 no progress possible · 3 session cap · 4 too many reverted sessions · 5 agent CLI keeps failing. |
+| `scripts/finish.sh [repo]` | Autonomous runner. Env: `MAX_SESSIONS` (40), `STALL_LIMIT` (3), `FINISH_UNTIL` (P0), `FINISH_MAX_TRIPS` (3), `FINISH_BACKOFF` (60), `FINISH_OWNER_CHECK_TIMEOUT` (60), `CLAUDE_MODEL`, `FINISH_AGENT`. One runner per repo (lock in `.git/`). Exit 0 `LAUNCH_READY`/`READY_FOR_OWNER` · 2 no progress possible · 3 session cap · 4 too many reverted sessions · 5 agent CLI keeps failing. |
 | `scripts/scaffold.sh [--web]` | Phase 0: creates `.finish/`, vendors `ledger.sh` / `tamper.sh` / `lib.sh` into `.finish/bin/`, installs `verify.sh`, the verifier agent, `.claude/settings.local.json` (no permission prompts, questions or plan mode in interactive sessions) and (web) the Playwright config + fixture. Never overwrites. |
-| `.finish/bin/ledger.sh` | `validate` · `status` · `next` · `show` · `specs` · `pass` · `fail` · `stuck` · `round2` · `reopen` · `regress` · `owner` · `owner-check` · `done-check` · `amend` · `state` · `run-commands` · `lock` · `check`. Mutations touch only status/attempts/evidence/notes; a verdict is bound to the code `STATE` it checked. |
+| `.finish/bin/ledger.sh` | `validate` · `status` · `next` · `show` · `specs` · `pass` · `fail` · `stuck` · `round2` · `reopen` · `regress` · `owner` · `owner-check` · `done-check` · `amend` · `migrate` · `state` · `run-commands` · `lock` · `check`. Mutations touch only status/attempts/evidence/notes; a verdict is bound to the code `STATE` it checked. |
 | `.finish/bin/tamper.sh` | Fails on skipped/focused tests, tautologies, deleted tests, weakened specs, test-config filter edits, any post-freeze change to `verify.sh`, edited frozen files. |
 | `scripts/portfolio.sh [dir]` | Offline table of every repo under a folder. |
 
@@ -100,4 +100,4 @@ Never run the build loop without the protocol: the laws in its §0 are what keep
 - `references/ledger.md` — precedence, P0/P1/P2 cut, launch gates, schema, freeze, amendments.
 - `references/verification.md` — `init.sh`, local infra, `verify.sh` commands per stack, spec rules, `playwright-cli`, tamper rules.
 - `references/portfolio-triage.md` — choosing the one product to finish.
-- `templates/` — `verify.sh`, `finish-verifier.md`, `claude-settings.local.json`, `e2e/` (config, fixture, example spec), `maestro/` example flow, `ledger.example.json`.
+- `templates/` — `verify.sh`, `finish-verifier.md` (+ `finish-verifier.history`: hashes of shipped versions, so the runner only refreshes unmodified copies), `claude-settings.local.json`, `e2e/` (config, fixture, example spec), `maestro/` example flow, `ledger.example.json`.

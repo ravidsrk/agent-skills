@@ -89,7 +89,7 @@ FINISH_AGENT="codex exec --full-auto" ~/.claude/skills/finish-line/scripts/finis
 | A session that games the gate or claims a false finish | The runner reverts it with new commits (uncommitted work stashed, `.env*` never touched) and tells the next session why |
 | Sessions that make no progress | The runner parks the item as stuck and moves on |
 | P0 done | With `FINISH_UNTIL=P1`/`P2`, the runner opens the next scope itself |
-| Skill upgrades | The runner refreshes `.finish/bin/` and re-anchors the freeze |
+| Skill upgrades | The runner refreshes `.finish/bin/` (re-anchoring the freeze) and an unmodified verifier agent, and migrates old statuses |
 
 # Your part (none of it during the run)
 

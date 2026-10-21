@@ -88,11 +88,11 @@ IDs: `G-###` gates, `J-###` journeys, `F-###` features. Never reuse an ID.
 | `priority` | `P0` · `P1` · `P2` |
 | `platforms` | non-empty list, e.g. `web`, `android`, `ios`, `api`, `cli` |
 | `verify.method` | `e2e-web` (spec `e2e/finish/<ID>.spec.ts`) · `e2e-mobile` (`.maestro/finish/<ID>.yaml`) · `api` (`<backend tests>/finish/…`) · `command` (`verify.command`, a shell command that exits 0; `verify.sh` re-runs it, so it must never call `verify.sh`) |
-| `status` | `failing` · `passing` · `stuck` · `blocked_human` — all items start `failing`, `attempts` 0, `evidence` `[]`, `notes` `""` |
+| `status` | `failing` · `passing` · `stuck` · `needs_owner` — all items start `failing`, `attempts` 0, `evidence` `[]`, `notes` `""` |
 
 Spec paths must sit under a `finish/` directory: that's what makes them protected by `tamper.sh`. A full worked example: `templates/ledger.example.json`.
 
-The criteria hash covers everything except `status`, `attempts`, `evidence` and `notes` — so after the freeze even a title or spec path can't change without the human.
+The criteria hash covers everything except `status`, `attempts`, `evidence` and `notes` — so after the freeze even a title or spec path changes only through an amendment (§8).
 
 ## 7. Freeze
 
@@ -103,9 +103,27 @@ git add .finish/ledger.json && git commit -m "chore(finish): definition of done"
 git add .finish/FREEZE .finish/LEDGER.lock && git commit -m "chore(finish): freeze ledger"
 ```
 
-## 8. Re-freezing (human only)
+## 8. Amendments — changing the definition of done without a human
 
-To change the definition of done after the freeze — add a criterion, split an item, move something to P1, clear a tamper false positive:
+Write the complete new ledger to `.finish/ledger.proposed.json`, then:
+
+```bash
+./.finish/bin/ledger.sh amend "<one-line reason citing the doc>"
+```
+
+| Change | What happens |
+|---|---|
+| Additions only: new items, new criteria, higher priority, more platforms | Applied at once (`strengthening`). Changed items go back to `failing` to be re-verified. |
+| Anything else: remove or reword a criterion, demote, change a spec path, remove an item | Exit 3 and a request file `.finish/amendments/<NNN>.request.md`. The verifier reviews it in amendment mode against the docs. `VERDICT: APPROVE` → `ledger.sh amend --apply <NNN>`. `REJECT` → drop it and keep working. |
+| A legitimate change `tamper.sh` flags (a real fix to `verify.sh`, a test config the stack needs) | Commit it, then `ledger.sh amend --rebaseline "<why>"` — same review; on approval FREEZE moves to HEAD. Changes to `.finish/bin/` can never be rebaselined. |
+
+Non-additive amendments are capped at `FINISH_MAX_AMENDMENTS` (default 5) per product. Every amendment is logged in `.finish/amendments.jsonl` with the before/after criteria hash and FREEZE, and the runner checks that chain after every session: a lock or FREEZE change it can't explain is reverted.
+
+Commit after each amendment: `git add .finish && git commit -m "chore(finish): amendment <NNN> — <reason>"`. Ratchet entries for removed items or changed spec paths stop counting on their own.
+
+## 9. Owner override (optional)
+
+The owner can still edit the ledger directly at any time; nothing in the run waits for it:
 
 ```bash
 $EDITOR .finish/ledger.json
@@ -114,6 +132,4 @@ git add .finish/ledger.json && git commit -m "chore(finish): revise definition o
 git add .finish/FREEZE .finish/LEDGER.lock && git commit -m "chore(finish): re-freeze ledger"
 ```
 
-If a passing spec legitimately loses assertions under the new definition, lower its entry in `.finish/ratchet.json` in the same commit as the ledger edit; entries for removed items or changed spec paths stop counting on their own.
-
-The runner treats an agent that does this as a guard trip and stops.
+Run it between runs, not while `finish.sh` is running: a session that changes the lock without a logged amendment is reverted.

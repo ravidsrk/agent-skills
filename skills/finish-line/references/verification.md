@@ -69,13 +69,13 @@ services:
 | Stripe | test-mode keys + `stripe listen --forward-to localhost:3000/api/webhooks/stripe` |
 | SES / SendGrid / Resend / SMTP | point SMTP at Mailpit; for API-only providers, their sandbox mode |
 | S3 / R2 / GCS | MinIO (S3 API) or the provider's emulator |
-| LLM APIs | real key with the cheapest adequate model; no key → that criterion is `blocked_human` |
+| LLM APIs | real key with the cheapest adequate model; no key → that criterion becomes an owner action (`ledger.sh owner … 'test -n "$OPENAI_API_KEY"'`) |
 
 ## 4. Filling `.finish/verify.sh`
 
 Every `STAGE_*` is a command or `n/a: <reason>`. Spec stages get their files from the ledger automatically (all in-scope specs in full mode, passing specs in `--quick`); use `{}` in the command to run once per spec instead of once with all of them. `STAGE_COMMANDS` is pre-set: it runs the ledger's `command` items the same way, logging each to `.finish/evidence/<ID>/command.log`.
 
-Get the gate right in Phase 0: once the ledger is frozen, `tamper.sh` fails on any change to `verify.sh` except filling in a stage that was empty or `n/a`. A genuine fix after that is a human re-freeze.
+Get the gate right in Phase 0: once the ledger is frozen, `tamper.sh` fails on any change to `verify.sh` except filling in a stage that was empty or `n/a`. A genuine fix after that goes through a verifier-approved `ledger.sh amend --rebaseline`.
 
 | Stack | INSTALL | TYPECHECK | LINT | UNIT | BUILD |
 |---|---|---|---|---|---|
@@ -155,4 +155,4 @@ npx lighthouse http://localhost:3000/ --quiet --chrome-flags="--headless=new" \
 - Every spec in `ratchet.json` (max over its history since the freeze, for items still in the ledger with that spec) exists with at least that many assertions.
 - Against the freeze commit: criteria hash unchanged; no test files deleted or renamed out of the test tree; no skip markers or tautologies added to any test; no changes to include/exclude/ignore/retries/only rules in test-runner configs; `verify.sh` unchanged except stages that were empty or `n/a`; `.finish/bin/` unchanged.
 
-A false positive is the human's call: they re-freeze (`ledger.md` §8).
+A false positive caused by a legitimate change is handled without a human: commit it, `ledger.sh amend --rebaseline "<why>"`, and the verifier approves or rejects it (`ledger.md` §8).

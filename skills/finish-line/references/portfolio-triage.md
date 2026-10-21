@@ -38,4 +38,4 @@ Verdicts: exactly one FINISH-NEXT; the rest LATER or ARCHIVE. Don't ask me quest
 "$FINISH_SKILL_DIR/scripts/finish.sh" ~/code/<FINISH-NEXT repo>
 ```
 
-Don't start a second product until the first is `LAUNCH_READY` or every remaining item is `blocked_human` on something only you can do.
+Don't start a second product until the first is `LAUNCH_READY` or `READY_FOR_OWNER` (only owner actions left).

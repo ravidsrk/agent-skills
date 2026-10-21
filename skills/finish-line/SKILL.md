@@ -1,18 +1,18 @@
 ---
 name: finish-line
 description: >-
-  Drives an AI-built product that has docs, specs or GitHub issues but was never finished to verified launch-readiness, fully autonomously — it never asks questions or waits for approval mid-run. Forensic audit of what actually works, a hash-locked definition of done frozen from the docs, one-item-at-a-time build loop with Playwright / Maestro visual checks, an independent verifier subagent that also stands in for the owner on scope changes, tamper checks that catch skipped or weakened tests, then a release candidate on a deployed preview. Every issue it finds is resolved — researched until fixed, never deferred. Can use pinned community skills (superpowers, gstack) at fixed steps. Use when the user says "finish this product", "take it to launch", "drive it to completion", "do it autonomously", "don't ask me", "verify what actually works", "the AI says it's done but it isn't", "audit my half-built app", "test everything visually", or has many unfinished AI-coded products and needs to pick one and ship it.
+  Drives an AI-built product that has docs, specs or GitHub issues but was never finished to verified launch-readiness, fully autonomously — no questions or approvals mid-run. It learns what the product is only from the docs and the running app (every claim quotes its source; an independent verifier approves it), audits what works, freezes a hash-locked definition of done, then works it item by item with Playwright / Maestro visual checks, a verifier subagent and tamper checks against skipped or weakened tests, up to a release candidate on a preview. Every issue found is researched until fixed. Starts over cleanly when a run misread the product. Use when the user says "finish this product", "take it to launch", "do it autonomously", "don't ask me", "verify what actually works", "the AI says it's done but it isn't", "audit my half-built app", "test everything visually", "it misunderstood my product, start over", or has many unfinished AI-coded products and must pick one to ship.
 license: MIT
 compatibility: Requires git, jq, bash 3.2+ and a headless agent CLI (Claude Code by default). Web needs Node, @playwright/test, @axe-core/playwright and @playwright/cli. Mobile needs Maestro plus an Android emulator or iOS simulator. Optional gh, gitleaks, lighthouse, Docker.
 metadata:
-  version: "1.3.0"
+  version: "1.4.0"
   author: "@ravidsrk"
 allowed-tools: Bash Read Write Edit Glob Grep Agent
 ---
 
 # Finish Line
 
-Coding agents start products well and stall in the last 20%: closed issues stand in for working features, the agent that wrote the code also grades it, long sessions drift, and "done" means the agent said so. This skill makes completion a property of the running software, not the transcript. It freezes a definition of done from the product's own docs, works it one item at a time, and lets an item pass only with screenshots, a passing test, a verdict from a separate verifier, and a clean tamper check.
+Coding agents start products well and stall in the last 20%: closed issues stand in for working features, the agent that wrote the code also grades it, long sessions drift, and "done" means the agent said so. This skill makes completion a property of the running software, not the transcript. It first writes down what the product is — only from its docs and what the running app does, every claim quoting its source, unknowns listed instead of guessed — and has an independent verifier check that against the docs. Then it freezes a definition of done built on that brief, works it one item at a time, and lets an item pass only with screenshots, a passing test, a verdict from a separate verifier, and a clean tamper check.
 
 **Fully autonomous.** No step waits for a person. The agent decides with a fixed procedure and logs every decision in `DECISIONS.md`; the independent verifier approves or rejects changes to the definition of done; the runner reverts sessions that game the gate, pauses items that stall and brings them back as research rounds, retries a failing CLI, re-checks owner actions, and accepts a finished state only when the ledger proves it. **Every issue found is resolved:** defects found anywhere become ledger items, and an item that resists is never abandoned — it returns in research rounds that go deeper each time (docs, library source, issue trackers, the web) until it passes. The only things left to the owner — keys, accounts, production, DNS, store listings, merging — are collected in `OWNER_ACTIONS.md`, each with a check that reopens the work by itself once it's done.
 
@@ -46,6 +46,7 @@ Optional companions: `scripts/companions.sh install` adds community skill packs 
 |---|---|
 | Many products, none shipped | `scripts/portfolio.sh <folder>`, then the triage prompt in `references/portfolio-triage.md`. Exactly one `FINISH-NEXT`. |
 | Finish one product, unattended (recommended) | `scripts/finish.sh <repo>` — fresh agent session per loop until `LAUNCH_READY` or `READY_FOR_OWNER`. |
+| A run misread the product; start over | `scripts/finish.sh --fresh <repo>` — sets every previous run aside (archived, nothing deleted) and starts the review again from the docs. A run an older version of the skill started is set aside this way on its own (`FINISH_KEEP_RUN=1` keeps it). |
 | You are the agent, in a live session | Read `references/protocol.md` in full and run **one session** of it in the product repo, with `FINISH_SKILL_DIR` = this skill's folder. Don't ask the user anything — decide per its §7. Then stop; the next session resumes from `.finish/`. |
 
 Never run the build loop without the protocol: the laws in its §0 are what keep the result honest.
@@ -54,8 +55,8 @@ Never run the build loop without the protocol: the laws in its §0 are what keep
 
 | Phase | `STATUS` | What happens | Exit |
 |---|---|---|---|
-| 0 Audit | `AUDITING` | `scripts/scaffold.sh`; discover usable credentials and CLI logins; make it boot with real local infra; fill the gate; sweep for stubs and fakes; walk every documented feature and screenshot it: WORKS / PARTIAL / FAKE / BROKEN / MISSING | `AUDIT.md` committed |
-| 1 Freeze | `FREEZING` | Turn the docs into `ledger.json`: P0 = stranger signs up → gets the core promise → returns and finds their data, plus launch gates. Given/When/Then criteria. `ledger.sh validate` → `ledger.sh lock` | `FREEZE` + `LEDGER.lock` committed |
+| 0 Audit | `AUDITING` | `scripts/scaffold.sh`; the product brief from the docs, before the code — one claim per fact, each quoting its source, unknowns listed (`ledger.sh brief` checks every quote); discover usable credentials and CLI logins; make it boot with real local infra; fill the gate; sweep for stubs and fakes; walk every documented feature and screenshot it: WORKS / PARTIAL / FAKE / BROKEN / MISSING | `AUDIT.md` committed |
+| 1 Freeze | `FREEZING` | Turn the brief into `ledger.json`: P0 = the core promise end to end in the brief's terms (sign-up, payment, return visits only when the docs have them), plus the launch gates the brief shows apply. Every item cites its brief claims; Given/When/Then criteria. `ledger.sh validate` → `ledger.sh lock` → the verifier approves brief and ledger against the docs (freeze mode) → `lock` | `FREEZE` + `LEDGER.lock` committed |
 | 2 Build | `BUILDING` | `ledger.sh next` → test first → smallest real fix → `verify.sh --quick` → look at it at 375×812 and 1440×900 → verifier subagent → `ledger.sh pass` or `fail` (3 strikes → `stuck`, a pause → research rounds until it passes); defects found along the way → `ledger.sh issue` | nothing in scope failing or stuck |
 | 3 Release | `RELEASING` | Fresh-clone proof, full regression, Lighthouse, preview deploy, first-user pass by the verifier, `LAUNCH_REPORT.md`, `ledger.sh done-check` | `LAUNCH_READY` or `READY_FOR_OWNER` |
 
@@ -63,6 +64,7 @@ Never run the build loop without the protocol: the laws in its §0 are what keep
 
 | Situation that used to need a person | Autonomous path |
 |---|---|
+| Understanding what the product is | The brief, from the docs and the running app only: quotes checked by `ledger.sh brief`, open questions listed as unknowns and never built on, approved by the verifier before the freeze (Law 11) |
 | A judgment call (ambiguous spec, missing design, which library) | Decision procedure in protocol §7 → one line in `DECISIONS.md` → act |
 | The definition of done is wrong or too big | `ledger.sh amend`: additions apply at once; anything else needs the verifier's `APPROVE` against the docs; capped |
 | `tamper.sh` flags a legitimate change | `ledger.sh amend --rebaseline`, same review |
@@ -81,17 +83,20 @@ Installed community skills help at named protocol steps — superpowers' TDD, de
 
 | Script | Does |
 |---|---|
-| `scripts/finish.sh [repo]` | Autonomous runner. Env: `MAX_SESSIONS` (40), `STALL_LIMIT` (3), `FINISH_UNTIL` (P0), `FINISH_MAX_TRIPS` (3), `FINISH_BACKOFF` (60), `FINISH_OWNER_CHECK_TIMEOUT` (60), `FINISH_MAX_DRY` (9), `FINISH_COMPANIONS` (auto), `FINISH_KEEP_HOOKS`, `CLAUDE_MODEL`, `FINISH_AGENT`. Every session runs under the companion policy (`--settings`). One runner per repo (lock in `.git/`). Exit 0 `LAUNCH_READY`/`READY_FOR_OWNER` · 2 the agent commits nothing at all · 3 session cap · 4 too many reverted sessions · 5 agent CLI keeps failing. |
+| `scripts/finish.sh [--fresh] [repo]` | Autonomous runner. `--fresh` sets previous runs aside first. Env: `MAX_SESSIONS` (40), `STALL_LIMIT` (3), `FINISH_UNTIL` (P0), `FINISH_MAX_TRIPS` (3), `FINISH_BACKOFF` (60), `FINISH_OWNER_CHECK_TIMEOUT` (60), `FINISH_MAX_DRY` (9), `FINISH_COMPANIONS` (auto), `FINISH_KEEP_HOOKS`, `FINISH_KEEP_RUN`, `CLAUDE_MODEL`, `FINISH_AGENT`. Every session runs under the companion policy (`--settings`). One runner per repo (lock in `.git/`). Exit 0 `LAUNCH_READY`/`READY_FOR_OWNER` · 2 the agent commits nothing at all · 3 session cap · 4 too many reverted sessions · 5 agent CLI keeps failing. |
+| `scripts/fresh.sh [repo]` | Sets every previous run aside: archives it at branch `finish-line-archive/<stamp>`, then one commit on `finish-line` returns the tree to the default branch without `.finish/` or Finish Line's tests (merging the default branch if it moved on); ignored leftovers move to `.git/finish-line-archive/<stamp>/`. No history rewritten. |
 | `scripts/companions.sh` | `detect` · `show` · `policy [--runner]` · `settings` · `install [pack…]` · `list`. Finds installed community packs and fills the protocol's companion slots; builds the deny-and-no-hooks policy every session runs under; installs packs pinned by commit SHA from `companions/` (finish-line's own marketplace). |
-| `scripts/scaffold.sh [--web]` | Phase 0: creates `.finish/`, vendors `ledger.sh` / `tamper.sh` / `lib.sh` into `.finish/bin/`, installs `verify.sh`, the verifier agent, `.claude/settings.local.json` (no permission prompts, questions or plan mode in interactive sessions) and (web) the Playwright config + fixture. Never overwrites. |
-| `.finish/bin/ledger.sh` | `validate` · `status` · `next` · `show` · `specs` · `pass` · `fail` · `stuck` · `round` · `issue` · `open` · `reopen` · `regress` · `owner` · `owner-check` · `done-check` · `amend` · `migrate` · `state` · `run-commands` · `lock` · `check`. Mutations touch only status/attempts/evidence/notes; a verdict is bound to the code `STATE` it checked. |
-| `.finish/bin/tamper.sh` | Fails on skipped/focused tests, tautologies, deleted tests, weakened specs, test-config filter or coverage-threshold edits, new lint/type/coverage/scanner suppression comments, grown scanner ignore files, any post-freeze change to `verify.sh`, edited frozen files. |
+| `scripts/scaffold.sh [--web]` | Phase 0: creates `.finish/` (with `RUN`, which marks the skill version that started the run), vendors `ledger.sh` / `tamper.sh` / `lib.sh` into `.finish/bin/`, installs `verify.sh`, the verifier agent, `.claude/settings.local.json` (no permission prompts, questions or plan mode in interactive sessions) and (web) the Playwright config + fixture. Never overwrites. |
+| `.finish/bin/ledger.sh` | `brief` · `validate` · `status` · `next` · `show` · `specs` · `pass` · `fail` · `stuck` · `round` · `issue` · `open` · `reopen` · `regress` · `owner` · `owner-check` · `done-check` · `amend` · `migrate` · `state` · `run-commands` · `lock` · `freeze-check` · `check`. `brief` checks every claim's quote against its source; `lock` freezes only with the verifier's approval of exactly this brief and ledger. Mutations touch only status/attempts/evidence/notes; a verdict is bound to the code `STATE` it checked. |
+| `.finish/bin/tamper.sh` | Fails on skipped/focused tests, tautologies, deleted tests, weakened specs, test-config filter or coverage-threshold edits, new lint/type/coverage/scanner suppression comments, grown scanner ignore files, any post-freeze change to `verify.sh` or the product brief, edited frozen files. |
 | `scripts/portfolio.sh [dir]` | Offline table of every repo under a folder. |
 
 # Common gotchas
 
 | Gotcha | Fix |
 |---|---|
+| The run misread the product | `scripts/finish.sh --fresh <repo>`. Read `.finish/PRODUCT.md` early in the new run: if a claim is wrong, the doc it quotes is unclear — fix the doc and start fresh again. |
+| The runner started fresh by itself after an upgrade | The run was started by a version without the checked brief. It's archived (`git log finish-line-archive/<stamp>`); `FINISH_KEEP_RUN=1` keeps such a run instead. |
 | Runner exits 0 with `READY_FOR_OWNER` | Do what `.finish/OWNER_ACTIONS.md` lists (add a key, log in a CLI), rerun. No marking needed; the checks reopen the items. |
 | Runner exits 4 | Three sessions had to be reverted. `.finish/PROGRESS.md` has a Runner note for each; look for the pattern. |
 | Runner exits 2 | `FINISH_MAX_DRY` (9) sessions in a row committed nothing, not even research notes — the agent itself isn't working (its CLI, or it can't run at all). Read the last `.finish/logs/session-*.log`. |
@@ -113,4 +118,4 @@ Installed community skills help at named protocol steps — superpowers' TDD, de
 - `references/portfolio-triage.md` — choosing the one product to finish.
 - `references/companions.md` — which community skills are used at which step, which are denied and why, the session policy, pins, licenses, limits.
 - `companions/` — `catalog.json` (packs, slots, deny lists) and `.claude-plugin/marketplace.json` (finish-line's marketplace, every plugin pinned to a commit).
-- `templates/` — `verify.sh`, `finish-verifier.md` (+ `finish-verifier.history`: hashes of shipped versions, so the runner only refreshes unmodified copies), `claude-settings.local.json` (+ `.history`, so only finish-line's own copy is ever merged into), `e2e/` (config, fixture, example spec), `maestro/` example flow, `ledger.example.json`.
+- `templates/` — `verify.sh`, `finish-verifier.md` (+ `finish-verifier.history`: hashes of shipped versions, so the runner only refreshes unmodified copies), `claude-settings.local.json` (+ `.history`, so only finish-line's own copy is ever merged into), `e2e/` (config, fixture, example spec), `maestro/` example flow, `ledger.example.json`, `product.example.json` (the brief it is built on).

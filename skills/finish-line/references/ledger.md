@@ -132,7 +132,7 @@ Any defect found after the freeze — by the verifier (`OTHER DEFECTS`, first-us
 git add .finish && git commit -m "chore(finish): file I-001 — signup button hidden on phones"
 ```
 
-It's an addition, so it applies at once (no review). Defaults: priority = the current scope (`P0`), platform `web`, spec `e2e/finish/I-###.spec.ts`; pass `--platform android|ios` for a Maestro flow, or `--spec <tests/finish/…>` / `--command "<cmd>"` for API and command checks. The criterion states the correct behaviour, so the test fails until the defect is fixed. A defect is never deferred to `LATER.md`; only ideas and features the docs don't ask for are.
+It's an addition, so it applies at once (no review). Defaults: priority = the current scope (`P0`), platform `web`, spec `e2e/finish/I-###.spec.ts`; the platform decides how it's verified — `--platform android|ios` for a Maestro flow, `--platform api` with `--spec <tests/finish/…>` for an API test (whatever its file name), `--command "<cmd>"` for a command check; `--method` overrides. The criterion states the correct behaviour, so the test fails until the defect is fixed. A defect is never deferred to `LATER.md`; only ideas and features the docs don't ask for are.
 
 ## 9. Owner override (optional)
 

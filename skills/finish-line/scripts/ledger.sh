@@ -23,7 +23,7 @@
 #   ledger.sh round <ID>            next research round for a stuck item: back to failing, attempts 0.
 #                                   Unlimited; each round escalates (protocol §5.1). round2 is an alias.
 #   ledger.sh issue --title "<t>" --given "<Given … when … then …>" [--given …] [--priority P0]
-#                   [--platform web] [--source <evidence>] [--spec <path> | --command "<cmd>"]
+#                   [--platform web] [--method M] [--source <evidence>] [--spec <path> | --command "<cmd>"]
 #                                   add a defect found during the run as a new I-### item (additive
 #                                   amendment, applies at once), so it gets fixed and verified like any item
 #   ledger.sh owner <ID> "<owner action>" "<check cmd>"   park as needs_owner; check exits 0 once done.
@@ -312,11 +312,11 @@ cmd_round() {
   echo "Read .finish/research/$id.md first; log this round there (hypothesis · evidence · sources · change · result) and commit it."
 }
 
-ISSUE_ARGS='--title "<t>" --given "<Given …, when …, then …>" [--given …] [--priority P0|P1|P2] [--platform web|android|ios|api|cli] [--source <evidence>] [--spec <path> | --command "<cmd>"]'
+ISSUE_ARGS='--title "<t>" --given "<Given …, when …, then …>" [--given …] [--priority P0|P1|P2] [--platform web|android|ios|api|cli] [--method e2e-web|e2e-mobile|api|command] [--source <evidence>] [--spec <path> | --command "<cmd>"]'
 cmd_issue() {
   need_ledger
   [[ -f "$FD/FREEZE" ]] || fl_die "not frozen yet — add the defect to .finish/ledger.json directly before ledger.sh lock"
-  local title="" priority="" platform="web" source="" spec="" command="" crit='[]' id n method
+  local title="" priority="" platform="web" source="" spec="" command="" crit='[]' id n method=""
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --title) title="${2:-}"; shift ;;
@@ -326,6 +326,7 @@ cmd_issue() {
       --source) source="${2:-}"; shift ;;
       --spec) spec="${2:-}"; shift ;;
       --command) command="${2:-}"; shift ;;
+      --method) method="${2:-}"; shift ;;
       *) fl_die "unknown argument: $1 — usage: ledger.sh issue $ISSUE_ARGS" ;;
     esac
     shift
@@ -337,14 +338,18 @@ cmd_issue() {
   [[ -z "$dup" ]] || fl_die "already filed as $dup — work that item (ledger.sh show $dup)"
   n="$(jq -r '[.items[].id | select(test("^I-[0-9]{3}$")) | ltrimstr("I-") | tonumber] | max // 0' "$LEDGER")"
   id="$(printf 'I-%03d' $((n + 1)))"
+  # The platform decides how it is verified (an API test may well be named *.spec.ts); --method overrides.
   if [[ -n "$command" ]]; then method="command"
-  elif [[ -n "$spec" ]]; then
-    case "$spec" in *.spec.ts|*.spec.js|*.spec.mjs|*.spec.cjs) method=e2e-web ;; *.yaml|*.yml) method=e2e-mobile ;; *) method=api ;; esac
-  else
-    case "$platform" in
-      web) method=e2e-web; spec="e2e/finish/$id.spec.ts" ;;
-      android|ios) method=e2e-mobile; spec=".maestro/finish/$id.yaml" ;;
-      *) fl_die "platform $platform has no default spec: give --spec <tests/finish/…> or --command \"<cmd>\"" ;;
+  elif [[ -z "$method" ]]; then
+    case "$platform" in web) method=e2e-web ;; android|ios) method=e2e-mobile ;; *) method=api ;; esac
+  fi
+  case " $FL_METHODS " in *" $method "*) ;; *) fl_die "--method must be one of: $FL_METHODS" ;; esac
+  [[ "$method" != command || -n "$command" ]] || fl_die "--method command needs --command \"<cmd>\""
+  if [[ -z "$spec" && "$method" != command ]]; then
+    case "$method" in
+      e2e-web) spec="e2e/finish/$id.spec.ts" ;;
+      e2e-mobile) spec=".maestro/finish/$id.yaml" ;;
+      *) fl_die "$method has no default spec path: give --spec <tests/finish/…>" ;;
     esac
   fi
   jq --arg id "$id" --arg t "$title" --arg p "$priority" --arg pl "$platform" --arg src "${source:-found during the run}" \

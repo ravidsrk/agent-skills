@@ -10,16 +10,18 @@
 #
 #   ledger.sh validate              schema + rule check (exit 1 on errors)
 #   ledger.sh status [--line]       summary, P0 progress, next item
-#   ledger.sh next                  next item to work on (exit 1 if none)
+#   ledger.sh next                  next failing item to work on (exit 1 if none)
+#   ledger.sh next --stuck          the stuck item with the fewest research rounds (exit 1 if none)
 #   ledger.sh show <ID>             print one item
 #   ledger.sh specs [--passing] [--method M]   existing spec paths for in-scope items
 #   ledger.sh pass <ID>             mark passing (guarded)
 #   ledger.sh state                 fingerprint of the code under test (the verifier records it)
 #   ledger.sh run-commands [--passing]  run in-scope verify.command items (used by verify.sh)
-#   ledger.sh fail <ID> "<why>"     attempts += 1; parks as stuck at 3
-#   ledger.sh stuck <ID> "<why>"    park now
+#   ledger.sh fail <ID> "<why>"     attempts += 1; pauses as stuck at 3 (never abandoned)
+#   ledger.sh stuck <ID> "<why>"    pause now
+#   ledger.sh round <ID>            next research round for a stuck item: back to failing, attempts 0.
+#                                   Unlimited; each round escalates (protocol §5.1). round2 is an alias.
 #   ledger.sh owner <ID> "<owner action>" "<check cmd>"   park as needs_owner; check exits 0 once done
-#   ledger.sh round2 <ID>           second and last round for a stuck item
 #   ledger.sh owner-check           re-run owner checks; reopen items whose check now passes
 #   ledger.sh done-check            which terminal STATUS the ledger supports: LAUNCH_READY,
 #                                   READY_FOR_OWNER, or OPEN <ids> (exit 1)
@@ -117,6 +119,8 @@ cmd_validate() {
 
 # shellcheck disable=SC2016  # jq variables, not shell
 in_scope='(.priority | ltrimstr("P") | tonumber) <= $scope'
+# Research rounds an item has had (legacy "round 2:" notes count as one).
+rounds='((.notes // "") | [scan("research round [0-9]+|round 2:")] | length)'
 
 cmd_status() {
   local scope status
@@ -138,7 +142,10 @@ cmd_status() {
     \"STATUS: \(\$status) · SCOPE: P\(\$scope)\",
     \"In scope: \(\$in | length) — passing \(\$in | map(select(.status == \"passing\")) | length) · failing \(\$in | map(select(.status == \"failing\")) | length) · stuck \(\$in | map(select(.status == \"stuck\")) | length) · needs_owner \(\$in | map(select(.status == \"needs_owner\")) | length)\",
     \"P0 \(\$p0 | map(select(.status == \"passing\")) | length)/\(\$p0 | length)\",
-    (if \$next then \"Next: \(\$next.id) — \(\$next.title) (attempts \(\$next.attempts)/3)\" else \"Next: none (see stuck / needs_owner)\" end)
+    (\$in | map(select(.status == \"stuck\")) | sort_by($rounds) | .[0]) as \$stuck |
+    (if \$next then \"Next: \(\$next.id) — \(\$next.title) (attempts \(\$next.attempts)/3)\"
+     elif \$stuck then \"Next: research round \((\$stuck | $rounds) + 1) for \(\$stuck.id) — \(\$stuck.title) (ledger.sh round \(\$stuck.id))\"
+     else \"Next: none (see needs_owner)\" end)
   " "$LEDGER"
 }
 
@@ -146,10 +153,15 @@ cmd_next() {
   need_ledger
   local scope out
   scope="$(fl_scope_n "$FD")"
+  if [[ "${1:-}" == "--stuck" ]]; then
+    out="$(jq -r --argjson scope "$scope" "[.items[] | select($in_scope) | select(.status == \"stuck\")] | sort_by($rounds) | .[0].id // empty" "$LEDGER")"
+    [[ -n "$out" ]] || return 1
+    printf '%s\n' "$out"; return 0
+  fi
   out="$(jq -r --argjson scope "$scope" "[.items[] | select($in_scope) | select(.status == \"failing\" and .attempts < 3)] | .[0] // empty | \"\(.id)\t\(.title)\"" "$LEDGER")"
   if [[ -z "$out" ]]; then
     echo "none"
-    jq -r --argjson scope "$scope" ".items[] | select($in_scope) | select(.status == \"stuck\" or .status == \"needs_owner\") | \"  \(.status): \(.id) — \(.title)\"" "$LEDGER"
+    jq -r --argjson scope "$scope" ".items[] | select($in_scope) | select(.status == \"stuck\" or .status == \"needs_owner\") | \"  \(.status): \(.id) — \(.title)\(if .status == \"stuck\" then \" (research rounds so far: \($rounds))\" else \"\" end)\"" "$LEDGER"
     return 1
   fi
   printf '%s\n' "$out"
@@ -180,7 +192,7 @@ cmd_specs() {
 cmd_pass() {
   local id="$1" method spec dir report imgs files want n
   need_ledger; need_item "$id"
-  [[ "$(item_field "$id" status)" == "failing" ]] || fl_die "$id is $(item_field "$id" status); only failing items can pass (use round2 for stuck items)"
+  [[ "$(item_field "$id" status)" == "failing" ]] || fl_die "$id is $(item_field "$id" status); only failing items can pass (stuck items: ledger.sh round $id)"
   method="$(item_verify "$id" method)"
   spec="$(item_verify "$id" spec)"
   dir=".finish/evidence/$id"
@@ -239,7 +251,7 @@ cmd_fail() {
     --arg stamp "$(fl_now)" --arg msg "attempt failed: $msg"
   a="$(item_field "$id" attempts)"
   if [[ "$(item_field "$id" status)" == "stuck" ]]; then
-    echo "$id → stuck after $a attempts. Note hypothesis / tried / next idea in PROGRESS.md and take the next item."
+    echo "$id → stuck after $a attempts: paused, not abandoned. Write what you tried and ruled out in .finish/research/$id.md, then take the next item; $id comes back as a research round (protocol §5.1)."
   else
     echo "$id → failing (attempt $a/3)"
   fi
@@ -260,15 +272,30 @@ set_status() {
   echo "$id → $st"
 }
 
-cmd_round2() {
-  local id="$1"
-  need_ledger; need_item "$id"
-  [[ "$(item_field "$id" status)" == "stuck" ]] || fl_die "$id is not stuck"
-  if item_field "$id" notes | grep -q 'round 2'; then
-    fl_die "$id already had round 2 — decide now: ledger.sh amend (split or re-scope, verifier-approved) or ledger.sh owner $id \"<action>\" \"<check>\""
-  fi
-  set_status "$id" failing "round 2: re-read code and docs from scratch" " | .attempts = 0"
+# The research ladder (protocol §5.1). Round n works step min(n, 7) and keeps everything learned before.
+ladder_step() {
+  case "$1" in
+    1) echo "reproduce it alone with full output; read the whole code path and the docs; use the debug companion" ;;
+    2) echo "primary sources: docs for the installed version, type definitions, the library's own source and changelog" ;;
+    3) echo "other people's reports: search the exact error; the library's GitHub issues, discussions and examples" ;;
+    4) echo "isolate: a minimal reproduction outside the app; git bisect if it ever worked" ;;
+    5) echo "change approach: another API or library that keeps the documented behaviour (decide per §7, log it)" ;;
+    6) echo "re-scope only if the docs allow it: split the item by amendment, every criterion kept" ;;
+    *) echo "fresh angle: rule out every hypothesis in .finish/research/<ID>.md with evidence, then widen the search" ;;
+  esac
 }
+
+cmd_round() {
+  local id="$1" n
+  need_ledger; need_item "$id"
+  [[ "$(item_field "$id" status)" == "stuck" ]] || fl_die "$id is $(item_field "$id" status); only stuck items get a research round"
+  n="$(jq -r --arg id "$id" ".items[] | select(.id == \$id) | $rounds" "$LEDGER")"
+  n=$((n + 1))
+  set_status "$id" failing "research round $n: $(ladder_step "$n")" " | .attempts = 0" >/dev/null
+  echo "$id → failing, research round $n: $(ladder_step "$n")"
+  echo "Read .finish/research/$id.md first; log this round there (hypothesis · evidence · sources · change · result) and commit it."
+}
+
 
 cmd_run_commands() { # run in-scope command items; --passing = only items already passing
   need_ledger
@@ -634,7 +661,7 @@ sub="${1:-}"; shift || true
 case "$sub" in
   validate) cmd_validate "${1:-}" ;;
   status) cmd_status "${1:-}" ;;
-  next) cmd_next ;;
+  next) cmd_next "${1:-}" ;;
   show) need_ledger; need_item "${1:-}"; jq --arg id "$1" '.items[] | select(.id == $id)' "$LEDGER" ;;
   specs) cmd_specs "$@" ;;
   pass) cmd_pass "${1:-}" ;;
@@ -649,7 +676,7 @@ case "$sub" in
   migrate) cmd_migrate ;;
   reopen) set_status "${1:-}" failing "${2:-}" " | .attempts = 0" ;;
   regress) [[ -n "${2:-}" ]] || fl_die "regress needs a one-line reason"; set_status "${1:-}" failing "regressed: $2" ;;
-  round2) cmd_round2 "${1:-}" ;;
+  round|round2) cmd_round "${1:-}" ;;
   hash) need_ledger; fl_criteria_hash "$LEDGER" ;;
   state) fl_code_state ;;
   run-commands) cmd_run_commands "${1:-}" ;;

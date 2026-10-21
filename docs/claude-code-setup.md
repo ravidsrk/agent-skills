@@ -43,6 +43,8 @@ git clone https://github.com/ravidsrk/agent-skills.git
 claude --plugin-dir "$(pwd)/agent-skills"     # local plugin for this session
 ```
 
+The plugin is named `ravidsrk-agent-skills`, so its skills appear as `ravidsrk-agent-skills:<skill>`. (Not `agent-skills`: that's the name of Addy Osmani's plugin, which finish-line can install as a companion, and two plugins can't share a name.)
+
 For everyday use, prefer the symlink install (Path 1).
 
 # Per-skill env vars

@@ -165,6 +165,35 @@ verifier_shipped() { # the installed verifier is one this skill shipped (not one
   local h; h="$(fl_sha < "$VERIFIER")"
   [[ "$h" == "$(fl_sha < "$SKILL/templates/finish-verifier.md")" ]] || grep -qxF "$h" "$SKILL/templates/finish-verifier.history" 2>/dev/null
 }
+# Statuses that end work on an item can only come from ledger.sh: a session that moved an item to
+# passing or needs_owner must have left what ledger.sh pass / owner --apply write. Hand-editing a
+# status into ledger.json would otherwise skip every guard.
+audit_statuses() { # <ledger at session start> → prints the first violation, exit 1
+  local prev="$1" id to spec r req rev
+  [[ -f "$prev" && -f .finish/ledger.json ]] || return 0
+  while IFS=$'\t' read -r id _ to; do
+    case "$to" in
+      passing)
+        r=".finish/evidence/$id/verifier/report.md"
+        if ! { grep -Eq '^VERDICT: *PASS' "$r" 2>/dev/null && grep -Eq '^STATE: *[0-9a-f]{16,}' "$r" \
+               && jq -e --arg id "$id" '.items[] | select(.id == $id) | ((.evidence | length) > 0 and ((.notes // "") | test("passed \\(verifier PASS\\)")))' .finish/ledger.json >/dev/null; }; then
+          echo "$id was marked passing without ledger.sh pass (no verifier PASS report, evidence or pass record)"; return 1
+        fi
+        spec="$(jq -r --arg id "$id" '.items[] | select(.id == $id) | .verify.spec // empty' .finish/ledger.json)"
+        if [[ -n "$spec" ]] && ! jq -e --arg id "$id" --arg s "$spec" '.[$id].spec == $s' .finish/ratchet.json >/dev/null 2>&1; then
+          echo "$id was marked passing without ledger.sh pass (no ratchet entry for $spec)"; return 1
+        fi ;;
+      needs_owner)
+        req=".finish/owner/$id.request.md"; rev=".finish/owner/$id.review.md"
+        if ! { [[ -f "$req" && -f "$rev" ]] && grep -Eq "^REQUEST: *$(fl_sha < "$req")" "$rev" && grep -Eq '^VERDICT: *APPROVE' "$rev" \
+               && jq -e --arg id "$id" 'has($id)' .finish/owner.json >/dev/null 2>&1; }; then
+          echo "$id was handed to the owner without the verifier's approval (ledger.sh owner, then owner --apply)"; return 1
+        fi ;;
+    esac
+  done < <(jq -r --slurpfile b "$prev" '($b[0].items | map({key: .id, value: .status}) | from_entries) as $B
+      | .items[] | select(.status != ($B[.id] // "failing")) | "\(.id)\t\($B[.id] // "new")\t\(.status)"' .finish/ledger.json)
+}
+
 read_or() { tr -d '[:space:]' 2>/dev/null < "$1" || printf '%s' "$2"; }
 amd_count() { cat .finish/amendments.jsonl 2>/dev/null | wc -l | tr -d ' '; }
 
@@ -361,6 +390,9 @@ while :; do
     if [[ -z "$reason" ]] && ! jq -en --argjson a "$before_ratchet" --argjson b "$(cat .finish/ratchet.json 2>/dev/null || echo '{}')" \
       '[$a | to_entries[] | . as $e | ($b[$e.key].assertions // -1) >= $e.value.assertions] | all' >/dev/null 2>&1; then
       reason="a passing spec's ratchet entry was lowered or removed"
+    fi
+    if [[ -z "$reason" ]] && ! out="$(audit_statuses "$GITDIR/finish-line.ledger.json")"; then
+      reason="$out"
     fi
   elif [[ -f .finish/FREEZE ]]; then
     # Froze during this session: vendored scripts it touched must be the skill's own

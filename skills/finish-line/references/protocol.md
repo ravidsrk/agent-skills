@@ -179,7 +179,7 @@ Research is part of the job: `WebSearch` / `WebFetch`, `gh`, package registries 
 
 **Owner actions** — the only things you don't do yourself, and you never stop for them: obtaining a credential, account or paid plan you don't have; anything touching production data or a production database; production deploys; sending real emails, SMS or payments; DNS and domains; app-store submission; merging to the default branch; force-pushes or history rewrites; any irreversible action outside this repo. Prepare everything up to that point, record it with `ledger.sh owner` (exact action + a check that detects it's done), and keep working on everything else.
 
-**Never an owner action:** an unsolved bug, a failing test, "needs an engineer", "investigate", "fix it manually" — that's research (§5.1). `ledger.sh owner` refuses such actions, and refuses a check that just re-runs the item's own test (it would detect the fix, not anything the owner did). Before you record a missing credential, rule out a local emulator, a test mode or a free tier (`verification.md` §3), and name what you ruled out in the action.
+**Never an owner action:** an unsolved bug, a failing test, "needs an engineer", "investigate", "fix it manually" — that's research (§5.1). `ledger.sh owner` refuses such actions, a check that runs a test (it would detect the fix, not anything the owner did), and a check that already passes (nothing is waiting on the owner). A check detects the owner's step itself: `test -n "$KEY"`, `vercel whoami`, `dig +short <domain>`. Before you record a missing credential, rule out a local emulator, a test mode or a free tier (`verification.md` §3), and name what you ruled out in the action.
 
 ---
 

@@ -435,19 +435,43 @@ owner_md() { # regenerate .finish/OWNER_ACTIONS.md from owner.json
   } > "$FD/OWNER_ACTIONS.md"
 }
 
-# Hand-offs of unsolved engineering work, which the owner can't be asked to do.
-NOT_OWNER_RE='^[[:space:]]*(fix|debug|investigate|implement|refactor|rewrite|diagnose)([^A-Za-z]|$)|needs? (an? )?(engineer|human|person|someone)|someone (to|must|should|who)|manual(ly)? (fix|debug)|(fix|debug)(es|ing)? (it|this|that|the (bug|issue|code|test|error))|could ?n.?t (fix|figure)|unable to (fix|figure|get it)|don.?t know how'
+# Owner actions are what only the owner can provide. Unsolved engineering work never is:
+#   - hand-off wording is refused outright;
+#   - an action that starts with an engineering verb is refused unless it names an owner boundary
+#     ("Fix the DNS records for the production domain" is the owner's; "Fix the login bug" isn't);
+#   - a check that runs a test suite, or the item's own spec, would detect the fix rather than
+#     anything the owner did. A plain credential/account check (test -n "$KEY", <cli> whoami) is fine,
+#     even when it is the item's own frozen verify.command;
+#   - the check must fail now (cmd_owner runs it): one that already passes waits on nobody.
+HANDOFF_RE='needs? (an? )?(engineer|developer|human|person|someone)|someone (to|must|should|who)|manual(ly)? (fix|debug)|could ?n.?t (fix|figure)|unable to (fix|figure|get it)|don.?t know how'
+ENG_VERB_RE='^[[:space:]]*(fix|debug|investigate|implement|refactor|rewrite|diagnose)([^A-Za-z]|$)|(fix|debug)(es|ing)? (it|this|that|the (bug|issue|code|test|error))'
+OWNER_TOPIC_RE='dns|domain|registrar|production|credentials?|api key|secret key|billing|subscription|paid plan|app store|play console|testflight|store listing|legal|certificate|signing identity'
+TEST_RUNNER_RE='playwright|vitest|jest|pytest|mocha|cypress|maestro|go test|cargo test|(npm|pnpm|yarn|bun)( run)? test|gradlew|xcodebuild|flutter test|verify\.sh|ledger\.sh'
+
+not_owner() { # <ID> <action> <check> → exit 0 (with the reason) when this isn't a real owner action
+  local id="$1" action="$2" check="$3" spec
+  spec="$(item_verify "$id" spec)"
+  if printf '%s\n' "$action" | grep -qiE "$HANDOFF_RE"; then echo "the action hands over engineering work"; return 0; fi
+  if printf '%s\n' "$action" | grep -qiE "$ENG_VERB_RE" && ! printf '%s\n' "$action" | grep -qiE "$OWNER_TOPIC_RE"; then
+    echo "the action is engineering work, not something only the owner can provide"; return 0
+  fi
+  if [[ -n "$spec" && "$check" == *"$spec"* ]] || printf '%s\n' "$check" | grep -qiE "$TEST_RUNNER_RE"; then
+    echo "the check runs a test, so it detects the fix, not anything the owner did"; return 0
+  fi
+  return 1
+}
 
 cmd_owner() {
   local id="$1" action="${2:-}" check="${3:-}" tmp
   need_ledger; need_item "$id"
   [[ -n "$action" ]] || fl_die "owner needs the exact action, e.g. \"Add STRIPE_SECRET_KEY (test mode) to .env.local\""
   [[ -n "$check" ]] || fl_die "owner needs a check command that exits 0 once the action is done, e.g. 'grep -q ^STRIPE_SECRET_KEY= .env.local'"
-  local spec vcmd
-  spec="$(item_verify "$id" spec)"; vcmd="$(item_verify "$id" command)"
-  if { [[ -n "$spec" && "$check" == *"$spec"* ]] || [[ -n "$vcmd" && "$check" == *"$vcmd"* ]] || [[ "$check" == *verify.sh* ]]; } \
-     || printf '%s\n' "$action" | grep -qiE "$NOT_OWNER_RE"; then
-    fl_die "refusing: that's not an owner action. A check that re-runs $id's own test detects the fix, not anything the owner did; if only the code is missing, the work is yours — ledger.sh fail $id, then research rounds (ledger.sh round $id, protocol §5.1). Owner actions are for credentials, accounts, paid plans, production, real emails/payments, DNS, store listings, legal review and merging."
+  local why
+  if ! why="$(not_owner "$id" "$action" "$check")" && run_limited "${FINISH_OWNER_CHECK_TIMEOUT:-60}" "$check"; then
+    why="the check already passes, so nothing is waiting on the owner (it must fail until the owner acts)"
+  fi
+  if [[ -n "$why" ]]; then
+    fl_die "refusing: not an owner action — $why. If only the code is missing, the work is yours: ledger.sh fail $id, then research rounds (ledger.sh round $id, protocol §5.1). Owner actions are for credentials, accounts, paid plans, production, real emails/payments, DNS, store listings, legal review and merging, with a check that detects the owner's step (test -n \"\$KEY\", vercel whoami, dig +short …)."
   fi
   set_status "$id" needs_owner "owner action: $action"
   [[ -f "$OWNER" ]] || echo '{}' > "$OWNER"
@@ -500,7 +524,7 @@ cmd_owner_check() {
 # agent re-evaluates them and, if still needed, records a proper owner action with a check.
 cmd_migrate() {
   need_ledger
-  local ids eng tmp id
+  local ids tmp id
   ids="$(jq -r '.items[] | select(.status == "blocked_human") | .id' "$LEDGER")"
   for id in $ids; do
     set_status "$id" failing "migrated from blocked_human: re-evaluate; if it still needs the owner, record ledger.sh owner with a check" " | .attempts = 0" >/dev/null
@@ -508,13 +532,16 @@ cmd_migrate() {
   # Older runs could hand an unsolved item to the owner as "Needs an engineer": that work is the run's.
   local done_eng=""
   if [[ -f "$OWNER" ]]; then
-    eng="$(jq -r --arg re "$NOT_OWNER_RE" 'to_entries[] | select(.value.action | test($re; "i")) | .key' "$OWNER" 2>/dev/null || true)"
-    for id in $eng; do
+    local rec action check
+    while IFS= read -r rec; do
+      [[ -n "$rec" ]] || continue
+      id="$(jq -r '.[0]' <<< "$rec")"; action="$(jq -r '.[1]' <<< "$rec")"; check="$(jq -r '.[2]' <<< "$rec")"
       [[ "$(item_field "$id" status)" == "needs_owner" ]] || continue
+      not_owner "$id" "$action" "$check" >/dev/null || continue
       set_status "$id" stuck "an engineering hand-off isn't an owner action: back to research rounds" >/dev/null
       tmp="$(mktemp)"; jq --arg id "$id" 'del(.[$id])' "$OWNER" > "$tmp" && mv "$tmp" "$OWNER"
       done_eng="$done_eng $id"
-    done
+    done < <(jq -c 'to_entries[] | [.key, .value.action, .value.check]' "$OWNER" 2>/dev/null)
     owner_md
   fi
   ids="$(printf '%s %s' "$ids" "$done_eng" | tr '\n' ' ' | sed 's/^ *//; s/ *$//')"

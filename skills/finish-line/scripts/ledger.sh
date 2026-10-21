@@ -25,7 +25,9 @@
 #                   [--platform web] [--source <evidence>] [--spec <path> | --command "<cmd>"]
 #                                   add a defect found during the run as a new I-### item (additive
 #                                   amendment, applies at once), so it gets fixed and verified like any item
-#   ledger.sh owner <ID> "<owner action>" "<check cmd>"   park as needs_owner; check exits 0 once done
+#   ledger.sh owner <ID> "<owner action>" "<check cmd>"   park as needs_owner; check exits 0 once done.
+#                                   Only for what the owner alone can provide; refuses a check that just
+#                                   re-runs the item's own test ("needs an engineer" is research, not an owner action)
 #   ledger.sh owner-check           re-run owner checks; reopen items whose check now passes
 #   ledger.sh done-check            which terminal STATUS the ledger supports: LAUNCH_READY,
 #                                   READY_FOR_OWNER, or OPEN <ids> (exit 1)
@@ -38,7 +40,8 @@
 #   ledger.sh amend --rebaseline "<why>"   move FREEZE to HEAD (a gate change tamper.sh flags)
 #   ledger.sh amend --apply <NNN>   apply an amendment the verifier approved
 #   ledger.sh amend-verify <lock> <freeze> <count> <ledger>   re-check the amendment chain (used by the runner)
-#   ledger.sh migrate               reopen items left in the old blocked_human status
+#   ledger.sh migrate               reopen items left in the old blocked_human status, and old
+#                                   "needs an engineer" owner hand-offs (they go back to research rounds)
 
 set -uo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -342,7 +345,6 @@ cmd_issue() {
   echo "$id added ($priority, $method${spec:+ $spec}). Work it like any item: test first (protocol §5a)."
 }
 
-
 cmd_run_commands() { # run in-scope command items; --passing = only items already passing
   need_ledger
   local scope only_passing=0 n=0 rec id cmd
@@ -416,11 +418,20 @@ owner_md() { # regenerate .finish/OWNER_ACTIONS.md from owner.json
   } > "$FD/OWNER_ACTIONS.md"
 }
 
+# Hand-offs of unsolved engineering work, which the owner can't be asked to do.
+NOT_OWNER_RE='^[[:space:]]*(fix|debug|investigate|implement|refactor|rewrite|diagnose|resolve|patch)([^A-Za-z]|$)|needs? (an? )?(engineer|human|person|someone)|someone (to|must|should|who)|manual(ly)? (fix|debug)|(fix|debug)(es|ing)? (it|this|that|the (bug|issue|code|test|error))|could ?n.?t (fix|figure)|unable to (fix|figure|get it)|don.?t know how'
+
 cmd_owner() {
   local id="$1" action="${2:-}" check="${3:-}" tmp
   need_ledger; need_item "$id"
   [[ -n "$action" ]] || fl_die "owner needs the exact action, e.g. \"Add STRIPE_SECRET_KEY (test mode) to .env.local\""
   [[ -n "$check" ]] || fl_die "owner needs a check command that exits 0 once the action is done, e.g. 'grep -q ^STRIPE_SECRET_KEY= .env.local'"
+  local spec vcmd
+  spec="$(item_verify "$id" spec)"; vcmd="$(item_verify "$id" command)"
+  if { [[ -n "$spec" && "$check" == *"$spec"* ]] || [[ -n "$vcmd" && "$check" == *"$vcmd"* ]] || [[ "$check" == *verify.sh* ]]; } \
+     || printf '%s\n' "$action" | grep -qiE "$NOT_OWNER_RE"; then
+    fl_die "refusing: that's not an owner action. A check that re-runs $id's own test detects the fix, not anything the owner did; if only the code is missing, the work is yours — ledger.sh fail $id, then research rounds (ledger.sh round $id, protocol §5.1). Owner actions are for credentials, accounts, paid plans, production, real emails/payments, DNS, store listings, legal review and merging."
+  fi
   set_status "$id" needs_owner "owner action: $action"
   [[ -f "$OWNER" ]] || echo '{}' > "$OWNER"
   tmp="$(mktemp)"
@@ -472,13 +483,26 @@ cmd_owner_check() {
 # agent re-evaluates them and, if still needed, records a proper owner action with a check.
 cmd_migrate() {
   need_ledger
-  local ids
+  local ids eng tmp id
   ids="$(jq -r '.items[] | select(.status == "blocked_human") | .id' "$LEDGER")"
-  [[ -n "$ids" ]] || { echo "migrate: nothing to do"; return 0; }
   for id in $ids; do
     set_status "$id" failing "migrated from blocked_human: re-evaluate; if it still needs the owner, record ledger.sh owner with a check" " | .attempts = 0" >/dev/null
   done
-  echo "migrate: reopened $(printf '%s' "$ids" | tr '\n' ' ')"
+  # Older runs could hand an unsolved item to the owner as "Needs an engineer": that work is the run's.
+  local done_eng=""
+  if [[ -f "$OWNER" ]]; then
+    eng="$(jq -r --arg re "$NOT_OWNER_RE" 'to_entries[] | select(.value.action | test($re; "i")) | .key' "$OWNER" 2>/dev/null || true)"
+    for id in $eng; do
+      [[ "$(item_field "$id" status)" == "needs_owner" ]] || continue
+      set_status "$id" stuck "an engineering hand-off isn't an owner action: back to research rounds" >/dev/null
+      tmp="$(mktemp)"; jq --arg id "$id" 'del(.[$id])' "$OWNER" > "$tmp" && mv "$tmp" "$OWNER"
+      done_eng="$done_eng $id"
+    done
+    owner_md
+  fi
+  ids="$(printf '%s %s' "$ids" "$done_eng" | tr '\n' ' ' | sed 's/^ *//; s/ *$//')"
+  [[ -n "$ids" ]] || { echo "migrate: nothing to do"; return 0; }
+  echo "migrate: reopened $ids"
 }
 
 cmd_done_check() {
@@ -589,9 +613,9 @@ cmd_amend() {
     local review="$AMD_DIR/$applyn.review.md" reqhash kind
     reqhash="$(fl_sha < "$AMD_DIR/$applyn.request.md")"
     [[ -f "$review" ]] || fl_die "no review at $review — spawn finish-verifier in amendment mode with: $AMD_DIR/$applyn.request.md"
-    grep -Eq '^VERDICT: *APPROVE' "$review" || fl_die "the verifier did not approve amendment $applyn — take another route (owner action, or keep working the item)"
+    grep -Eq '^VERDICT: *APPROVE' "$review" || fl_die "the verifier did not approve amendment $applyn — keep working the item (research rounds, protocol §5.1)"
     grep -Eq "^REQUEST: *$reqhash" "$review" || fl_die "review $applyn is for a different request (REQUEST hash mismatch)"
-    [[ "$(amd_weakening_count)" -lt "${FINISH_MAX_AMENDMENTS:-5}" ]] || fl_die "amendment cap reached (${FINISH_MAX_AMENDMENTS:-5}); park the item with ledger.sh owner instead"
+    [[ "$(amd_weakening_count)" -lt "${FINISH_MAX_AMENDMENTS:-5}" ]] || fl_die "amendment cap reached (${FINISH_MAX_AMENDMENTS:-5}); the criteria stand — keep working the item (research rounds, protocol §5.1)"
     kind="$(sed -n 's/^KIND: *//p' "$AMD_DIR/$applyn.request.md" | head -1)"
     reason="$(sed -n 's/^REASON: *//p' "$AMD_DIR/$applyn.request.md" | head -1)"
     if [[ "$kind" == "rebaseline" ]]; then

@@ -422,7 +422,7 @@ owner_md() { # regenerate .finish/OWNER_ACTIONS.md from owner.json
 }
 
 # Hand-offs of unsolved engineering work, which the owner can't be asked to do.
-NOT_OWNER_RE='^[[:space:]]*(fix|debug|investigate|implement|refactor|rewrite|diagnose|resolve|patch)([^A-Za-z]|$)|needs? (an? )?(engineer|human|person|someone)|someone (to|must|should|who)|manual(ly)? (fix|debug)|(fix|debug)(es|ing)? (it|this|that|the (bug|issue|code|test|error))|could ?n.?t (fix|figure)|unable to (fix|figure|get it)|don.?t know how'
+NOT_OWNER_RE='^[[:space:]]*(fix|debug|investigate|implement|refactor|rewrite|diagnose)([^A-Za-z]|$)|needs? (an? )?(engineer|human|person|someone)|someone (to|must|should|who)|manual(ly)? (fix|debug)|(fix|debug)(es|ing)? (it|this|that|the (bug|issue|code|test|error))|could ?n.?t (fix|figure)|unable to (fix|figure|get it)|don.?t know how'
 
 cmd_owner() {
   local id="$1" action="${2:-}" check="${3:-}" tmp

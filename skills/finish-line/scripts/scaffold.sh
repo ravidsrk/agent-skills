@@ -6,6 +6,8 @@
 # Run anywhere inside the product repo. Creates what's missing, never
 # overwrites your files:
 #   .finish/STATUS (AUDITING) · SCOPE (P0) · PROGRESS.md · DECISIONS.md · OWNER_ACTIONS.md · LATER.md
+#   .finish/RUN                        which skill version started this run (a .finish/ without it is
+#                                      an older run, which finish.sh sets aside and starts fresh)
 #   .finish/verify.sh                  gate template — fill every STAGE_*
 #   .finish/bin/{ledger,tamper,lib}.sh vendored copies (refreshed until the ledger is frozen)
 #   .claude/agents/finish-verifier.md  independent verifier subagent
@@ -50,6 +52,7 @@ copy() { # copy <src> <dest> [mode]   (only if missing)
 echo "finish-line scaffold → $ROOT"
 mkdir -p "$FD/evidence" "$FD/logs" "$FD/bin"
 
+put "$FD/RUN" "finish-line $(sed -n 's/^  version: "\(.*\)"$/\1/p' "$SKILL/SKILL.md" | head -1) · started $(fl_now)"
 put "$FD/STATUS" "AUDITING"
 put "$FD/SCOPE" "P0"
 put "$FD/PROGRESS.md" "# Progress (append-only session log)"

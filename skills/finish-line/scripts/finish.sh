@@ -18,7 +18,12 @@
 # plan, publish or merge, turns hooks off, and tells gstack nobody is there to answer.
 # Its own commits contain only the files it changed, never anything else you staged.
 #
-#   finish.sh [repo]                      default repo: current directory
+#   finish.sh [--fresh] [repo]            default repo: current directory
+#
+# --fresh sets every previous run aside first (scripts/fresh.sh: archived, nothing deleted) and
+# starts the review over from the docs. A run an older version of the skill started (no
+# .finish/RUN) built its picture of the product without the checked brief; the runner starts
+# those fresh on its own, unless FINISH_KEEP_RUN=1.
 #
 # Env:
 #   MAX_SESSIONS=40          hard cap on sessions (your compute budget)
@@ -36,6 +41,7 @@
 #                            (references/companions.md); off = never; install = install the
 #                            recommended pinned packs first. Default off with FINISH_AGENT.
 #   FINISH_KEEP_HOOKS=1      leave Claude Code hooks on (default: off for every session)
+#   FINISH_KEEP_RUN=1        keep a run an older skill version started instead of starting fresh
 #
 # Exit: 0 LAUNCH_READY or READY_FOR_OWNER · 1 setup error · 2 the agent makes no commits at all
 #       3 session cap · 4 too many reverted sessions · 5 agent CLI keeps failing
@@ -50,9 +56,16 @@ PROTOCOL="$SKILL/references/protocol.md"
 # shellcheck source-path=SCRIPTDIR source=lib.sh
 . "$HERE/lib.sh"
 
-case "${1:-}" in -h|--help) awk 'NR > 1 && /^#/ { sub(/^# ?/, ""); print; next } NR > 1 { exit }' "${BASH_SOURCE[0]}"; exit 0 ;; esac
-
-REPO="${1:-$PWD}"
+FRESH=0; REPO=""
+for a in "$@"; do
+  case "$a" in
+    -h|--help) awk 'NR > 1 && /^#/ { sub(/^# ?/, ""); print; next } NR > 1 { exit }' "${BASH_SOURCE[0]}"; exit 0 ;;
+    --fresh) FRESH=1 ;;
+    -*) echo "unknown option: $a (try --help)"; exit 1 ;;
+    *) REPO="$a" ;;
+  esac
+done
+REPO="${REPO:-$PWD}"
 MAX_SESSIONS="${MAX_SESSIONS:-40}"
 STALL_LIMIT="${STALL_LIMIT:-3}"
 MAX_DRY="${FINISH_MAX_DRY:-$((STALL_LIMIT * 3))}"
@@ -109,6 +122,21 @@ if dirty; then
   echo "• stashed uncommitted changes before the run (restore with: git stash pop)"
 fi
 
+# A run an older version of the skill started (no .finish/RUN, here or on the finish-line branch)
+# understood the product without a brief checked against the docs. Everything it built rests on
+# that reading, so it is set aside like --fresh.
+legacy_run() {
+  if [[ -f .finish/STATUS ]]; then [[ ! -f .finish/RUN ]]; return; fi
+  git cat-file -e refs/heads/finish-line:.finish/STATUS 2>/dev/null && ! git cat-file -e refs/heads/finish-line:.finish/RUN 2>/dev/null
+}
+if [[ $FRESH -eq 0 && "${FINISH_KEEP_RUN:-}" != 1 ]] && legacy_run; then
+  echo "• this run was started by an older finish-line, before the product brief was checked against the docs: starting the review fresh (FINISH_KEEP_RUN=1 keeps it)"
+  FRESH=1
+fi
+if [[ $FRESH -eq 1 ]]; then
+  FINISH_FRESH_UNDER_RUNNER=1 FINISH_FRESH_PREFIX="• " "$HERE/fresh.sh" || { echo "■ the fresh start was refused (see above)"; exit 1; }
+fi
+
 mkdir -p .finish/logs
 
 export FINISH_SKILL_DIR="$SKILL"
@@ -135,7 +163,7 @@ VERIFIER=.claude/agents/finish-verifier.md
 GUARDED=("$VERIFIER" .claude/settings.json .claude/settings.local.json)   # only the runner or the owner changes these
 fixed() { # files the agent must never change during a frozen session (FREEZE/LEDGER.lock move only by amendment)
   local f
-  for f in .finish/SCOPE .finish/bin/lib.sh .finish/bin/ledger.sh .finish/bin/tamper.sh \
+  for f in .finish/SCOPE .finish/RUN .finish/bin/lib.sh .finish/bin/ledger.sh .finish/bin/tamper.sh \
            "${GUARDED[@]}"; do
     if [[ -f "$f" ]]; then printf '%s %s\n' "$(fl_sha < "$f")" "$f"; else printf 'absent %s\n' "$f"; fi
   done
@@ -370,6 +398,7 @@ while :; do
   start="$(head_sha)"
   frozen=0; [[ -f .finish/FREEZE ]] && frozen=1
   before_fixed="$(fixed)"
+  had_run=0; [[ -f .finish/RUN ]] && had_run=1
   before_lock="$(read_or .finish/LEDGER.lock none)"
   before_freeze="$(read_or .finish/FREEZE none)"
   before_amd="$(amd_count)"
@@ -407,6 +436,13 @@ while :; do
     if [[ "$scope_before" != "$scope_after" ]] && ! [[ "$scope_before" == "absent .finish/SCOPE" && "$(read_or .finish/SCOPE '')" == "P0" ]]; then
       reason="the session changed .finish/SCOPE"
     fi
+    # The first freeze rests on a brief the verifier checked against the docs, and on a ledger it approved.
+    if [[ -z "$reason" ]] && ! out="$("$HERE/ledger.sh" freeze-check 2>&1)"; then
+      reason="the session froze the ledger without the verifier's approval of the brief and the ledger ($out)"
+    fi
+  fi
+  if [[ -z "$reason" && $had_run -eq 1 && ! -f .finish/RUN ]]; then
+    reason="the session deleted .finish/RUN (it marks this run; only fresh.sh starts a new one)"
   fi
   if [[ -z "$reason" && $frozen -eq 0 ]] && [[ " $(changed_fixed "$before_fixed" "$(fixed)") " == *" $VERIFIER "* ]] && ! verifier_shipped; then
     reason="the session wrote its own $VERIFIER; the verifier must be the one the skill ships (owners customise it between runs)"

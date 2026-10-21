@@ -19,7 +19,7 @@
 #     gitleaks:allow, …), and no lines added to scanner/linter ignore files
 #   - .finish/verify.sh unchanged, except stages that were empty or n/a at the
 #     freeze may be filled in
-#   - .finish/bin/ unchanged
+#   - .finish/bin/ unchanged; .finish/product.json (the product brief) unchanged
 #
 # Exit 0 = clean, 1 = tampering found, 2 = usage/environment error.
 # A false positive from a legitimate change is cleared by a verifier-approved
@@ -180,6 +180,16 @@ if git cat-file -e "$base:.finish/verify.sh" 2>/dev/null; then
       done > "$TMP"
       flush
     fi
+  fi
+fi
+
+# 3d'. The product brief is frozen with the ledger: the run's understanding of the product changes only
+#      through a reviewed rebaseline, where the verifier checks each changed claim against its source.
+if git cat-file -e "$base:.finish/product.json" 2>/dev/null; then
+  if [[ ! -f .finish/product.json ]]; then
+    report "product brief .finish/product.json deleted after the freeze"
+  elif ! git show "$base:.finish/product.json" | cmp -s - .finish/product.json; then
+    report "product brief .finish/product.json changed after the freeze (commit it, then ledger.sh amend --rebaseline \"<the doc that shows it>\")"
   fi
 fi
 

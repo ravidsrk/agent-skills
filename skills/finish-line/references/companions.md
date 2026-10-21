@@ -14,11 +14,11 @@ The rule that makes this safe is the same one the autonomy-minded packs already 
 | `debug` | §5c/§5e a failure whose cause isn't obvious; the second attempt at the same failure | `superpowers:systematic-debugging` › `agent-skills:debugging-and-error-recovery` › `mattpocock-skills:diagnosing-bugs` › gstack `investigate` |
 | `claim` | §5e before `ledger.sh pass`; §6.7 before a terminal `STATUS` | `superpowers:verification-before-completion` |
 | `review` | §5e self-review of the item's changes before the verifier | `agent-skills:code-review-and-quality` › `mattpocock-skills:code-review` |
-| `explore` | §3.6 read-only bug sweep for the reality map | gstack `qa-only` |
+| `explore` | §3.7 read-only bug sweep for the reality map | gstack `qa-only` |
 | `security` | §6.3 security review of the P0 surface | `agent-skills:security-and-hardening` › gstack `cso` |
 | `perf` | §6.3 performance review from the Lighthouse JSON | `agent-skills:performance-optimization` › gstack `benchmark` |
 | `launch` | §6.6 owner's launch checklist in `LAUNCH_REPORT.md` | `agent-skills:shipping-and-launch` |
-| tool `browse` | §3.6 a second browser engine beside `playwright-cli` | gstack's `browse/dist/browse` binary |
+| tool `browse` | §3.7 a second browser engine beside `playwright-cli` | gstack's `browse/dist/browse` binary |
 
 Plugin skills are invoked by their namespaced name (`superpowers:systematic-debugging`); gstack's are top-level (`gstack-qa-only` when installed with `--prefix`, `qa-only` without). Detection checks that each skill's `SKILL.md` really exists and isn't `disable-model-invocation`, so a pack that renames or removes a skill just leaves the slot to the next candidate.
 

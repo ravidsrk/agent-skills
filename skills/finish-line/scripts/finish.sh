@@ -18,7 +18,13 @@
 # plan, publish or merge, turns hooks off, and tells gstack nobody is there to answer.
 # Its own commits contain only the files it changed, never anything else you staged.
 #
-#   finish.sh [repo]                      default repo: current directory
+#   finish.sh [--fresh] [repo]            default repo: current directory
+#
+# The runner works on the finish-line branch, checking it out if it exists. --fresh sets every
+# previous run aside first (scripts/fresh.sh: archived, nothing deleted) and starts the review
+# over from the docs. A run an older version of the skill started (no .finish/RUN) built its
+# picture of the product without the checked brief; the runner starts those fresh on its own,
+# unless FINISH_KEEP_RUN=1.
 #
 # Env:
 #   MAX_SESSIONS=40          hard cap on sessions (your compute budget)
@@ -36,6 +42,7 @@
 #                            (references/companions.md); off = never; install = install the
 #                            recommended pinned packs first. Default off with FINISH_AGENT.
 #   FINISH_KEEP_HOOKS=1      leave Claude Code hooks on (default: off for every session)
+#   FINISH_KEEP_RUN=1        keep a run an older skill version started instead of starting fresh
 #
 # Exit: 0 LAUNCH_READY or READY_FOR_OWNER · 1 setup error · 2 the agent makes no commits at all
 #       3 session cap · 4 too many reverted sessions · 5 agent CLI keeps failing
@@ -50,9 +57,16 @@ PROTOCOL="$SKILL/references/protocol.md"
 # shellcheck source-path=SCRIPTDIR source=lib.sh
 . "$HERE/lib.sh"
 
-case "${1:-}" in -h|--help) awk 'NR > 1 && /^#/ { sub(/^# ?/, ""); print; next } NR > 1 { exit }' "${BASH_SOURCE[0]}"; exit 0 ;; esac
-
-REPO="${1:-$PWD}"
+FRESH=0; REPO=""
+for a in "$@"; do
+  case "$a" in
+    -h|--help) awk 'NR > 1 && /^#/ { sub(/^# ?/, ""); print; next } NR > 1 { exit }' "${BASH_SOURCE[0]}"; exit 0 ;;
+    --fresh) FRESH=1 ;;
+    -*) echo "unknown option: $a (try --help)"; exit 1 ;;
+    *) REPO="$a" ;;
+  esac
+done
+REPO="${REPO:-$PWD}"
 MAX_SESSIONS="${MAX_SESSIONS:-40}"
 STALL_LIMIT="${STALL_LIMIT:-3}"
 MAX_DRY="${FINISH_MAX_DRY:-$((STALL_LIMIT * 3))}"
@@ -99,14 +113,42 @@ trap 'rmdir "$LOCK" 2>/dev/null; rm -f "$GITDIR/finish-line.ledger.json"; rm -rf
 # Env files are where owner actions put keys: a stash must never take them.
 # (Literal excludes of ignored paths make `git stash push` fail, so logs are filtered separately.)
 KEEP=(':(exclude,glob)**/.env' ':(exclude,glob)**/.env.*')
-dirty() { git status --porcelain -uall -- . "${KEEP[@]}" 2>/dev/null | grep -qv ' \.finish/logs/'; }
+# (grep -c reads everything: under pipefail, grep -q stopping early would fail git with SIGPIPE on a
+# long status and read as clean.)
+dirty() { [[ "$(git status --porcelain -uall -- . "${KEEP[@]}" 2>/dev/null | grep -cv ' \.finish/logs/')" -gt 0 ]]; }
 stash() { git stash push -u -q -m "$1" -- . "${KEEP[@]}" && ! dirty; }
 
-# Start from a clean tree: the run reverts by commit, so stash anything local first.
-if dirty; then
+stash_local() {
   stash "finish-line: local changes before run $(date +%Y-%m-%dT%H:%M)" \
     || { echo "uncommitted changes could not be stashed; commit or stash them, then rerun"; exit 1; }
   echo "• stashed uncommitted changes before the run (restore with: git stash pop)"
+}
+
+# The run lives on finish-line (protocol §9): work there, so the checks below and every session
+# see the run itself, not a copy merged into another branch. Switch before stashing: files that
+# finish-line ignores (evidence, logs, local settings) show as untracked on other branches, and a
+# stash would take them away from the run.
+if git rev-parse -q --verify refs/heads/finish-line >/dev/null && [[ "$(git symbolic-ref -q --short HEAD)" != finish-line ]]; then
+  if ! git checkout -q finish-line 2>/dev/null; then
+    stash_local   # local changes that would be overwritten
+    git checkout -q finish-line || { echo "could not check out the finish-line branch"; exit 1; }
+  fi
+  echo "• switched to the finish-line branch"
+fi
+
+# Start from a clean tree: the run reverts by commit, so stash anything local first.
+if dirty; then stash_local; fi
+
+# A run an older version of the skill started (no .finish/RUN) understood the product without a
+# brief checked against the docs. Everything it built rests on that reading, so it is set aside
+# like --fresh.
+legacy_run() { [[ -f .finish/STATUS && ! -f .finish/RUN ]]; }
+if [[ $FRESH -eq 0 && "${FINISH_KEEP_RUN:-}" != 1 ]] && legacy_run; then
+  echo "• this run was started by an older finish-line, before the product brief was checked against the docs: starting the review fresh (FINISH_KEEP_RUN=1 keeps it)"
+  FRESH=1
+fi
+if [[ $FRESH -eq 1 ]]; then
+  FINISH_FRESH_UNDER_RUNNER=1 FINISH_FRESH_PREFIX="• " "$HERE/fresh.sh" || { echo "■ the fresh start was refused (see above)"; exit 1; }
 fi
 
 mkdir -p .finish/logs
@@ -135,7 +177,7 @@ VERIFIER=.claude/agents/finish-verifier.md
 GUARDED=("$VERIFIER" .claude/settings.json .claude/settings.local.json)   # only the runner or the owner changes these
 fixed() { # files the agent must never change during a frozen session (FREEZE/LEDGER.lock move only by amendment)
   local f
-  for f in .finish/SCOPE .finish/bin/lib.sh .finish/bin/ledger.sh .finish/bin/tamper.sh \
+  for f in .finish/SCOPE .finish/RUN .finish/bin/lib.sh .finish/bin/ledger.sh .finish/bin/tamper.sh \
            "${GUARDED[@]}"; do
     if [[ -f "$f" ]]; then printf '%s %s\n' "$(fl_sha < "$f")" "$f"; else printf 'absent %s\n' "$f"; fi
   done
@@ -208,7 +250,7 @@ $(cat "$PROTOCOL")"
     $FINISH_AGENT "$prompt" < /dev/null
   else
     local extra=(--dangerously-skip-permissions --disallowedTools "AskUserQuestion,EnterPlanMode,ExitPlanMode")
-    claude --help 2>/dev/null | grep -q -- '--permission-prompts' && extra+=(--permission-prompts none)
+    claude --help 2>/dev/null | grep -- '--permission-prompts' >/dev/null && extra+=(--permission-prompts none)
     [[ -n "${CLAUDE_MODEL:-}" ]] && extra+=(--model "$CLAUDE_MODEL")
     [[ -n "$POLICY" ]] && extra+=(--settings "$POLICY")   # flag scope: outranks the repo's and the user's settings
     claude -p "$prompt" "${extra[@]}" < /dev/null
@@ -249,8 +291,8 @@ upgrade_project() {
         cp "$SKILL/templates/finish-verifier.md" .claude/agents/finish-verifier.md
         runner_commit "chore(finish): runner refreshes the verifier agent" .claude/agents/finish-verifier.md
         echo "• refreshed .claude/agents/finish-verifier.md"
-      elif ! grep -q '^## Amendment mode' .claude/agents/finish-verifier.md; then
-        echo "⚠ .claude/agents/finish-verifier.md is customised and has no amendment mode; merge $SKILL/templates/finish-verifier.md into it"
+      elif ! grep -q '^## Amendment mode' .claude/agents/finish-verifier.md || ! grep -q '^## Freeze mode' .claude/agents/finish-verifier.md; then
+        echo "⚠ .claude/agents/finish-verifier.md is customised and lacks freeze or amendment mode; merge $SKILL/templates/finish-verifier.md into it"
       fi
     fi
   fi
@@ -370,6 +412,7 @@ while :; do
   start="$(head_sha)"
   frozen=0; [[ -f .finish/FREEZE ]] && frozen=1
   before_fixed="$(fixed)"
+  had_run=0; [[ -f .finish/RUN ]] && had_run=1
   before_lock="$(read_or .finish/LEDGER.lock none)"
   before_freeze="$(read_or .finish/FREEZE none)"
   before_amd="$(amd_count)"
@@ -407,6 +450,13 @@ while :; do
     if [[ "$scope_before" != "$scope_after" ]] && ! [[ "$scope_before" == "absent .finish/SCOPE" && "$(read_or .finish/SCOPE '')" == "P0" ]]; then
       reason="the session changed .finish/SCOPE"
     fi
+    # The first freeze rests on a brief the verifier checked against the docs, and on a ledger it approved.
+    if [[ -z "$reason" ]] && ! out="$("$HERE/ledger.sh" freeze-check 2>&1)"; then
+      reason="the session froze the ledger without the verifier's approval of the brief and the ledger ($out)"
+    fi
+  fi
+  if [[ -z "$reason" && $had_run -eq 1 && ! -f .finish/RUN ]]; then
+    reason="the session deleted .finish/RUN (it marks this run; only fresh.sh starts a new one)"
   fi
   if [[ -z "$reason" && $frozen -eq 0 ]] && [[ " $(changed_fixed "$before_fixed" "$(fixed)") " == *" $VERIFIER "* ]] && ! verifier_shipped; then
     reason="the session wrote its own $VERIFIER; the verifier must be the one the skill ships (owners customise it between runs)"

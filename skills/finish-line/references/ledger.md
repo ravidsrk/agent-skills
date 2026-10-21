@@ -1,6 +1,6 @@
 # Ledger — the frozen definition of done
 
-Read this in Phase 1. The ledger turns the repo's docs into a short, ordered list of items that a stranger could check from outside the code. Once frozen, it is the only definition of done.
+Read this in Phase 1. The ledger turns the repo's docs into a short, ordered list of items that a stranger could check from outside the code. It is built on the brief (§1a), never on a guess about the product. Once frozen, it is the only definition of done.
 
 ## 1. Sources and precedence
 
@@ -8,7 +8,27 @@ When docs disagree, the higher one wins; log each conflict in `DECISIONS.md`:
 
 PRD / product spec > feature specs > design docs & mockups > architecture / implementation plan > GitHub issues > README.
 
-Put the product's promise, from the PRD, in `one_liner`: one sentence a stranger understands.
+Put the product's promise, from the PRD, in `one_liner`: one sentence a stranger understands. It is the brief's `one_liner`, word for word.
+
+## 1a. The brief — `.finish/product.json`
+
+Written in Phase 0, before the code is read (protocol §3.2). It is what the run understands the product to be, one claim per fact, and the verifier approves it with the ledger before the freeze. A full example: `templates/product.example.json`.
+
+| Field | What goes in it |
+|---|---|
+| `product`, `one_liner` | The product's name and its promise in the docs' own terms; the ledger copies both |
+| `one_liner_claims` | The `doc` or `seen` claims the one_liner rests on |
+| `docs` | Every doc read in full (repo paths, including `.finish/sources/` exports) |
+| `claims[]` | `id` (`B-001`…), `basis`, `claim`, `source` (a repo path; `#anchor` or `:line` allowed), `quote` |
+| `unknowns` | Every question the docs leave open that a ledger would need answered — listed, never guessed |
+
+| `basis` | Source | `quote` | What it may say |
+|---|---|---|---|
+| `doc` | A doc in `docs` — README, PRD, spec, design doc, a mockup, an issue export in `.finish/sources/` | Required for text: copied verbatim, 3+ words. Images and PDFs without text: none; the verifier opens them | What the product is, who it's for, what it must do, what's later or out of scope |
+| `seen` | A screenshot or log you captured in `.finish/evidence/` | Optional (logs) | What the running app does — above all where it differs from the docs |
+| `code` | A source file | Required | Only what exists (a framework, a table, an endpoint), never what it's for |
+
+`ledger.sh brief` checks every source exists, that no claim cites `.finish/` notes or Finish Line's tests, and that every quote is in its file (whitespace, case, typographic quotes and markdown marks are ignored; PDFs through `pdftotext`). It writes `.finish/PRODUCT.md`, the readable version. After the freeze the brief changes only through `ledger.sh amend --rebaseline` (§8), and the verifier checks each changed claim against its source.
 
 ## 2. Writing criteria
 
@@ -22,13 +42,15 @@ Put the product's promise, from the PRD, in `one_liner`: one sentence a stranger
 
 Decide this yourself; it's the most important call in the run.
 
-- **P0** — a stranger can discover the product → sign up → get the core promise → pay (only if the PRD charges at launch) → come back later and find their data. Plus every launch gate below that applies.
+- **P0** — the user the docs describe gets the core promise end to end, in the brief's terms, and finds their result again wherever the product keeps one. Sign-up, payment and coming back are part of P0 only when the brief has claims for them: a CLI, an internal tool or a one-page utility has no sign-up journey, and a product whose docs never mention pricing has no payment. Plus every launch gate below that applies.
 - **P1** — in the docs, valuable, not needed for the P0 path.
 - **P2** — "future", "phase 2", nice-to-have.
 
 When in doubt, it's P1. A smaller P0 that ships beats a complete P0 that never does.
 
 ## 4. Launch gates (P0 when they apply)
+
+A gate applies when the brief shows it does — the auth gate needs claims about accounts, the mobile gate a mobile app the docs name, the privacy gate personal data — and its item cites those claims. Boot, build, secrets and env apply to any product that runs; they can cite a `code` claim about how it's built.
 
 | Gate | Usual `verify.method` |
 |---|---|
@@ -70,7 +92,7 @@ IDs: `G-###` gates, `J-###` journeys, `F-###` features, `I-###` defects found du
       "priority": "P0",
       "platforms": ["web"],
       "title": "New user signs up and reaches an empty dashboard",
-      "source": "docs/PRD.md#onboarding",
+      "source": "B-002, B-003",
       "acceptance": ["Given …, when …, then …"],
       "verify": { "method": "e2e-web", "spec": "e2e/finish/J-001.spec.ts" },
       "status": "failing",
@@ -85,6 +107,7 @@ IDs: `G-###` gates, `J-###` journeys, `F-###` features, `I-###` defects found du
 | Field | Values |
 |---|---|
 | `type` | `journey` · `feature` · `gate` · `issue` |
+| `source` | The brief claims the item comes from, e.g. `"B-002, B-003"`. Journeys and features need a `doc` or `seen` claim among them; gates may cite `code`; an `issue` cites the evidence it was found in. `ledger.sh validate` checks every cited claim exists. |
 | `priority` | `P0` · `P1` · `P2` |
 | `platforms` | non-empty list, e.g. `web`, `android`, `ios`, `api`, `cli` |
 | `verify.method` | `e2e-web` (spec `e2e/finish/<ID>.spec.ts`) · `e2e-mobile` (`.maestro/finish/<ID>.yaml`) · `api` (`<backend tests>/finish/…`) · `command` (`verify.command`, a shell command that exits 0; `verify.sh` re-runs it, so it must never call `verify.sh`) |
@@ -97,11 +120,17 @@ The criteria hash covers everything except `status`, `attempts`, `evidence` and 
 ## 7. Freeze
 
 ```bash
+./.finish/bin/ledger.sh brief             # until BRIEF: VALID (the brief was committed in Phase 0)
 ./.finish/bin/ledger.sh validate          # until LEDGER: VALID
-git add .finish/ledger.json && git commit -m "chore(finish): definition of done"
-./.finish/bin/ledger.sh lock              # writes FREEZE (this commit) + LEDGER.lock
-git add .finish/FREEZE .finish/LEDGER.lock && git commit -m "chore(finish): freeze ledger"
+git add .finish/ledger.json .finish/product.json .finish/PRODUCT.md && git commit -m "chore(finish): definition of done"
+./.finish/bin/ledger.sh lock              # first time: writes .finish/freeze/request.md and exits 3
+#   finish-verifier, freeze mode, with .finish/freeze/request.md → .finish/freeze/review.md
+#   REJECT: fix what it lists, commit, lock again (a new request needs a new review)
+./.finish/bin/ledger.sh lock              # after APPROVE: writes FREEZE (this commit) + LEDGER.lock
+git add .finish/FREEZE .finish/LEDGER.lock .finish/freeze && git commit -m "chore(finish): freeze ledger"
 ```
+
+The verifier reads the docs itself first, then checks every claim against its source, the brief against the docs (nothing missing, no guess where they're silent), and every item against the claims it cites. Without its `APPROVE` for exactly this brief and ledger, `lock` doesn't freeze, and the runner reverts a session that freezes any other way.
 
 ## 8. Amendments — changing the definition of done without a human
 

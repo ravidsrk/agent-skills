@@ -32,7 +32,7 @@
       ]
     },
     "explore": {
-      "step": "§3.6 read-only bug sweep for the reality map",
+      "step": "§3.7 read-only bug sweep for the reality map",
       "use": [
         { "pack": "gstack", "skill": "qa-only" }
       ]
@@ -59,7 +59,7 @@
     }
   },
   "tools": {
-    "browse": { "pack": "gstack", "path": "browse/dist/browse", "step": "§3.6 and §5d: a second browser engine beside playwright-cli" }
+    "browse": { "pack": "gstack", "path": "browse/dist/browse", "step": "§3.7 and §5d: a second browser engine beside playwright-cli" }
   },
   "packs": {
     "superpowers": {

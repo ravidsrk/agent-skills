@@ -1,0 +1,5 @@
+# sha256 of every finish-verifier.md this skill has shipped. finish.sh replaces an installed
+# copy only when it matches one of these (i.e. the owner never customised it).
+# Add the old hash here whenever templates/finish-verifier.md changes.
+86ac10e27205028e9b2a0e275406febf2371fe4968c1525b460fcb4ec4c92627
+1550e9ca8cdb27e92bc584c44fc4a08611b06e30d42a9285ebed1241d6a1cbf3

@@ -10,7 +10,9 @@
 #   - agent CLI failures are retried with exponential backoff
 #   - owner actions are re-checked before every session; done ones reopen
 #   - FINISH_UNTIL=P1 or P2 opens the next scope once P0 is done
-#   - after a skill upgrade it refreshes .finish/bin/ and re-anchors the freeze itself
+#   - after a skill upgrade it refreshes .finish/bin/ (re-anchoring the freeze), an
+#     unmodified verifier agent and old statuses itself
+# Its own commits contain only the files it changed, never anything else you staged.
 #
 #   finish.sh [repo]                      default repo: current directory
 #
@@ -21,6 +23,7 @@
 #   FINISH_MAX_TRIPS=3       reverted sessions allowed before giving up
 #   FINISH_MAX_AMENDMENTS=5  verifier-approved weakening amendments allowed
 #   FINISH_BACKOFF=60        first retry delay (s) after an agent CLI failure; doubles, max 900
+#   FINISH_OWNER_CHECK_TIMEOUT=60  seconds each owner-action check may run
 #   CLAUDE_MODEL=            optional --model for claude
 #   FINISH_AGENT=            other headless agent command; the prompt is appended as the last argument
 #   FINISH_GIT_NAME / FINISH_GIT_EMAIL / FINISH_NO_AI_TRAILERS=1   commit identity and trailers
@@ -63,17 +66,24 @@ gitc() { # git with the configured identity, if one was given
     git "$@"
   fi
 }
-runner_commit() { # runner_commit "<message>" <paths…>
+runner_commit() { # runner_commit "<message>" <paths…> — commits only these paths, never anything else staged
   local msg="$1"; shift
   git add -A -- "$@" 2>/dev/null
-  git diff --cached --quiet && return 0
-  gitc commit -q -m "$msg" || echo "⚠ runner could not commit ($msg); the next session will"
+  git diff --cached --quiet -- "$@" && return 0
+  gitc commit -q -m "$msg" -- "$@" || echo "⚠ runner could not commit ($msg); the next session will"
 }
+
+GITDIR="$(cd "$(git rev-parse --git-dir)" && pwd)"
+LOCK="$GITDIR/finish-line.lock"
+if ! mkdir "$LOCK" 2>/dev/null; then
+  echo "another finish.sh is running in this repo (stale? rmdir $LOCK)"; exit 1
+fi
+trap 'rmdir "$LOCK" 2>/dev/null; rm -f "$GITDIR/finish-line.ledger.json"' EXIT
 
 # Env files are where owner actions put keys: a stash must never take them.
 # (Literal excludes of ignored paths make `git stash push` fail, so logs are filtered separately.)
 KEEP=(':(exclude,glob)**/.env' ':(exclude,glob)**/.env.*')
-dirty() { git status --porcelain -- . "${KEEP[@]}" 2>/dev/null | grep -qv ' \.finish/logs/'; }
+dirty() { git status --porcelain -uall -- . "${KEEP[@]}" 2>/dev/null | grep -qv ' \.finish/logs/'; }
 stash() { git stash push -u -q -m "$1" -- . "${KEEP[@]}" && ! dirty; }
 
 # Start from a clean tree: the run reverts by commit, so stash anything local first.
@@ -84,10 +94,6 @@ if dirty; then
 fi
 
 mkdir -p .finish/logs
-if ! mkdir .finish/logs/.runner.lock 2>/dev/null; then
-  echo "another finish.sh is running here (stale? rmdir .finish/logs/.runner.lock)"; exit 1
-fi
-trap 'rmdir .finish/logs/.runner.lock 2>/dev/null' EXIT
 
 export FINISH_SKILL_DIR="$SKILL"
 
@@ -141,10 +147,44 @@ upgrade_bin() {
   echo "• refreshed .finish/bin from the skill and re-anchored the freeze"
 }
 
+# Older products: migrate statuses, refresh an unmodified verifier, add the no-questions settings.
+upgrade_project() {
+  local out cur inst
+  if [[ -f .finish/ledger.json ]]; then
+    out="$("$HERE/ledger.sh" migrate 2>/dev/null)"
+    case "$out" in *reopened*) echo "• $out"; runner_commit "chore(finish): runner migrates blocked items to the owner-action flow" .finish/ledger.json ;; esac
+  fi
+  if [[ -f .claude/agents/finish-verifier.md ]]; then
+    cur="$(fl_sha < "$SKILL/templates/finish-verifier.md")"; inst="$(fl_sha < .claude/agents/finish-verifier.md)"
+    if [[ "$inst" != "$cur" ]]; then
+      if grep -qxF "$inst" "$SKILL/templates/finish-verifier.history" 2>/dev/null; then
+        cp "$SKILL/templates/finish-verifier.md" .claude/agents/finish-verifier.md
+        runner_commit "chore(finish): runner refreshes the verifier agent" .claude/agents/finish-verifier.md
+        echo "• refreshed .claude/agents/finish-verifier.md"
+      elif ! grep -q '^## Amendment mode' .claude/agents/finish-verifier.md; then
+        echo "⚠ .claude/agents/finish-verifier.md is customised and has no amendment mode; merge $SKILL/templates/finish-verifier.md into it"
+      fi
+    fi
+  fi
+  if [[ -d .finish ]]; then
+    local line added=0
+    touch .gitignore
+    for line in '.claude/settings.local.json' '.env*.local' '.finish/ledger.proposed.json'; do
+      grep -qxF -- "$line" .gitignore || { [[ -s .gitignore && -n "$(tail -c1 .gitignore)" ]] && echo >> .gitignore; echo "$line" >> .gitignore; added=1; }
+    done
+    [[ $added -eq 0 ]] || runner_commit "chore(finish): runner adds ignore rules for local settings and env files" .gitignore
+  fi
+  if [[ -d .claude && ! -e .claude/settings.local.json ]]; then
+    cp "$SKILL/templates/claude-settings.local.json" .claude/settings.local.json
+    echo "• added .claude/settings.local.json (no permission prompts or questions in interactive sessions)"
+  fi
+}
+
 # Between sessions: reopen owner actions that are done, move past terminal states.
 # Exits 0 when the run is complete.
 between_sessions() {
   local out st scope
+  upgrade_project
   upgrade_bin
   if [[ -f .finish/ledger.json && -f .finish/owner.json ]]; then
     out="$("$HERE/ledger.sh" owner-check 2>&1)"
@@ -229,6 +269,7 @@ while :; do
   before_freeze="$(read_or .finish/FREEZE none)"
   before_amd="$(amd_count)"
   before_ratchet="$(cat .finish/ratchet.json 2>/dev/null || echo '{}')"
+  cp .finish/ledger.json "$GITDIR/finish-line.ledger.json" 2>/dev/null || rm -f "$GITDIR/finish-line.ledger.json"
 
   run_agent 2>&1 | tee "$log"
   rc=${PIPESTATUS[0]}
@@ -236,7 +277,7 @@ while :; do
   reason=""
   if [[ $frozen -eq 1 ]]; then
     [[ "$(fixed)" == "$before_fixed" ]] || reason="the agent changed SCOPE or .finish/bin/"
-    if [[ -z "$reason" ]] && ! out="$("$HERE/ledger.sh" amend-verify "$before_lock" "$before_freeze" "$before_amd" 2>&1)"; then
+    if [[ -z "$reason" ]] && ! out="$("$HERE/ledger.sh" amend-verify "$before_lock" "$before_freeze" "$before_amd" "$GITDIR/finish-line.ledger.json" 2>&1)"; then
       reason="unapproved change to the frozen definition of done ($out)"
     fi
     if [[ -z "$reason" ]] && ! jq -en --argjson a "$before_ratchet" --argjson b "$(cat .finish/ratchet.json 2>/dev/null || echo '{}')" \

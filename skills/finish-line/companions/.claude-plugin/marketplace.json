@@ -1,0 +1,40 @@
+{
+  "name": "finish-line-companions",
+  "description": "Community skill packs that finish-line can use as companions, each pinned to a reviewed commit. Installed with scripts/companions.sh install. Not an endorsement of every skill inside: finish-line denies the ones that ask, plan, publish or merge.",
+  "owner": {
+    "name": "Ravindra Kumar",
+    "url": "https://github.com/ravidsrk"
+  },
+  "plugins": [
+    {
+      "name": "superpowers",
+      "description": "obra/superpowers (MIT): test-driven-development, systematic-debugging, verification-before-completion.",
+      "source": {
+        "source": "github",
+        "repo": "obra/superpowers",
+        "ref": "v7.0.0",
+        "sha": "bb92a77741419a4ab5f06e711a283343f1ada0c3"
+      }
+    },
+    {
+      "name": "agent-skills",
+      "description": "addyosmani/agent-skills (MIT): code review, security, performance and launch checklists; TDD and debugging alternatives.",
+      "source": {
+        "source": "github",
+        "repo": "addyosmani/agent-skills",
+        "ref": "0.6.13",
+        "sha": "aeac41d4d005999432bb7312f7ff06383a91d59d"
+      }
+    },
+    {
+      "name": "mattpocock-skills",
+      "description": "mattpocock/skills (MIT): tdd, diagnosing-bugs, code-review as fallbacks. Optional.",
+      "source": {
+        "source": "github",
+        "repo": "mattpocock/skills",
+        "ref": "v1.3.1",
+        "sha": "24fe0ef7737efae15c87225755e9f6f5965e4888"
+      }
+    }
+  ]
+}

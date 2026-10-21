@@ -19,6 +19,13 @@ FL_SKIP_RE='\.(skip|only|fixme)\(|(^|[^A-Za-z0-9_.])(xit|xdescribe|xtest|fit|fde
 # Assertions that can never fail.
 FL_TAUTOLOGY_RE='expect\( *(true|false|1|0|null|undefined) *\)|expect\( *'"'"'[^'"'"']*'"'"' *\)|expect\( *"[^"]*" *\)|assert +(True|1) *($|#|;)|assert +not +False|assertTrue\( *true *\)|XCTAssertTrue\( *true *\)|assertEquals\( *true *, *true *\)'
 
+# Comments that silence a lint, type, coverage or scanner check (the "floor guard"). New ones
+# after the freeze lower the bar the gate was frozen at.
+FL_SUPPRESS_RE='@ts-(ignore|nocheck|expect-error)|eslint-disable|biome-ignore|istanbul ignore|(c8|v8) ignore|# *type: *ignore|# *noqa|# *pragma: *no cover|# *pylint: *disable|# *shellcheck +disable|//nolint|NOSONAR|nosemgrep|gitleaks:allow|Stryker disable|swiftlint:disable|rubocop:disable|@Suppress(Warnings|Lint)?\(|// *ignore(_for_file)?:|#\[allow\('
+
+# Files whose only job is to exempt things from a scanner or linter.
+FL_GATE_IGNORE_RE='(^|/)(\.gitleaksignore|\.gitleaks\.toml|\.semgrepignore|\.eslintignore|\.trivyignore|\.snyk|\.nsprc|audit-ci\.jsonc?|osv-scanner\.toml|\.secrets\.baseline|\.bandit)$'
+
 # Lines that count as an assertion (JS/TS, Python, JVM, Swift, Go, Dart, Maestro).
 FL_ASSERT_RE='expect\(|(^|[^A-Za-z_])assert|XCTAssert|assertThat\(|assertVisible|assertNotVisible|assertTrue:|t\.(Error|Fatal)f?\(|require\.[A-Z]'
 

@@ -12,7 +12,11 @@
 # Checked against the freeze commit (once the ledger is frozen):
 #   - frozen criteria hash matches .finish/LEDGER.lock
 #   - no test files deleted; no skip markers or tautologies added to any test
-#   - test-runner configs: no changes to include/exclude/ignore/retries/only rules
+#   - test-runner and coverage configs: no changes to include/exclude/ignore/
+#     retries/only rules or coverage thresholds
+#   - floor guard: no more lint/type/coverage/scanner suppression comments than at
+#     the freeze (@ts-ignore, eslint-disable, # noqa, istanbul ignore, nosemgrep,
+#     gitleaks:allow, …), and no lines added to scanner/linter ignore files
 #   - .finish/verify.sh unchanged, except stages that were empty or n/a at the
 #     freeze may be filled in
 #   - .finish/bin/ unchanged
@@ -42,8 +46,8 @@ while [[ $# -gt 0 ]]; do
 done
 [[ -z "$base" && -f "$FD/FREEZE" ]] && base="$(tr -d '[:space:]' < "$FD/FREEZE")"
 
-CONFIG_PATH_RE='(^|/)(playwright|jest|vitest|cypress|karma|vite)\.config\.[cm]?[jt]s$|(^|/)(jest\.config\.json|pytest\.ini|tox\.ini|setup\.cfg|pyproject\.toml|package\.json|build\.gradle|build\.gradle\.kts|\.mocharc|\.mocharc\.[a-z]+)$'
-CONFIG_KEY_RE='testIgnore|testPathIgnorePatterns|testMatch|testRegex|testDir|grepInvert|(^|[^A-Za-z])grep *:|exclude|norecursedirs|addopts|--ignore|--deselect|testpaths|"test(:[^"]*)?" *:|excludeTestsMatching|forbidOnly|retries|passWithNoTests|bail'
+CONFIG_PATH_RE='(^|/)(playwright|jest|vitest|cypress|karma|vite)\.config\.[cm]?[jt]s$|(^|/)(jest\.config\.json|pytest\.ini|tox\.ini|setup\.cfg|pyproject\.toml|package\.json|build\.gradle|build\.gradle\.kts|\.mocharc|\.mocharc\.[a-z]+|\.nycrc|\.nycrc\.[a-z]+|\.c8rc|\.c8rc\.json|\.coveragerc|codecov\.ya?ml)$'
+CONFIG_KEY_RE='testIgnore|testPathIgnorePatterns|testMatch|testRegex|testDir|grepInvert|(^|[^A-Za-z])grep *:|exclude|norecursedirs|addopts|--ignore|--deselect|testpaths|"test(:[^"]*)?" *:|excludeTestsMatching|forbidOnly|retries|passWithNoTests|bail|coverageThreshold|thresholds|fail_under|fail-under|check-coverage|minimumCoverage|(^|[^A-Za-z_])["'"'"']?(lines|branches|functions|statements|perFile|autoUpdate)["'"'"']? *[:=]'
 MARKER_RE="$FL_SKIP_RE|$FL_TAUTOLOGY_RE"
 
 findings=0
@@ -148,7 +152,7 @@ while IFS= read -r f; do
   fi
   if printf '%s\n' "$f" | grep -Eq "$CONFIG_PATH_RE"; then
     git diff -U0 "${diffargs[@]}" -- "$f" 2>/dev/null | grep -E '^[+-]' | grep -vE '^(\+\+\+|---) ' | grep -E "$CONFIG_KEY_RE" \
-      | while IFS= read -r l; do printf '%s\n' "test config filter changed in $f: $l"; done
+      | while IFS= read -r l; do printf '%s\n' "test or coverage config rule changed in $f: $l"; done
   fi
 done < <(git diff --name-only "${diffargs[@]}" 2>/dev/null) > "$TMP"
 flush
@@ -182,6 +186,60 @@ fi
 # 3e. Vendored scripts.
 changed_bin="$(git diff --name-only "${diffargs[@]}" -- .finish/bin 2>/dev/null)"
 [[ -z "$changed_bin" ]] || report "vendored scripts changed since freeze: $(printf '%s' "$changed_bin" | tr '\n' ' ')"
+
+# 3f. Floor guard: suppression comments may not grow. Counted over the whole tree, so code
+#     that merely moves keeps its existing suppressions; only the total matters.
+SUP_PATHS=(-- . ':(exclude).finish' ':(exclude,glob)**/*.md' ':(exclude,glob)**/*.mdx' ':(exclude,glob)**/node_modules/**'
+  ':(exclude,glob)**/vendor/**' ':(exclude,glob)**/dist/**' ':(exclude,glob)**/build/**' ':(exclude,glob)**/*.min.js'
+  ':(exclude,glob)**/*.lock' ':(exclude,glob)**/package-lock.json')
+sup_counts() { # [rev] → "<count>\t<path>" for each file with a suppression comment
+  if [[ -n "${1:-}" ]]; then
+    git grep -I -c -E "$FL_SUPPRESS_RE" "$1" "${SUP_PATHS[@]}" 2>/dev/null | sed "s#^$1:##"
+  else
+    git grep -I -c -E --untracked "$FL_SUPPRESS_RE" "${SUP_PATHS[@]}" 2>/dev/null
+  fi | awk '{ n = $0; sub(/.*:/, "", n); p = $0; sub(/:[0-9]+$/, "", p); print n "\t" p }'
+}
+sup_counts "$base" > "$TMP.old"
+sup_counts > "$TMP.new"
+sup_old="$(awk -F'\t' '{ s += $1 } END { print s + 0 }' "$TMP.old")"
+sup_new="$(awk -F'\t' '{ s += $1 } END { print s + 0 }' "$TMP.new")"
+if [[ "$sup_new" -gt "$sup_old" ]]; then
+  grew="$(awk -F'\t' 'NR == FNR { was[$2] = $1; next } $1 > (was[$2] + 0) { printf "%s (+%d) ", $2, $1 - was[$2] }' "$TMP.old" "$TMP.new" | cut -c1-400)"
+  report "floor guard: $((sup_new - sup_old)) more lint/type/coverage/scanner suppression comment(s) than at the freeze ($sup_old → $sup_new); files with more than at the freeze: ${grew% }"
+fi
+
+# 3g. Scanner and linter ignore files may not grow.
+{
+  git diff --name-only "${diffargs[@]}" 2>/dev/null
+  git ls-files --others --exclude-standard 2>/dev/null
+} | sort -u | grep -E "$FL_GATE_IGNORE_RE" | while IFS= read -r f; do
+  if git cat-file -e "$base:$f" 2>/dev/null; then
+    # An added rule counts unless it re-includes (!…) or provably narrows a removed one: the removed
+    # rule ignored a whole literal directory (dir, dir/, dir/*, dir/**, dir/**/*) and the added one
+    # names a literal path inside it (src/** → src/generated/**). Anything else is assumed to widen.
+    git diff -U0 "${diffargs[@]}" -- "$f" 2>/dev/null | awk '
+      function literal(s) { return s !~ /[*?[]/ }
+      /^(\+\+\+|---) / { next }
+      /^-/ { r = substr($0, 2); if (r !~ /^[[:space:]]*(#.*)?$/) rem[++nr] = r; next }
+      /^\+/ { a = substr($0, 2); if (a !~ /^[[:space:]]*(#.*)?$/ && a !~ /^[[:space:]]*!/) add[++na] = a; next }
+      END {
+        for (i = 1; i <= na; i++) {
+          narrows = 0
+          for (j = 1; j <= nr && !narrows; j++) {
+            b = rem[j]
+            if (!sub(/\/\*\*\/\*$/, "", b) && !sub(/\/\*\*$/, "", b) && !sub(/\/\*$/, "", b)) sub(/\/$/, "", b)
+            if (b == "" || !literal(b) || index(add[i], b "/") != 1) continue
+            seg = substr(add[i], length(b) + 2); sub(/\/.*/, "", seg)
+            if (seg != "" && literal(seg)) narrows = 1
+          }
+          if (!narrows) print add[i]
+        }
+      }' | head -3 | while IFS= read -r l; do printf 'gate ignore list grew in %s: %s\n' "$f" "$l"; done
+  elif [[ -f "$f" ]] && grep -qvE '^[[:space:]]*(#.*)?$' "$f"; then
+    printf 'gate ignore file added after the freeze: %s\n' "$f"
+  fi
+done > "$TMP"
+flush
 
 if [[ $findings -eq 0 ]]; then
   echo "TAMPER: CLEAN"

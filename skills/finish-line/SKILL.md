@@ -1,11 +1,11 @@
 ---
 name: finish-line
 description: >-
-  Drives an AI-built product that has docs, specs or GitHub issues but was never finished to verified launch-readiness, fully autonomously — it never asks questions or waits for approval mid-run. Forensic audit of what actually works, a hash-locked definition of done frozen from the docs, one-item-at-a-time build loop with Playwright / Maestro visual checks, an independent verifier subagent that also stands in for the owner on scope changes, tamper checks that catch skipped or weakened tests, then a release candidate on a deployed preview. Use when the user says "finish this product", "take it to launch", "drive it to completion", "do it autonomously", "don't ask me", "verify what actually works", "the AI says it's done but it isn't", "audit my half-built app", "test everything visually", or has many unfinished AI-coded products and needs to pick one and ship it.
+  Drives an AI-built product that has docs, specs or GitHub issues but was never finished to verified launch-readiness, fully autonomously — it never asks questions or waits for approval mid-run. Forensic audit of what actually works, a hash-locked definition of done frozen from the docs, one-item-at-a-time build loop with Playwright / Maestro visual checks, an independent verifier subagent that also stands in for the owner on scope changes, tamper checks that catch skipped or weakened tests, then a release candidate on a deployed preview. Can use pinned community skills (superpowers, gstack, Addy Osmani's, Matt Pocock's) at fixed steps, never as authorities. Use when the user says "finish this product", "take it to launch", "drive it to completion", "do it autonomously", "don't ask me", "verify what actually works", "the AI says it's done but it isn't", "audit my half-built app", "test everything visually", or has many unfinished AI-coded products and needs to pick one and ship it.
 license: MIT
 compatibility: Requires git, jq, bash 3.2+ and a headless agent CLI (Claude Code by default). Web needs Node, @playwright/test, @axe-core/playwright and @playwright/cli. Mobile needs Maestro plus an Android emulator or iOS simulator. Optional gh, gitleaks, lighthouse, Docker.
 metadata:
-  version: "1.1.0"
+  version: "1.2.0"
   author: "@ravidsrk"
 allowed-tools: Bash Read Write Edit Glob Grep Agent
 ---
@@ -36,7 +36,9 @@ State lives in `.finish/` inside the product repo, so every session resumes wher
 
 Tools: `git`, `jq`, a headless agent CLI. Web: `npm i -g @playwright/cli` (repo-level Playwright installs happen in Phase 0). Mobile: Maestro (`curl -Ls "https://get.maestro.mobile.dev" | bash`) and an emulator/simulator. Recommended: Docker (real local Postgres/Redis/Mailpit/MinIO), `gh`, `gitleaks`.
 
-Optional env, passed through to every session: `FINISH_GIT_NAME`, `FINISH_GIT_EMAIL` (commit identity), `FINISH_NO_AI_TRAILERS=1` (no AI attribution in commits/PRs), `FINISH_UNTIL=P1|P2` (keep going past P0), `FINISH_MAX_AMENDMENTS` (5).
+Optional env, passed through to every session: `FINISH_GIT_NAME`, `FINISH_GIT_EMAIL` (commit identity), `FINISH_NO_AI_TRAILERS=1` (no AI attribution in commits/PRs), `FINISH_UNTIL=P1|P2` (keep going past P0), `FINISH_MAX_AMENDMENTS` (5), `FINISH_COMPANIONS=auto|off|install`, `FINISH_KEEP_HOOKS=1`.
+
+Optional companions: `scripts/companions.sh install` adds community skill packs pinned to reviewed commits — superpowers and Addy Osmani's agent-skills by default; Matt Pocock's skills and gstack on request. See *Companion skills* below.
 
 # How to run it
 
@@ -70,14 +72,19 @@ Never run the build loop without the protocol: the laws in its §0 are what keep
 | Sessions stop making progress | The runner parks the current item as `stuck` and moves on |
 | P0 is done | `FINISH_UNTIL=P1` makes the runner open the next scope itself |
 
+# Companion skills
+
+Installed community skills help at named protocol steps — superpowers' TDD, debugging and verification-before-completion; Addy Osmani's review, security, performance and launch checklists; gstack's browser and read-only QA, security and benchmark skills; Matt Pocock's `tdd`, `diagnosing-bugs` and `code-review` as fallbacks. `companions.sh detect` writes `.finish/companions.json` (slot → exact skill name) and the session invokes each only at its step (protocol §2.2, Law 9). They never decide anything: the ledger, the gate, tamper and the verifier do. Every runner session runs under a policy that denies each pack's asking, planning, publishing and merging skills, turns hooks off, and puts gstack in its no-human mode; the verifier has no Skill tool and skips CLAUDE.md. Details, pins and licenses: `references/companions.md`.
+
 # Scripts
 
 | Script | Does |
 |---|---|
-| `scripts/finish.sh [repo]` | Autonomous runner. Env: `MAX_SESSIONS` (40), `STALL_LIMIT` (3), `FINISH_UNTIL` (P0), `FINISH_MAX_TRIPS` (3), `FINISH_BACKOFF` (60), `FINISH_OWNER_CHECK_TIMEOUT` (60), `CLAUDE_MODEL`, `FINISH_AGENT`. One runner per repo (lock in `.git/`). Exit 0 `LAUNCH_READY`/`READY_FOR_OWNER` · 2 no progress possible · 3 session cap · 4 too many reverted sessions · 5 agent CLI keeps failing. |
+| `scripts/finish.sh [repo]` | Autonomous runner. Env: `MAX_SESSIONS` (40), `STALL_LIMIT` (3), `FINISH_UNTIL` (P0), `FINISH_MAX_TRIPS` (3), `FINISH_BACKOFF` (60), `FINISH_OWNER_CHECK_TIMEOUT` (60), `FINISH_COMPANIONS` (auto), `FINISH_KEEP_HOOKS`, `CLAUDE_MODEL`, `FINISH_AGENT`. Every session runs under the companion policy (`--settings`). One runner per repo (lock in `.git/`). Exit 0 `LAUNCH_READY`/`READY_FOR_OWNER` · 2 no progress possible · 3 session cap · 4 too many reverted sessions · 5 agent CLI keeps failing. |
+| `scripts/companions.sh` | `detect` · `show` · `policy [--runner]` · `settings` · `install [pack…]` · `list`. Finds installed community packs and fills the protocol's companion slots; builds the deny-and-no-hooks policy every session runs under; installs packs pinned by commit SHA from `companions/` (finish-line's own marketplace). |
 | `scripts/scaffold.sh [--web]` | Phase 0: creates `.finish/`, vendors `ledger.sh` / `tamper.sh` / `lib.sh` into `.finish/bin/`, installs `verify.sh`, the verifier agent, `.claude/settings.local.json` (no permission prompts, questions or plan mode in interactive sessions) and (web) the Playwright config + fixture. Never overwrites. |
 | `.finish/bin/ledger.sh` | `validate` · `status` · `next` · `show` · `specs` · `pass` · `fail` · `stuck` · `round2` · `reopen` · `regress` · `owner` · `owner-check` · `done-check` · `amend` · `migrate` · `state` · `run-commands` · `lock` · `check`. Mutations touch only status/attempts/evidence/notes; a verdict is bound to the code `STATE` it checked. |
-| `.finish/bin/tamper.sh` | Fails on skipped/focused tests, tautologies, deleted tests, weakened specs, test-config filter edits, any post-freeze change to `verify.sh`, edited frozen files. |
+| `.finish/bin/tamper.sh` | Fails on skipped/focused tests, tautologies, deleted tests, weakened specs, test-config filter or coverage-threshold edits, new lint/type/coverage/scanner suppression comments, grown scanner ignore files, any post-freeze change to `verify.sh`, edited frozen files. |
 | `scripts/portfolio.sh [dir]` | Offline table of every repo under a folder. |
 
 # Common gotchas
@@ -92,6 +99,8 @@ Never run the build loop without the protocol: the laws in its §0 are what keep
 | Uncommitted changes before a run | The runner stashes them (never `.env*` files) — `git stash list`. |
 | Laptop sleeps mid-run | macOS: `caffeinate -i scripts/finish.sh <repo>`. |
 | `--dangerously-skip-permissions` | The default runner uses it. Run in a container, VM, or a separate OS user without production credentials. |
+| A companion skill wants to ask, plan or ship | Law 9: take its recommended option and log it; its gated skills are denied by the session policy anyway. |
+| Your own hooks don't fire during a run | Runner sessions turn hooks off. `FINISH_KEEP_HOOKS=1` keeps them. |
 | CI runs `verify.sh` on a shallow clone | tamper.sh needs the freeze commit: `actions/checkout` with `fetch-depth: 0`. |
 
 # References
@@ -100,4 +109,6 @@ Never run the build loop without the protocol: the laws in its §0 are what keep
 - `references/ledger.md` — precedence, P0/P1/P2 cut, launch gates, schema, freeze, amendments.
 - `references/verification.md` — `init.sh`, local infra, `verify.sh` commands per stack, spec rules, `playwright-cli`, tamper rules.
 - `references/portfolio-triage.md` — choosing the one product to finish.
-- `templates/` — `verify.sh`, `finish-verifier.md` (+ `finish-verifier.history`: hashes of shipped versions, so the runner only refreshes unmodified copies), `claude-settings.local.json`, `e2e/` (config, fixture, example spec), `maestro/` example flow, `ledger.example.json`.
+- `references/companions.md` — which community skills are used at which step, which are denied and why, the session policy, pins, licenses, limits.
+- `companions/` — `catalog.json` (packs, slots, deny lists) and `.claude-plugin/marketplace.json` (finish-line's marketplace, every plugin pinned to a commit).
+- `templates/` — `verify.sh`, `finish-verifier.md` (+ `finish-verifier.history`: hashes of shipped versions, so the runner only refreshes unmodified copies), `claude-settings.local.json` (+ `.history`, so only finish-line's own copy is ever merged into), `e2e/` (config, fixture, example spec), `maestro/` example flow, `ledger.example.json`.

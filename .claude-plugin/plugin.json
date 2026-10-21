@@ -1,7 +1,7 @@
 {
-  "name": "agent-skills",
-  "description": "6 production-grade capability skills for AI agents: Cloudflare DNS migration + zone hardening, Namecheap DNS via XML API, Fly.io → AWS migration (7 phases, ≤9 min downtime), monid 8-source deep research, finish-line (drive a half-built AI-coded product to verified launch, fully autonomously: frozen definition of done, visual E2E checks, independent verifier, tamper guards, self-recovering runner), and terminal-poster retro-cyberpunk image generation (Nano Banana Pro). Capability skills, not SDLC steps. The autonomous Orca fleets moved to ravidsrk/orca-fleet. MIT.",
-  "version": "3.2.0",
+  "name": "ravidsrk-agent-skills",
+  "description": "6 production-grade capability skills for AI agents: Cloudflare DNS migration + zone hardening, Namecheap DNS via XML API, Fly.io → AWS migration (7 phases, ≤9 min downtime), monid 8-source deep research, finish-line (drive a half-built AI-coded product to verified launch, fully autonomously: frozen definition of done, visual E2E checks, independent verifier, tamper guards, self-recovering runner, optional pinned community companion skills), and terminal-poster retro-cyberpunk image generation (Nano Banana Pro). Capability skills, not SDLC steps. The autonomous Orca fleets moved to ravidsrk/orca-fleet. MIT.",
+  "version": "3.3.0",
   "author": {
     "name": "Ravindra Kumar",
     "email": "ravindrakumar8088@gmail.com",
@@ -31,6 +31,7 @@
     "e2e-verification",
     "playwright",
     "maestro",
-    "autonomous-agents"
+    "autonomous-agents",
+    "companion-skills"
   ]
 }

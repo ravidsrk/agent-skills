@@ -21,6 +21,7 @@ This protocol runs once per session, with a fresh context each time. Your memory
 6. **One item at a time.** Verify or park the current item before touching another.
 7. **Never report a result you didn't observe.** Quote commands with their exit codes. If you didn't run it, write "not run".
 8. **Never guess an API.** Before using a library function, CLI flag or config key, confirm it exists: type definitions, package source, `--help`, or official docs.
+9. **Companion skills are tools, not authorities.** Community skills listed in `.finish/companions.json` may help with the step that names them (§2.2); nothing else of theirs applies. When a companion asks for a decision, approval or confirmation, take its recommended option if it gives one, otherwise decide by §7, and log it. When it says to stop, end the turn, wait, or "ask your human partner", skip that step — after repeated failed fixes, that point is this protocol's `fail` → `stuck`. When it wants a merge, a production deploy, a credential or a real payment, that's an owner action (§7). A companion never writes its own spec, plan or task list, commits outside the item, pushes, opens or merges a PR, bumps a version or deploys — pushing and the draft PR stay yours (§9), and the session policy denies the skills that do the rest. Its output is never evidence: only your own runs, `ledger.sh` and the verifier count. Never install, update or enable skills or plugins yourself.
 
 ---
 
@@ -44,19 +45,21 @@ This protocol runs once per session, with a fresh context each time. Your memory
 | `bin/` | Vendored `ledger.sh`, `tamper.sh`, `lib.sh` |
 | `evidence/<ID>/` | Screenshots, logs, verifier report (gitignored) · `evidence/INDEX.md` is committed |
 | `LAUNCH_REPORT.md` | Phase 3 report |
+| `companions.json` | Installed community skills that fill protocol steps, and tools such as gstack's browser. Written by the runner or `companions.sh detect`; gitignored. |
 
 ---
 
 ## 2. Session start (every session, no exceptions)
 
 1. `pwd && git status --short && git log --oneline -15`
-2. If `.finish/STATUS` doesn't exist → **Phase 0**.
-3. `./.finish/bin/ledger.sh status`. Read the last ~80 lines of `PROGRESS.md` (including any **Runner** notes — a reverted session or a rejected status is explained there; don't repeat it), `OWNER_ACTIONS.md` and `DECISIONS.md`.
-4. `./.finish/bin/ledger.sh owner-check` — reopens owner-action items whose check now passes. If `STATUS` is `LAUNCH_READY` or `READY_FOR_OWNER`, run `./.finish/bin/ledger.sh done-check`: if it prints `OPEN …`, set `STATUS=BUILDING` and continue; otherwise go straight to §10 and stop.
-5. Run `./.finish/init.sh`, then a smoke check: the app boots, its primary route or screen renders, no console errors. **If smoke fails, fixing it is the current item.** Nothing else until it passes.
-6. Run `./.finish/verify.sh --quick`. For every `passing` item whose test now fails: `ledger.sh regress <ID> "<what broke>"`.
-7. Run `./.finish/bin/tamper.sh`. On `FAIL`: revert the offending change (never by editing tamper.sh or the ledger) and log it in `PROGRESS.md`. If you're certain a finding is a false positive caused by a legitimate change, commit that change and propose `ledger.sh amend --rebaseline "<why>"` (§4.6). Nothing can pass while tamper fails.
-8. Continue the phase named in `STATUS`.
+2. **Companions.** `"$FINISH_SKILL_DIR/scripts/companions.sh" show` (if it says there's no file, run `companions.sh detect` first). Each filled slot names a skill to invoke with the Skill tool, by that exact name, at its step only: `tdd` §5a · `debug` §5c/§5e · `review` and `claim` §5e · `explore` and the `browse` tool §3.6 · `security` and `perf` §6.3 · `launch` §6.6 · `claim` again before any terminal `STATUS`. An empty slot means the built-in step below is the whole step. Law 9 governs every companion.
+3. If `.finish/STATUS` doesn't exist → **Phase 0**.
+4. `./.finish/bin/ledger.sh status`. Read the last ~80 lines of `PROGRESS.md` (including any **Runner** notes — a reverted session or a rejected status is explained there; don't repeat it), `OWNER_ACTIONS.md` and `DECISIONS.md`.
+5. `./.finish/bin/ledger.sh owner-check` — reopens owner-action items whose check now passes. If `STATUS` is `LAUNCH_READY` or `READY_FOR_OWNER`, run `./.finish/bin/ledger.sh done-check`: if it prints `OPEN …`, set `STATUS=BUILDING` and continue; otherwise go straight to §10 and stop.
+6. Run `./.finish/init.sh`, then a smoke check: the app boots, its primary route or screen renders, no console errors. **If smoke fails, fixing it is the current item.** Nothing else until it passes.
+7. Run `./.finish/verify.sh --quick`. For every `passing` item whose test now fails: `ledger.sh regress <ID> "<what broke>"`.
+8. Run `./.finish/bin/tamper.sh`. On `FAIL`: revert the offending change (never by editing tamper.sh or the ledger) and log it in `PROGRESS.md`. If you're certain a finding is a false positive caused by a legitimate change, commit that change and propose `ledger.sh amend --rebaseline "<why>"` (§4.6). Nothing can pass while tamper fails.
+9. Continue the phase named in `STATUS`.
 
 ---
 
@@ -70,7 +73,7 @@ Goal: find out what actually works. No product feature code changes in this phas
 3. **Make it boot.** Write `.finish/init.sh` with real local infrastructure, not mocks (recipes: `$FINISH_SKILL_DIR/references/verification.md`). Create `.env.example` if missing; generate `.env.local` from it with safe local defaults. Never commit real secrets.
 4. **Fill the gate.** Set every `STAGE_*` in `.finish/verify.sh` to a command for this stack, or `n/a: <reason>` when it truly doesn't apply. Per-stack commands are in `verification.md`. Web: `npm i -D @playwright/test @axe-core/playwright`, `npx playwright install chromium`, `playwright-cli install --skills`. Mobile: confirm `maestro --version` and that an Android emulator boots (and an iOS simulator on macOS). Run `./.finish/verify.sh` once and record which stages fail in `AUDIT.md`; failures now are expected. Get the gate right now: after the freeze, `verify.sh` is locked except for filling in stages that were empty or `n/a`. `.finish/init.sh` must honour `PORT` (see `verification.md` §2).
 5. **Hallucination sweep.** Search source (not vendored or lock files) for `TODO|FIXME|XXX|HACK|stub|placeholder|lorem|dummy|fake|mock(ed)?Data|not implemented|NotImplemented|coming soon|hardcoded|simulate`. Also find: handlers that only `console.log`/`alert`; empty `onClick`; `href="#"`; routes linked in the UI but not defined; client calls to endpoints the server doesn't have, and the reverse; env vars read but missing from `.env.example`; tables or columns used but missing from migrations; `setTimeout`-faked loading; in-memory arrays standing in for persistence; tests that assert nothing; skipped tests.
-6. **Reality map.** Boot the app and walk every screen, route and journey the docs describe: `playwright-cli` for web, Maestro for mobile, `curl` for API. Screenshot each into `.finish/evidence/_audit/`. Classify every documented feature `WORKS` · `PARTIAL` · `FAKE` (UI without real logic or persistence) · `BROKEN` · `MISSING`. A closed issue whose feature isn't `WORKS` is a **false closure**.
+6. **Reality map.** Boot the app and walk every screen, route and journey the docs describe: `playwright-cli` for web, Maestro for mobile, `curl` for API. Screenshot each into `.finish/evidence/_audit/`. If the `browse` tool is listed, gstack's browser (`B=<its path>`; `$B goto <url>`, `$B screenshot <file>`, `$B console --errors`, `$B snapshot -i`) is a second pair of eyes — `playwright-cli` stays the record. If `explore` is filled, run it once against the local URL as a read-only bug sweep and fold its findings into the map; it reports, it never fixes. Classify every documented feature `WORKS` · `PARTIAL` · `FAKE` (UI without real logic or persistence) · `BROKEN` · `MISSING`. A closed issue whose feature isn't `WORKS` is a **false closure**.
 7. Write `AUDIT.md`: stack, how to run, service access, reality map table, false closures, fake/stub inventory, top risks, count of documented core features not `WORKS`. Commit. Set `STATUS=FREEZING`.
 
 ---
@@ -99,13 +102,15 @@ a. **Test first.** If its `verify.spec` doesn't exist, write it from the accepta
    - Mobile (`.maestro/finish/<ID>.yaml`): follow `$FINISH_SKILL_DIR/templates/maestro/J-001.example.yaml`.
    - API: under the backend's test dir in a `finish/` folder, hitting the running server.
    - Command: run `verify.command` and save its output: `... 2>&1 | tee .finish/evidence/<ID>/command.log`.
+   Expected values come from the criterion or the docs, never from the app's own output.
+   If `tdd` is filled, invoke it and work by its red–green discipline inside these rules: the acceptance criteria are the agreed seams, the spec path and test titles above are fixed, and its refactor step never reaches beyond this item.
    Run it. Confirm it fails **for the expected reason**, and note that in `PROGRESS.md`. If it already passes, go to (d).
 b. **Implement** the smallest real change that satisfies the criteria inside the existing architecture: real persistence, real error handling, loading/empty/error states.
-c. **Run** the item's test until green, then `./.finish/verify.sh --quick`. Fix regressions before moving on.
+c. **Run** the item's test until green, then `./.finish/verify.sh --quick`. Fix regressions before moving on. When a failure's cause isn't obvious, and before the second attempt at the same failure, invoke `debug` if it's filled: find the root cause before changing code again.
 d. **Look at it.** Drive the flow yourself with `playwright-cli` (web) or Maestro (mobile) at both sizes: the happy path, one unhappy path, and a reload. Make sure your screenshots are in `.finish/evidence/<ID>/` and open every one. Compare against mockups or design docs if they exist. Reject overlapping or clipped elements, unstyled content, placeholder or lorem text, broken images, raw error dumps, dead buttons, unreadable text.
-e. **Independent verification** (§8). The verifier writes `.finish/evidence/<ID>/verifier/report.md`, ending with a `STATE:` fingerprint of the code it checked.
+e. **Independent verification** (§8). First, if `review` is filled, run it once on this item's changes (the ledger item is its spec: `ledger.sh show <ID>`); fix what breaks a criterion or a law, put the rest in `LATER.md`. If `claim` is filled, follow it before `ledger.sh pass` and before any "done" in `PROGRESS.md`. The verifier writes `.finish/evidence/<ID>/verifier/report.md`, ending with a `STATE:` fingerprint of the code it checked.
    - `VERDICT: PASS` → `./.finish/bin/ledger.sh pass <ID>` right away, before committing or touching code. It refuses without your evidence, a PASS report whose `STATE` matches the code now, a clean tamper check and a spec that asserts something. Any edit after verification means verifying again.
-   - `VERDICT: FAIL` → `./.finish/bin/ledger.sh fail <ID> "<one-line reason>"`, fix the verifier's findings, back to (c). If the same problem comes back twice, change approach (read more of the surrounding code, read the library's docs) instead of retrying the same fix.
+   - `VERDICT: FAIL` → `./.finish/bin/ledger.sh fail <ID> "<one-line reason>"`, fix the verifier's findings, back to (c). If the same problem comes back twice, change approach (invoke `debug` if it's filled, read more of the surrounding code, read the library's docs) instead of retrying the same fix.
 f. **External boundary.** If the item needs something only the owner can provide (§7 *Owner actions*), build everything up to the boundary behind a clear interface and error message, then `ledger.sh owner <ID> "<exact action>" "<check command>"` — e.g. `ledger.sh owner G-004 "Run 'vercel login' (or set VERCEL_TOKEN)" 'vercel whoami'`. The item reopens by itself once the check passes. Take the next item.
 g. **Third failure** → `fail` parks the item as `stuck`. Note your root-cause hypothesis, what you tried, and what you'd try next in `PROGRESS.md`. Take the next item.
 h. **Commit** (§9). Update `PROGRESS.md` and tick the tracking issue checkbox.
@@ -122,11 +127,11 @@ When `ledger.sh next` prints `none`:
 
 1. **Fresh-clone proof.** `d=$(mktemp -d) && git clone . "$d/rc" && cd "$d/rc" && PORT=3100 ./.finish/init.sh && PORT=3100 ./.finish/verify.sh`. Both must pass against the clone's own app on port 3100, not the one already running from this checkout. Then `kill "$(cat .finish/logs/app.pid)"` in the clone.
 2. **Full regression.** `./.finish/verify.sh` (full). Any failing spec → `ledger.sh regress <ID> "..."`, `STATUS=BUILDING`.
-3. **Non-functional checks.** Lighthouse on each P0 web page; record the scores for the launch report. Fix findings that break a ledger criterion; put the rest in `LATER.md`. Mobile: release build installs and cold-starts on the emulator/simulator.
+3. **Non-functional checks.** Lighthouse on each P0 web page; record the scores for the launch report. If `security` is filled, run it over the P0 surface; if `perf` is filled, run it with the Lighthouse JSON as its input. Fix findings that break a ledger criterion or a launch gate (`ledger.sh regress` if a passing item is affected); put the rest in `LATER.md` and the report's known issues. Mobile: release build installs and cold-starts on the emulator/simulator.
 4. **Preview deploy.** Use the deploy target in the docs or existing repo config; if none, choose per §7. Use whatever credentials Phase 0 found. With none, the preview gate becomes an owner action (`ledger.sh owner` with a check such as `vercel whoami`); continue with everything else. When deployed, write the URL to `.finish/PREVIEW_URL` and run every P0 spec with `BASE_URL=<url>`.
 5. **First-user pass.** Spawn the verifier in first-user mode (§8) with the preview URL (or local URL) and `one_liner`. A problem that breaks a ledger criterion → `ledger.sh regress` that item. Anything else → `LATER.md`.
-6. **Write `LAUNCH_REPORT.md`:** P0 status table with evidence links; what works; known issues; P1/P2 backlog; the owner's launch checklist (merge the PR, production secrets, domain/DNS, live payment keys, store listings, legal review, analytics) with exact commands; a pointer to `OWNER_ACTIONS.md` and `DECISIONS.md`.
-7. **Final status:** run `./.finish/bin/ledger.sh done-check` and write exactly what it prints: `LAUNCH_READY` (mark the PR ready for review) or `READY_FOR_OWNER`. If it prints `OPEN …`, set `STATUS=BUILDING` and work those items. The runner rejects any terminal status the ledger doesn't support.
+6. **Write `LAUNCH_REPORT.md`:** P0 status table with evidence links; what works; known issues; P1/P2 backlog; the owner's launch checklist (merge the PR, production secrets, domain/DNS, live payment keys, store listings, legal review, analytics) with exact commands, plus a rollback plan; a pointer to `OWNER_ACTIONS.md` and `DECISIONS.md`. If `launch` is filled, use its checklist to complete the owner's list — skip staged-rollout and feature-flag steps the docs don't ask for.
+7. **Final status:** if `claim` is filled, follow it first. Run `./.finish/bin/ledger.sh done-check` and write exactly what it prints: `LAUNCH_READY` (mark the PR ready for review) or `READY_FOR_OWNER`. If it prints `OPEN …`, set `STATUS=BUILDING` and work those items. The runner rejects any terminal status the ledger doesn't support.
 
 ---
 
@@ -157,7 +162,7 @@ Phase 0 installed `.claude/agents/finish-verifier.md`. Spawn it with your Agent/
 - **First-user mode:** the URL plus `one_liner`.
 - **Amendment mode:** the path of the request file (`.finish/amendments/<NNN>.request.md`).
 
-Never pass your reasoning, a diff summary, or claims about what you fixed or why an amendment is justified — the request file and the repo are all it gets.
+Never pass your reasoning, a diff summary, companion output, or claims about what you fixed or why an amendment is justified — the request file and the repo are all it gets. The verifier has no Skill tool and starts without CLAUDE.md, by design: never add either.
 
 If your runtime has no subagents, run it as a separate headless session so it starts with a clean context:
 `claude -p "You are the agent described in .claude/agents/finish-verifier.md. Item mode. Item ID: <ID>" --allowedTools "Bash Read Grep Glob"`

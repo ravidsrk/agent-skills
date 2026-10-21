@@ -1,0 +1,6 @@
+# sha256 of every claude-settings.local.json this skill has shipped. companions.sh settings
+# merges the companion policy into .claude/settings.local.json only when the file is one of
+# these, or a merge finish-line itself wrote (recorded in .git/finish-line.settings-owned).
+# Add the new hash here whenever templates/claude-settings.local.json changes.
+8f6c1f71e76f72ff89e3de4173946dd507651aac401b6f54590d9a24e26554d4
+54d8d0f79c60994163496520bb60bfad9c8740a8b24bd185bfbf0e1f382e3d32

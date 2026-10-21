@@ -43,6 +43,8 @@ git clone https://github.com/ravidsrk/agent-skills.git
 claude --plugin-dir "$(pwd)/agent-skills"     # local plugin for this session
 ```
 
+The plugin is named `ravidsrk-agent-skills`, so its skills appear as `ravidsrk-agent-skills:<skill>`. (Not `agent-skills`: that's the name of Addy Osmani's plugin, which finish-line can install as a companion, and two plugins can't share a name.)
+
 For everyday use, prefer the symlink install (Path 1).
 
 # Per-skill env vars
@@ -56,7 +58,7 @@ Each skill needs different secrets. Set them in your shell or in Claude Code's e
 | `fly-to-aws-migration` | `AWS_PROFILE`, `FLY_API_TOKEN`, `CLOUDFLARE_API_KEY` |
 | `deep-research` | `MONID_API_KEY` |
 | `terminal-poster` | `OPENROUTER_API_KEY` |
-| `finish-line` | none — optional `FINISH_GIT_NAME`, `FINISH_GIT_EMAIL`, `FINISH_NO_AI_TRAILERS=1`, `FINISH_UNTIL=P1\|P2` |
+| `finish-line` | none — optional `FINISH_GIT_NAME`, `FINISH_GIT_EMAIL`, `FINISH_NO_AI_TRAILERS=1`, `FINISH_UNTIL=P1\|P2`, `FINISH_COMPANIONS=auto\|off\|install` |
 
 ```bash
 # Example: add to ~/.zshrc or ~/.bashrc

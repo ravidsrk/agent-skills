@@ -1,0 +1,162 @@
+{
+  "about": "Read by scripts/companions.sh. A slot is one step of references/protocol.md where a community skill may help; its candidates are tried in order and the first one that is installed, enabled and model-invocable fills it. deny lists the skills of each pack that ask, plan their own work, commit outside the ledger, publish, deploy or merge: finish-line sessions may never run them. See references/companions.md.",
+  "slots": {
+    "tdd": {
+      "step": "§5a test first",
+      "use": [
+        { "pack": "superpowers", "skill": "test-driven-development" },
+        { "pack": "agent-skills", "skill": "test-driven-development" },
+        { "pack": "mattpocock-skills", "skill": "tdd" }
+      ]
+    },
+    "debug": {
+      "step": "§5 a failure whose cause isn't obvious, and every second fail of an item",
+      "use": [
+        { "pack": "superpowers", "skill": "systematic-debugging" },
+        { "pack": "agent-skills", "skill": "debugging-and-error-recovery" },
+        { "pack": "mattpocock-skills", "skill": "diagnosing-bugs" },
+        { "pack": "gstack", "skill": "investigate" }
+      ]
+    },
+    "claim": {
+      "step": "§5e before ledger.sh pass, and before writing any terminal STATUS",
+      "use": [
+        { "pack": "superpowers", "skill": "verification-before-completion" }
+      ]
+    },
+    "review": {
+      "step": "§5e self-review of the item's diff before the verifier",
+      "use": [
+        { "pack": "agent-skills", "skill": "code-review-and-quality" },
+        { "pack": "mattpocock-skills", "skill": "code-review" }
+      ]
+    },
+    "explore": {
+      "step": "§3.6 read-only bug sweep for the reality map",
+      "use": [
+        { "pack": "gstack", "skill": "qa-only" }
+      ]
+    },
+    "security": {
+      "step": "§6.3 security review of the P0 surface",
+      "use": [
+        { "pack": "agent-skills", "skill": "security-and-hardening" },
+        { "pack": "gstack", "skill": "cso" }
+      ]
+    },
+    "perf": {
+      "step": "§6.3 performance review from the Lighthouse results",
+      "use": [
+        { "pack": "agent-skills", "skill": "performance-optimization" },
+        { "pack": "gstack", "skill": "benchmark" }
+      ]
+    },
+    "launch": {
+      "step": "§6.6 launch checklist for LAUNCH_REPORT.md",
+      "use": [
+        { "pack": "agent-skills", "skill": "shipping-and-launch" }
+      ]
+    }
+  },
+  "tools": {
+    "browse": { "pack": "gstack", "path": "browse/dist/browse", "step": "§3.6 and §5d: a second browser engine beside playwright-cli" }
+  },
+  "packs": {
+    "superpowers": {
+      "repo": "obra/superpowers",
+      "license": "MIT",
+      "type": "plugin",
+      "plugin": "superpowers",
+      "install": "superpowers@finish-line-companions",
+      "default": true,
+      "deny": [
+        "brainstorming", "writing-plans", "executing-plans", "subagent-driven-development",
+        "finishing-a-development-branch", "using-git-worktrees", "using-superpowers"
+      ]
+    },
+    "agent-skills": {
+      "repo": "addyosmani/agent-skills",
+      "license": "MIT",
+      "type": "plugin",
+      "plugin": "agent-skills",
+      "install": "agent-skills@finish-line-companions",
+      "default": true,
+      "deny": [
+        "using-agent-skills", "interview-me", "idea-refine", "spec-driven-development",
+        "planning-and-task-breakdown", "constraint-driven-development", "context-engineering",
+        "git-workflow-and-versioning", "spec", "plan", "build", "ship", "constraints"
+      ]
+    },
+    "mattpocock-skills": {
+      "repo": "mattpocock/skills",
+      "license": "MIT",
+      "type": "plugin",
+      "plugin": "mattpocock-skills",
+      "install": "mattpocock-skills@finish-line-companions",
+      "default": false,
+      "deny": [
+        "grilling", "grill-me", "grill-with-docs", "to-spec", "to-tickets", "to-questionnaire",
+        "implement", "implement-spec", "triage", "wayfinder", "setup-matt-pocock-skills",
+        "improve-codebase-architecture", "prototype", "domain-modeling", "teach", "ask-matt",
+        "loop-me", "git-guardrails-claude-code", "setup-pre-commit"
+      ]
+    },
+    "pstack": {
+      "repo": "michael-denyer/pstack-claude",
+      "license": "MIT (plus two license files for imported Cursor material)",
+      "type": "plugin",
+      "plugin": "pstack",
+      "install": null,
+      "default": false,
+      "deny": [
+        "poteto-mode", "poteto-help", "setup-pstack", "automate-me", "reflect", "no-comments",
+        "arena", "swarm", "babysit", "fix-ci", "fix-merge-conflicts", "get-pr-comments",
+        "make-pr-easy-to-review", "create-verification-skill", "maintain-verification-skill",
+        "create-formal-verification-skill", "maintain-formal-verification-skill", "thermos"
+      ]
+    },
+    "gstack": {
+      "repo": "garrytan/gstack",
+      "license": "MIT (plus an Apache-2.0 NOTICE for some design material)",
+      "type": "skills-dir",
+      "dir": "gstack",
+      "prefix": "gstack-",
+      "git": "https://github.com/garrytan/gstack.git",
+      "sha": "b616d6c53dd8fc0d8db210444b44a131b553b83e",
+      "version": "1.91.173.0",
+      "setup": ["-q", "--host", "claude", "--prefix", "--no-team", "--no-timeline-stop-hook", "--no-plan-tune-hooks"],
+      "install": "git",
+      "default": false,
+      "deny": [
+        "ship", "land-and-deploy", "canary", "setup-deploy", "document-release", "office-hours",
+        "plan-ceo-review", "plan-eng-review", "plan-design-review", "plan-devex-review", "autoplan",
+        "spec", "qa", "design-review", "design-shotgun", "design-consultation", "gstack-upgrade",
+        "setup-browser-cookies", "connect-chrome", "open-gstack-browser", "pair-agent", "codex",
+        "claude-code", "careful", "freeze", "guard", "unfreeze", "setup-gbrain", "sync-gbrain",
+        "retro", "learn"
+      ]
+    }
+  },
+  "deny_bash": [
+    "Bash(gh pr merge *)",
+    "Bash(gh release create *)",
+    "Bash(gh release upload *)",
+    "Bash(git push origin main)",
+    "Bash(git push origin main *)",
+    "Bash(git push origin master)",
+    "Bash(git push origin master *)",
+    "Bash(npm publish *)",
+    "Bash(npm version *)",
+    "Bash(pnpm publish *)",
+    "Bash(yarn npm publish *)",
+    "Bash(cargo publish *)",
+    "Bash(twine upload *)",
+    "Bash(vercel --prod)",
+    "Bash(vercel --prod *)",
+    "Bash(vercel deploy --prod *)",
+    "Bash(netlify deploy --prod *)"
+  ],
+  "env": {
+    "GSTACK_SESSION_KIND": "spawned"
+  }
+}

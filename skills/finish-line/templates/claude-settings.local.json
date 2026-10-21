@@ -10,6 +10,7 @@
       "Grep",
       "Agent",
       "Task",
+      "Skill",
       "WebFetch",
       "WebSearch"
     ],

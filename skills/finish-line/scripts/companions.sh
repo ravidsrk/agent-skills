@@ -56,8 +56,10 @@ load_plugins() { # every installed plugin: [{name, id, version, enabled, path}]
 
 plugin_skill() { # <install path> <skill> → its name, if a model-invocable SKILL.md exists there
   local f n
+  # Shallowest match wins, so a test fixture deeper in the plugin can't stand in for the real skill.
   f="$(find "$1" \( -name node_modules -o -name .git \) -prune -o -type f -name SKILL.md \
-        \( -path "*/skills/$2/SKILL.md" -o -path "*/skills/*/$2/SKILL.md" \) -print 2>/dev/null | head -1)"
+        \( -path "*/skills/$2/SKILL.md" -o -path "*/skills/*/$2/SKILL.md" \) -print 2>/dev/null \
+        | awk -F/ '{ print NF "\t" $0 }' | sort -n | head -1 | cut -f2-)"
   [[ -n "$f" ]] || return 1
   fm_user_only "$f" && return 1
   n="$(fm_name "$f")"

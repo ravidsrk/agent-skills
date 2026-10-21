@@ -105,7 +105,10 @@ GIT_INDEX_FILE="$idx" git update-index --force-remove --stdin < "$idx.paths"
 tree="$(GIT_INDEX_FILE="$idx" git write-tree)" || refuse "could not build the fresh tree"
 rm -f "$idx" "$idx.paths"
 
-stamp="$(date -u +%Y%m%dT%H%M%SZ)"
+stamp="$(date -u +%Y%m%dT%H%M%SZ)"; n=1
+while git rev-parse -q --verify "refs/heads/finish-line-archive/$stamp" >/dev/null || [[ -e "$GITDIR/finish-line-archive/$stamp" ]]; do
+  n=$((n + 1)); stamp="$(date -u +%Y%m%dT%H%M%SZ)-$n"
+done
 archive="finish-line-archive/$stamp"
 merge=0
 [[ "$base" == "$old" ]] || git merge-base --is-ancestor "$base" "$old" || merge=1

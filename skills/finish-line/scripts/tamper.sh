@@ -18,7 +18,8 @@
 #   - .finish/bin/ unchanged
 #
 # Exit 0 = clean, 1 = tampering found, 2 = usage/environment error.
-# A false positive is cleared by the human re-freezing (ledger.sh lock --refreeze).
+# A false positive from a legitimate change is cleared by a verifier-approved
+# rebaseline (ledger.sh amend --rebaseline), no human needed.
 
 set -uo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -66,7 +67,7 @@ flush
 # 2. Ratchet + passing specs exist. The ratchet is the max over every committed
 #    version of ratchet.json since the freeze (inclusive), so lowering the file
 #    itself doesn't help. Entries count only while the ledger still has that item
-#    with that spec, so a human re-freeze that removes or re-specs an item retires them.
+#    with that spec, so an amendment that removes or re-specs an item retires them.
 hist=""
 if [[ -n "$base" ]] && git cat-file -e "${base}^{commit}" 2>/dev/null; then
   hist="$(git log --format=%H "$base..HEAD" -- .finish/ratchet.json 2>/dev/null)"

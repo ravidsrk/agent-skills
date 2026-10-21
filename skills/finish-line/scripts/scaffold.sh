@@ -5,10 +5,13 @@
 #
 # Run anywhere inside the product repo. Creates what's missing, never
 # overwrites your files:
-#   .finish/STATUS (AUDITING) · SCOPE (P0) · PROGRESS.md · DECISIONS.md · BLOCKERS.md · LATER.md
+#   .finish/STATUS (AUDITING) · SCOPE (P0) · PROGRESS.md · DECISIONS.md · OWNER_ACTIONS.md · LATER.md
 #   .finish/verify.sh                  gate template — fill every STAGE_*
 #   .finish/bin/{ledger,tamper,lib}.sh vendored copies (refreshed until the ledger is frozen)
 #   .claude/agents/finish-verifier.md  independent verifier subagent
+#   .claude/settings.local.json        no permission prompts and no questions in interactive sessions
+#                                      (allow the tools the protocol uses; deny AskUserQuestion, plan mode,
+#                                      force-push and history rewrites)
 #   .gitignore entries for evidence, logs and browser-tool scratch dirs
 #   --web: e2e/finish/playwright.config.ts + e2e/finish/finish-fixture.ts
 
@@ -49,14 +52,16 @@ put "$FD/STATUS" "AUDITING"
 put "$FD/SCOPE" "P0"
 put "$FD/PROGRESS.md" "# Progress (append-only session log)"
 put "$FD/DECISIONS.md" "# Decisions — what · why · reversible?"
-put "$FD/BLOCKERS.md" "# Blockers
-Format: - <ID> — <what is needed> — <exact steps for the human>
-Human: when done, change the leading \"- \" to \"RESOLVED: \" and rerun."
+put "$FD/OWNER_ACTIONS.md" "# Owner actions
+
+Everything else is handled autonomously. Do these, then rerun finish.sh; each item reopens by itself once its check passes.
+
+None."
 put "$FD/LATER.md" "# Later — ideas and out-of-scope findings (never acted on during the run)"
 
 if [[ -f "$FD/FREEZE" ]]; then
   for s in lib.sh ledger.sh tamper.sh; do
-    cmp -s "$HERE/$s" "$FD/bin/$s" || echo "  ! $FD/bin/$s differs from the skill copy; ledger is frozen, so it was left alone (human: copy it and re-freeze)"
+    cmp -s "$HERE/$s" "$FD/bin/$s" || echo "  ! $FD/bin/$s is older than the skill copy; finish.sh refreshes it and re-anchors the freeze on its next run"
   done
 else
   for s in lib.sh ledger.sh tamper.sh; do
@@ -66,6 +71,12 @@ fi
 
 copy "$SKILL/templates/verify.sh" "$FD/verify.sh" 755
 copy "$SKILL/templates/finish-verifier.md" ".claude/agents/finish-verifier.md"
+if [[ -e .claude/settings.local.json ]]; then
+  grep -q '"AskUserQuestion"' .claude/settings.local.json \
+    || echo "  ! .claude/settings.local.json exists; merge $SKILL/templates/claude-settings.local.json into it so sessions never stop to ask"
+else
+  copy "$SKILL/templates/claude-settings.local.json" ".claude/settings.local.json"
+fi
 
 if [[ $web -eq 1 ]]; then
   copy "$SKILL/templates/e2e/playwright.config.ts" "e2e/finish/playwright.config.ts"
@@ -73,7 +84,7 @@ if [[ $web -eq 1 ]]; then
 fi
 
 touch .gitignore
-for line in '.finish/evidence/*' '!.finish/evidence/INDEX.md' '.finish/logs/' '.playwright-cli/' 'test-results/' 'playwright-report/'; do
+for line in '.finish/evidence/*' '!.finish/evidence/INDEX.md' '.finish/logs/' '.finish/ledger.proposed.json' '.claude/settings.local.json' '.env*.local' '.playwright-cli/' 'test-results/' 'playwright-report/'; do
   if ! grep -qxF -- "$line" .gitignore; then
     if [[ -s .gitignore && -n "$(tail -c1 .gitignore)" ]]; then echo >> .gitignore; fi
     echo "$line" >> .gitignore

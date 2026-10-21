@@ -69,7 +69,7 @@ services:
 | Stripe | test-mode keys + `stripe listen --forward-to localhost:3000/api/webhooks/stripe` |
 | SES / SendGrid / Resend / SMTP | point SMTP at Mailpit; for API-only providers, their sandbox mode |
 | S3 / R2 / GCS | MinIO (S3 API) or the provider's emulator |
-| LLM APIs | real key with the cheapest adequate model; no key → that criterion becomes an owner action (`ledger.sh owner … 'test -n "$OPENAI_API_KEY"'`) |
+| LLM APIs | real key with the cheapest adequate model; no key → that criterion becomes an owner action (`ledger.sh owner … 'test -n "$OPENAI_API_KEY"'`, approved by the verifier in owner mode) |
 
 ## 4. Filling `.finish/verify.sh`
 

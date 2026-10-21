@@ -3,7 +3,7 @@
 Takes an AI-built product that has docs and code but never shipped, and drives it to a verified launch-ready state — fully autonomously. It never asks you a question mid-run; it decides, logs the decision, and keeps going. What's left at the end is a short list of things only you can do (a key, an account, DNS, merging), each of which reopens the work by itself once it's done.
 
 🟢 **Cost:** your agent's compute only, no API keys of its own; capped by `MAX_SESSIONS` (default 40) and stopped early after 3 sessions without progress
-🟢 **Runs:** unattended, one fresh-context session per loop, resuming from `.finish/` in the repo; self-recovering (reverts gamed sessions, parks stalled items, backs off on CLI errors)
+🟢 **Runs:** unattended, one fresh-context session per loop, resuming from `.finish/` in the repo; self-recovering (reverts gamed sessions, pauses stalled items and brings them back as research rounds, backs off on CLI errors). Every issue it finds is resolved, never deferred or handed back to you as engineering work
 🟢 **Output:** a `finish-line` branch and PR, a frozen definition of done, screenshots and a verifier report for every item, `LAUNCH_REPORT.md`
 
 # Why it exists
@@ -93,8 +93,8 @@ FINISH_AGENT="codex exec --full-auto" ~/.claude/skills/finish-line/scripts/finis
 | Exit | Meaning |
 |---|---|
 | `0` | `LAUNCH_READY`, or `READY_FOR_OWNER` — only owner actions remain; see `.finish/OWNER_ACTIONS.md` and `.finish/LAUNCH_REPORT.md` |
-| `2` | No progress possible: sessions keep making no commits and there's nothing left to park — usually the app can't boot |
-| `3` | Hit `MAX_SESSIONS` |
+| `2` | `FINISH_MAX_DRY` (9) sessions in a row committed nothing at all, not even research notes — the agent itself isn't working (CLI broken, or it can't run anything) |
+| `3` | Hit `MAX_SESSIONS` — your compute budget. Nothing open was abandoned: rerun with a higher `MAX_SESSIONS` and it picks up where it stopped |
 | `4` | `FINISH_MAX_TRIPS` (3) sessions had to be reverted for gaming the gate or claiming a false finish — see the Runner notes in `.finish/PROGRESS.md` |
 | `5` | The agent CLI kept exiting non-zero despite backoff (auth, rate limit, crash) |
 
@@ -107,9 +107,11 @@ FINISH_AGENT="codex exec --full-auto" ~/.claude/skills/finish-line/scripts/finis
 | Judgment calls (ambiguous spec, missing design, which library) | A fixed decision procedure; one line per decision in `.finish/DECISIONS.md` |
 | Changing the definition of done | `ledger.sh amend`: additions apply at once; removals, rewording and demotions need the independent verifier's `APPROVE` against the docs, capped at 5 |
 | A tamper false positive | A verifier-approved rebaseline (`ledger.sh amend --rebaseline`) |
-| Missing keys, accounts, production, DNS, store listings | `ledger.sh owner` records the exact action and a check; everything else keeps moving; the item reopens itself when the check passes |
+| Missing keys, accounts, production, DNS, store listings | `ledger.sh owner` requests the exact action and a check; the independent verifier approves it (only what you alone can provide); everything else keeps moving; the item reopens itself when the check passes |
 | A session that games the gate or claims a false finish | The runner reverts it with new commits (uncommitted work stashed, `.env*` never touched) and tells the next session why |
-| Sessions that make no progress | The runner parks the item as stuck and moves on |
+| Sessions that make no progress | The runner pauses the item as stuck and moves on; when nothing else is failing it opens the least-tried stuck item's next research round |
+| A problem that won't yield | Never abandoned and never handed to you as "needs an engineer": research rounds go deeper each time — reproduce, the installed version's docs and source, others' bug reports, a minimal reproduction and `git bisect`, a different approach — logged in `.finish/research/<ID>.md`, until it passes |
+| Defects found along the way (verifier, first-user pass, Lighthouse, security review) | Each becomes an `I-###` item with `ledger.sh issue`, fixed and verified like the rest; `LATER.md` only holds ideas |
 | P0 done | With `FINISH_UNTIL=P1`/`P2`, the runner opens the next scope itself |
 | Skill upgrades | The runner refreshes `.finish/bin/` (re-anchoring the freeze) and an unmodified verifier agent, and migrates old statuses |
 | Community skills that ask, plan or ship | Taken at their recommended option and logged (Law 9); the gated ones are denied by the session policy, and gstack runs in its no-human mode |
@@ -131,8 +133,9 @@ FINISH_AGENT="codex exec --full-auto" ~/.claude/skills/finish-line/scripts/finis
 ├── FREEZE · LEDGER.lock        freeze commit + criteria hash
 ├── ratchet.json                assertion counts of passing specs (can only go up)
 ├── amendments/ · amendments.jsonl   every change to the definition of done, with its review
-├── OWNER_ACTIONS.md · owner.json   what only you can do, and how it's detected
+├── OWNER_ACTIONS.md · owner.json · owner/   what only you can do, how it's detected, and the verifier's approval
 ├── PROGRESS.md · DECISIONS.md · LATER.md
+├── research/<ID>.md            every research round on an item that didn't yield at first
 ├── init.sh · verify.sh         boot + gate
 ├── bin/                        ledger.sh · tamper.sh · lib.sh
 ├── companions.json             which installed community skills fill which step (gitignored)
@@ -176,7 +179,7 @@ finish-line/
 │   └── portfolio.sh                ← offline repo snapshot
 ├── templates/
 │   ├── verify.sh                   ← gate template
-│   ├── finish-verifier.md          ← verifier subagent (item, amendment and first-user modes)
+│   ├── finish-verifier.md          ← verifier subagent (item, amendment, owner and first-user modes)
 │   ├── claude-settings.local.json  ← no permission prompts or questions in interactive sessions (+ .history)
 │   ├── ledger.example.json
 │   ├── e2e/                        ← playwright.config.ts · finish-fixture.ts · J-001.example.spec.ts

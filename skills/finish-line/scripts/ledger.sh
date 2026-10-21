@@ -10,19 +10,31 @@
 #
 #   ledger.sh validate              schema + rule check (exit 1 on errors)
 #   ledger.sh status [--line]       summary, P0 progress, next item
-#   ledger.sh next                  next item to work on (exit 1 if none)
+#   ledger.sh next                  next failing item to work on (exit 1 if none)
+#   ledger.sh next --stuck          the stuck item with the fewest research rounds (exit 1 if none)
+#   ledger.sh open                  every in-scope item that isn't passing, with its status and rounds
 #   ledger.sh show <ID>             print one item
 #   ledger.sh specs [--passing] [--method M]   existing spec paths for in-scope items
 #   ledger.sh pass <ID>             mark passing (guarded)
 #   ledger.sh state                 fingerprint of the code under test (the verifier records it)
 #   ledger.sh run-commands [--passing]  run in-scope verify.command items (used by verify.sh)
-#   ledger.sh fail <ID> "<why>"     attempts += 1; parks as stuck at 3
-#   ledger.sh stuck <ID> "<why>"    park now
-#   ledger.sh owner <ID> "<owner action>" "<check cmd>"   park as needs_owner; check exits 0 once done
-#   ledger.sh round2 <ID>           second and last round for a stuck item
+#   ledger.sh fail <ID> "<why>"     attempts += 1; pauses as stuck at 3 (never abandoned)
+#   ledger.sh stuck <ID> "<why>"    pause now
+#   ledger.sh round <ID>            next research round for a stuck item: back to failing, attempts 0.
+#                                   Unlimited; each round escalates (protocol §5.1). round2 is an alias.
+#   ledger.sh issue --title "<t>" --given "<Given … when … then …>" [--given …] [--priority P0]
+#                   [--platform web] [--method M] [--source <evidence>] [--spec <path> | --command "<cmd>"]
+#                                   add a defect found during the run as a new I-### item (additive
+#                                   amendment, applies at once), so it gets fixed and verified like any item
+#   ledger.sh owner <ID> "<owner action>" "<check cmd>"   request an owner action (the verifier reviews it,
+#                                   owner mode); ledger.sh owner --apply <ID> records it as needs_owner after
+#                                   APPROVE. The check must fail now and exit 0 once the owner has acted.
+#                                   Only for what the owner alone can provide; refuses a check that just
+#                                   re-runs the item's own test ("needs an engineer" is research, not an owner action)
 #   ledger.sh owner-check           re-run owner checks; reopen items whose check now passes
 #   ledger.sh done-check            which terminal STATUS the ledger supports: LAUNCH_READY,
-#                                   READY_FOR_OWNER, or OPEN <ids> (exit 1)
+#                                   READY_FOR_OWNER, or OPEN <ids> (exit 1). An owner action without the
+#                                   verifier's approval keeps its item open.
 #   ledger.sh reopen <ID> "<why>"   back to failing with attempts 0
 #   ledger.sh regress <ID> "<why>"  passing → failing (test broke)
 #   ledger.sh hash                  criteria hash
@@ -32,7 +44,8 @@
 #   ledger.sh amend --rebaseline "<why>"   move FREEZE to HEAD (a gate change tamper.sh flags)
 #   ledger.sh amend --apply <NNN>   apply an amendment the verifier approved
 #   ledger.sh amend-verify <lock> <freeze> <count> <ledger>   re-check the amendment chain (used by the runner)
-#   ledger.sh migrate               reopen items left in the old blocked_human status
+#   ledger.sh migrate               reopen items left in the old blocked_human status, and old
+#                                   "needs an engineer" owner hand-offs (they go back to research rounds)
 
 set -uo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -83,7 +96,7 @@ cmd_validate() {
       (if (.items | type) != "array" or (.items | length) == 0 then "ledger: items must be a non-empty array" else empty end),
       ((.items // []) | group_by(.id)[] | select(length > 1) | "\(.[0].id): duplicate id"),
       ((.items // [])[] | . as $i | ($i.id // "?") as $id |
-        (if ($id | test("^[A-Z]+-[0-9]{3}$")) | not then err($id; "id must look like J-001 / F-001 / G-001") else empty end),
+        (if ($id | test("^[A-Z]+-[0-9]{3}$")) | not then err($id; "id must look like J-001 / F-001 / G-001 / I-001") else empty end),
         (if ($T | index($i.type)) == null then err($id; "type must be one of \($T | join(", "))") else empty end),
         (if (["P0","P1","P2"] | index($i.priority)) == null then err($id; "priority must be P0, P1 or P2") else empty end),
         (if ($i.title | type) != "string" or $i.title == "" then err($id; "title required") else empty end),
@@ -117,11 +130,13 @@ cmd_validate() {
 
 # shellcheck disable=SC2016  # jq variables, not shell
 in_scope='(.priority | ltrimstr("P") | tonumber) <= $scope'
+# Research rounds an item has had (legacy "round 2:" notes count as one).
+rounds='((.notes // "") | [scan("research round [0-9]+|round 2:")] | length)'
 
 cmd_status() {
   local scope status
   scope="$(fl_scope_n "$FD")"
-  status="$(tr -d '[:space:]' < "$FD/STATUS" 2>/dev/null || echo NEW)"
+  status="$(tr -d '[:space:]' 2>/dev/null < "$FD/STATUS" || echo NEW)"
   if [[ ! -f "$LEDGER" ]]; then
     if [[ "${1:-}" == "--line" ]]; then echo "P0 0/0"; else echo "STATUS: ${status:-NEW} · no ledger yet"; fi
     return 0
@@ -138,7 +153,10 @@ cmd_status() {
     \"STATUS: \(\$status) · SCOPE: P\(\$scope)\",
     \"In scope: \(\$in | length) — passing \(\$in | map(select(.status == \"passing\")) | length) · failing \(\$in | map(select(.status == \"failing\")) | length) · stuck \(\$in | map(select(.status == \"stuck\")) | length) · needs_owner \(\$in | map(select(.status == \"needs_owner\")) | length)\",
     \"P0 \(\$p0 | map(select(.status == \"passing\")) | length)/\(\$p0 | length)\",
-    (if \$next then \"Next: \(\$next.id) — \(\$next.title) (attempts \(\$next.attempts)/3)\" else \"Next: none (see stuck / needs_owner)\" end)
+    (\$in | map(select(.status == \"stuck\")) | sort_by($rounds) | .[0]) as \$stuck |
+    (if \$next then \"Next: \(\$next.id) — \(\$next.title) (attempts \(\$next.attempts)/3)\"
+     elif \$stuck then \"Next: research round \((\$stuck | $rounds) + 1) for \(\$stuck.id) — \(\$stuck.title) (ledger.sh round \(\$stuck.id))\"
+     else \"Next: none (see needs_owner)\" end)
   " "$LEDGER"
 }
 
@@ -146,13 +164,26 @@ cmd_next() {
   need_ledger
   local scope out
   scope="$(fl_scope_n "$FD")"
+  if [[ "${1:-}" == "--stuck" ]]; then
+    out="$(jq -r --argjson scope "$scope" "[.items[] | select($in_scope) | select(.status == \"stuck\")] | sort_by($rounds) | .[0].id // empty" "$LEDGER")"
+    [[ -n "$out" ]] || return 1
+    printf '%s\n' "$out"; return 0
+  fi
   out="$(jq -r --argjson scope "$scope" "[.items[] | select($in_scope) | select(.status == \"failing\" and .attempts < 3)] | .[0] // empty | \"\(.id)\t\(.title)\"" "$LEDGER")"
   if [[ -z "$out" ]]; then
     echo "none"
-    jq -r --argjson scope "$scope" ".items[] | select($in_scope) | select(.status == \"stuck\" or .status == \"needs_owner\") | \"  \(.status): \(.id) — \(.title)\"" "$LEDGER"
+    jq -r --argjson scope "$scope" ".items[] | select($in_scope) | select(.status == \"stuck\" or .status == \"needs_owner\") | \"  \(.status): \(.id) — \(.title)\(if .status == \"stuck\" then \" (research rounds so far: \($rounds))\" else \"\" end)\"" "$LEDGER"
     return 1
   fi
   printf '%s\n' "$out"
+}
+
+cmd_open() {
+  need_ledger
+  local scope
+  scope="$(fl_scope_n "$FD")"
+  jq -r --argjson scope "$scope" ".items[] | select($in_scope) | select(.status != \"passing\")
+    | \"\(.status): \(.id) — \(.title)\(if .status == \"stuck\" or $rounds > 0 then \" (research rounds: \($rounds))\" else \"\" end)\"" "$LEDGER"
 }
 
 cmd_specs() {
@@ -180,7 +211,7 @@ cmd_specs() {
 cmd_pass() {
   local id="$1" method spec dir report imgs files want n
   need_ledger; need_item "$id"
-  [[ "$(item_field "$id" status)" == "failing" ]] || fl_die "$id is $(item_field "$id" status); only failing items can pass (use round2 for stuck items)"
+  [[ "$(item_field "$id" status)" == "failing" ]] || fl_die "$id is $(item_field "$id" status); only failing items can pass (stuck items: ledger.sh round $id)"
   method="$(item_verify "$id" method)"
   spec="$(item_verify "$id" spec)"
   dir=".finish/evidence/$id"
@@ -239,7 +270,7 @@ cmd_fail() {
     --arg stamp "$(fl_now)" --arg msg "attempt failed: $msg"
   a="$(item_field "$id" attempts)"
   if [[ "$(item_field "$id" status)" == "stuck" ]]; then
-    echo "$id → stuck after $a attempts. Note hypothesis / tried / next idea in PROGRESS.md and take the next item."
+    echo "$id → stuck after $a attempts: paused, not abandoned. Write what you tried and ruled out in .finish/research/$id.md, then take the next item; $id comes back as a research round (protocol §5.1)."
   else
     echo "$id → failing (attempt $a/3)"
   fi
@@ -260,14 +291,87 @@ set_status() {
   echo "$id → $st"
 }
 
-cmd_round2() {
-  local id="$1"
+# The research ladder (protocol §5.1). Round n works step min(n, 7) and keeps everything learned before.
+ladder_step() {
+  case "$1" in
+    1) echo "reproduce it alone with full output; read the whole code path and the docs; use the debug companion" ;;
+    2) echo "primary sources: docs for the installed version, type definitions, the library's own source and changelog" ;;
+    3) echo "other people's reports: search the exact error; the library's GitHub issues, discussions and examples" ;;
+    4) echo "isolate: a minimal reproduction outside the app; git bisect if it ever worked" ;;
+    5) echo "change approach: another API or library that keeps the documented behaviour (decide per §7, log it)" ;;
+    6) echo "re-scope only if the docs allow it: split the item by amendment, every criterion kept" ;;
+    *) echo "fresh angle: rule out every hypothesis in .finish/research/<ID>.md with evidence, then widen the search" ;;
+  esac
+}
+
+cmd_round() {
+  local id="$1" n
   need_ledger; need_item "$id"
-  [[ "$(item_field "$id" status)" == "stuck" ]] || fl_die "$id is not stuck"
-  if item_field "$id" notes | grep -q 'round 2'; then
-    fl_die "$id already had round 2 — decide now: ledger.sh amend (split or re-scope, verifier-approved) or ledger.sh owner $id \"<action>\" \"<check>\""
+  [[ "$(item_field "$id" status)" == "stuck" ]] || fl_die "$id is $(item_field "$id" status); only stuck items get a research round"
+  n="$(jq -r --arg id "$id" ".items[] | select(.id == \$id) | $rounds" "$LEDGER")"
+  n=$((n + 1))
+  set_status "$id" failing "research round $n: $(ladder_step "$n")" " | .attempts = 0" >/dev/null
+  echo "$id → failing, research round $n: $(ladder_step "$n")"
+  echo "Read .finish/research/$id.md first; log this round there (hypothesis · evidence · sources · change · result) and commit it."
+}
+
+ISSUE_ARGS='--title "<t>" --given "<Given …, when …, then …>" [--given …] [--priority P0|P1|P2] [--platform web|android|ios|api|cli] [--method e2e-web|e2e-mobile|api|command] [--source <evidence>] [--spec <path> | --command "<cmd>"]'
+cmd_issue() {
+  need_ledger
+  [[ -f "$FD/FREEZE" ]] || fl_die "not frozen yet — add the defect to .finish/ledger.json directly before ledger.sh lock"
+  local title="" priority="" platform="" source="" spec="" command="" crit='[]' id n method=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --title) title="${2:-}"; shift ;;
+      --given) crit="$(jq -c --arg c "${2:-}" '. + [$c]' <<< "$crit")"; shift ;;
+      --priority) priority="${2:-}"; shift ;;
+      --platform) platform="${2:-}"; shift ;;
+      --source) source="${2:-}"; shift ;;
+      --spec) spec="${2:-}"; shift ;;
+      --command) command="${2:-}"; shift ;;
+      --method) method="${2:-}"; shift ;;
+      *) fl_die "unknown argument: $1 — usage: ledger.sh issue $ISSUE_ARGS" ;;
+    esac
+    shift
+  done
+  [[ -n "$title" && "$crit" != '[]' ]] || fl_die "usage: ledger.sh issue $ISSUE_ARGS"
+  [[ -n "$priority" ]] || priority="P$(fl_scope_n "$FD")"
+  local dup
+  dup="$(jq -r --arg t "$title" '[.items[] | select(.type == "issue" and (.title | ascii_downcase) == ($t | ascii_downcase)) | .id][0] // empty' "$LEDGER")"
+  [[ -z "$dup" ]] || fl_die "already filed as $dup — work that item (ledger.sh show $dup)"
+  n="$(jq -r '[.items[].id | select(test("^I-[0-9]{3}$")) | ltrimstr("I-") | tonumber] | max // 0' "$LEDGER")"
+  id="$(printf 'I-%03d' $((n + 1)))"
+  # The platform decides how it is verified (an API test may well be named *.spec.ts); --method overrides.
+  # With neither, the spec path must say it unambiguously, or the call is refused.
+  if [[ -z "$platform" && -z "$method" && -z "$command" && -n "$spec" ]]; then
+    case "$spec" in
+      e2e/*.spec.ts|e2e/*.spec.js|*/e2e/*.spec.ts|*/e2e/*.spec.js) platform=web ;;
+      .maestro/*|*/.maestro/*|*.yaml|*.yml) fl_die "a Maestro flow: say which platform — --platform android or --platform ios" ;;
+      *) fl_die "can't tell how $spec runs: give --platform (web, android, ios, api, cli) or --method" ;;
+    esac
   fi
-  set_status "$id" failing "round 2: re-read code and docs from scratch" " | .attempts = 0"
+  [[ -n "$platform" ]] || platform=web
+  if [[ -n "$command" ]]; then method="command"
+  elif [[ -z "$method" ]]; then
+    case "$platform" in web) method=e2e-web ;; android|ios) method=e2e-mobile ;; *) method=api ;; esac
+  fi
+  case " $FL_METHODS " in *" $method "*) ;; *) fl_die "--method must be one of: $FL_METHODS" ;; esac
+  [[ "$method" != command || -n "$command" ]] || fl_die "--method command needs --command \"<cmd>\""
+  if [[ -z "$spec" && "$method" != command ]]; then
+    case "$method" in
+      e2e-web) spec="e2e/finish/$id.spec.ts" ;;
+      e2e-mobile) spec=".maestro/finish/$id.yaml" ;;
+      *) fl_die "$method has no default spec path: give --spec <tests/finish/…>" ;;
+    esac
+  fi
+  jq --arg id "$id" --arg t "$title" --arg p "$priority" --arg pl "$platform" --arg src "${source:-found during the run}" \
+     --arg m "$method" --arg sp "$spec" --arg cmd "$command" --argjson crit "$crit" '
+    .items += [{id: $id, type: "issue", priority: $p, platforms: [$pl], title: $t, source: $src, acceptance: $crit,
+                verify: (if $m == "command" then {method: $m, command: $cmd} else {method: $m, spec: $sp} end),
+                status: "failing", attempts: 0, evidence: [], notes: ""}]' "$LEDGER" > "$PROPOSED" \
+    || fl_die "could not build the proposed ledger"
+  cmd_amend "defect $id: $title" || return $?
+  echo "$id added ($priority, $method${spec:+ $spec}). Work it like any item: test first (protocol §5a)."
 }
 
 cmd_run_commands() { # run in-scope command items; --passing = only items already passing
@@ -343,15 +447,110 @@ owner_md() { # regenerate .finish/OWNER_ACTIONS.md from owner.json
   } > "$FD/OWNER_ACTIONS.md"
 }
 
+# Owner actions are what only the owner can provide. Unsolved engineering work never is:
+#   - hand-off wording is refused outright;
+#   - an action that starts with an engineering verb is refused unless it names an owner boundary
+#     ("Fix the DNS records for the production domain" is the owner's; "Fix the login bug" isn't);
+#   - a check that runs a test suite, or the item's own spec, would detect the fix rather than
+#     anything the owner did. A plain credential/account check (test -n "$KEY", <cli> whoami) is fine,
+#     even when it is the item's own frozen verify.command;
+#   - the check must fail now (cmd_owner runs it): one that already passes waits on nobody;
+#   - then the independent verifier decides (owner mode), and only --apply after its APPROVE records it.
+HANDOFF_RE='needs? (an? )?(engineer|developer|human|person|someone)|someone (to|must|should|who)|manual(ly)? (fix|debug)|could ?n.?t (fix|figure)|unable to (fix|figure|get it)|don.?t know how'
+ENG_VERB_RE='^[[:space:]]*(fix|debug|investigate|implement|refactor|rewrite|diagnose)([^A-Za-z]|$)|(fix|debug)(es|ing)? (it|this|that|the (bug|issue|code|test|error))'
+OWNER_TOPIC_RE='dns|domain|registrar|production|credentials?|api key|secret key|billing|subscription|paid plan|app store|play console|testflight|store listing|legal|certificate|signing identity'
+TEST_RUNNER_RE='playwright|vitest|jest|pytest|mocha|cypress|maestro|go test|cargo test|(npm|pnpm|yarn|bun)( run)? test|gradlew|xcodebuild|flutter test|verify\.sh|ledger\.sh'
+# A check that runs the product's own code or local app tests behaviour, not the owner's step.
+# Commands count only in command position (start, or after ; & | ( ` $( ), so a path argument
+# such as `test -s ./certs/dist.p12` or `grep -q node package.json` is fine.
+# shellcheck disable=SC2016  # a literal backtick in a regex
+REPO_CODE_RE='(^|[;&|(`]|\$\()[[:space:]]*((node|python3?|ruby|php|perl|deno|tsx|ts-node|bash|sh|zsh)[[:space:]]+[^-[:space:]]|(npm|pnpm|yarn|bun)[[:space:]]+(run|exec|start)|\.{1,2}/|make([[:space:]]|$)|(go|cargo)[[:space:]]+run)|(localhost|127\.0\.0\.1|0\.0\.0\.0)'
+
+not_owner() { # <ID> <action> <check> [--legacy] → exit 0 (with the reason) when this isn't a real owner action
+  # --legacy (migrate): only the high-precision signals, since a false positive there deletes a task
+  # the owner still has to do; new requests also get the broader rules, then the verifier's review.
+  local id="$1" action="$2" check="$3" legacy="${4:-}" spec
+  spec="$(item_verify "$id" spec)"
+  if printf '%s\n' "$action" | grep -qiE "$HANDOFF_RE"; then echo "the action hands over engineering work"; return 0; fi
+  if [[ -n "$spec" && "$check" == *"$spec"* ]] || printf '%s\n' "$check" | grep -qiE "$TEST_RUNNER_RE"; then
+    echo "the check runs a test, so it detects the fix, not anything the owner did"; return 0
+  fi
+  [[ "$legacy" == --legacy ]] && return 1
+  if printf '%s\n' "$action" | grep -qiE "$ENG_VERB_RE" && ! printf '%s\n' "$action" | grep -qiE "$OWNER_TOPIC_RE"; then
+    echo "the action is engineering work, not something only the owner can provide"; return 0
+  fi
+  if printf '%s\n' "$check" | grep -qE "$REPO_CODE_RE"; then
+    echo "the check runs the product's own code or local app, so it detects the fix, not anything the owner did"; return 0
+  fi
+  return 1
+}
+
+OWNER_DIR="$FD/owner"
+
 cmd_owner() {
-  local id="$1" action="${2:-}" check="${3:-}" tmp
+  [[ "${1:-}" == "--apply" ]] && { owner_apply "${2:-}"; return $?; }
+  local id="$1" action="${2:-}" check="${3:-}" req rc
   need_ledger; need_item "$id"
   [[ -n "$action" ]] || fl_die "owner needs the exact action, e.g. \"Add STRIPE_SECRET_KEY (test mode) to .env.local\""
   [[ -n "$check" ]] || fl_die "owner needs a check command that exits 0 once the action is done, e.g. 'grep -q ^STRIPE_SECRET_KEY= .env.local'"
-  set_status "$id" needs_owner "owner action: $action"
+  local why
+  if ! why="$(not_owner "$id" "$action" "$check")" && run_limited "${FINISH_OWNER_CHECK_TIMEOUT:-60}" "$check"; then
+    why="the check already passes, so nothing is waiting on the owner (it must fail until the owner acts)"
+  fi
+  if [[ -n "$why" ]]; then
+    fl_die "refusing: not an owner action — $why. If only the code is missing, the work is yours: ledger.sh fail $id, then research rounds (ledger.sh round $id, protocol §5.1). Owner actions are for credentials, accounts, paid plans, production, real emails/payments, DNS, store listings, legal review and merging, with a check that detects the owner's step (test -n \"\$KEY\", vercel whoami, dig +short …)."
+  fi
+  # Judgment the text rules can't make (is "billing" a bug or the owner's Stripe account?) belongs to
+  # the independent verifier, as for weakening amendments: nothing leaves the run without its APPROVE.
+  run_limited "${FINISH_OWNER_CHECK_TIMEOUT:-60}" "$check"; rc=$?
+  mkdir -p "$OWNER_DIR"
+  req="$OWNER_DIR/$id.request.md"
+  {
+    echo "# Owner action request — $id"
+    echo; echo "ITEM: $id"; echo "ACTION: $action"; echo "CHECK: $check"; echo "CHECK NOW: exit $rc"
+    echo; echo "## The item"; echo '```json'; jq --arg id "$id" '.items[] | select(.id == $id) | del(.evidence)' "$LEDGER"; echo '```'
+    if [[ -f "$FD/research/$id.md" ]]; then echo; echo "## Research so far"; head -80 "$FD/research/$id.md"; fi
+  } > "$req"
+  rm -f "$OWNER_DIR/$id.review.md"
+  echo "owner action for $id needs review. Spawn finish-verifier in owner mode with: ${req#"$ROOT"/}"
+  echo "then: ledger.sh owner --apply $id   (REJECT → it's yours: keep working it, protocol §5.1)"
+  return 3
+}
+
+owner_approved() { # <ID>: its owner action carries the verifier's APPROVE for the exact request
+  local id="$1" req="$OWNER_DIR/$1.request.md" rev="$OWNER_DIR/$1.review.md" h
+  [[ -f "$req" && -f "$rev" && -f "$OWNER" ]] || return 1
+  h="$(fl_sha < "$req")"
+  grep -Eq "^REQUEST: *$h" "$rev" && grep -Eq '^VERDICT: *APPROVE' "$rev" \
+    && jq -e --arg id "$id" --arg h "$h" '.[$id].request == $h' "$OWNER" >/dev/null 2>&1
+}
+
+owner_request_legacy() { # <ID> <action> <check>: write a review request for an owner action recorded before reviews existed (1 = already there)
+  local id="$1" req="$OWNER_DIR/$1.request.md"
+  mkdir -p "$OWNER_DIR"
+  [[ -f "$req" ]] && return 1   # already requested (owner-check keeps listing it until reviewed)
+  {
+    echo "# Owner action request — $id (recorded before owner reviews existed)"
+    echo; echo "ITEM: $id"; echo "ACTION: $2"; echo "CHECK: $3"; echo "CHECK NOW: exit $(run_limited "${FINISH_OWNER_CHECK_TIMEOUT:-60}" "$3"; echo $?)"
+    echo; echo "## The item"; echo '```json'; jq --arg id "$id" '.items[] | select(.id == $id) | del(.evidence)' "$LEDGER"; echo '```'
+  } > "$req"
+}
+
+owner_apply() { # <ID>: record an owner action the verifier approved
+  local id="$1" req review tmp action check
+  need_ledger; need_item "$id"
+  req="$OWNER_DIR/$id.request.md"; review="$OWNER_DIR/$id.review.md"
+  [[ -f "$req" ]] || fl_die "no request at ${req#"$ROOT"/} — run ledger.sh owner $id \"<action>\" \"<check>\" first"
+  [[ -f "$review" ]] || fl_die "no review at ${review#"$ROOT"/} — spawn finish-verifier in owner mode with: ${req#"$ROOT"/}"
+  grep -Eq "^REQUEST: *$(fl_sha < "$req")" "$review" || fl_die "review is for a different request (REQUEST hash mismatch)"
+  grep -Eq '^VERDICT: *APPROVE' "$review" || fl_die "the verifier rejected this owner action: the work is yours — ledger.sh fail $id / ledger.sh round $id (protocol §5.1)"
+  action="$(sed -n 's/^ACTION: //p' "$req" | head -1)"; check="$(sed -n 's/^CHECK: //p' "$req" | head -1)"
+  run_limited "${FINISH_OWNER_CHECK_TIMEOUT:-60}" "$check" && fl_die "the check passes now, so nothing is waiting on the owner; keep working $id"
+  set_status "$id" needs_owner "owner action (verifier-approved): $action"
   [[ -f "$OWNER" ]] || echo '{}' > "$OWNER"
   tmp="$(mktemp)"
-  jq --arg id "$id" --arg a "$action" --arg c "$check" --arg t "$(fl_now)" '.[$id] = {action: $a, check: $c, since: $t}' "$OWNER" > "$tmp" && mv "$tmp" "$OWNER"
+  jq --arg id "$id" --arg a "$action" --arg c "$check" --arg t "$(fl_now)" --arg r "$(fl_sha < "$req")" \
+    '.[$id] = {action: $a, check: $c, since: $t, request: $r}' "$OWNER" > "$tmp" && mv "$tmp" "$OWNER"
   owner_md
 }
 
@@ -392,30 +591,62 @@ cmd_owner_check() {
     fi
   done < <(jq -c 'to_entries[] | [.key, .value.check, .value.action]' "$OWNER")
   owner_md
+  local unreviewed="" k
+  for k in $(jq -r 'keys[]' "$OWNER"); do
+    [[ "$(item_field "$k" status)" == "needs_owner" ]] && ! owner_approved "$k" && unreviewed="$unreviewed $k"
+  done
   if [[ -n "$reopened" ]]; then echo "owner-check: reopened$reopened"; else echo "owner-check: still waiting on $(jq 'length' "$OWNER")"; fi
+  [[ -z "$unreviewed" ]] || echo "owner-check: awaiting the verifier's review (owner mode, .finish/owner/<ID>.request.md):$unreviewed"
 }
 
 # Products started before needs_owner existed: reopen their blocked_human items so the
 # agent re-evaluates them and, if still needed, records a proper owner action with a check.
 cmd_migrate() {
   need_ledger
-  local ids
+  local ids tmp id
   ids="$(jq -r '.items[] | select(.status == "blocked_human") | .id' "$LEDGER")"
-  [[ -n "$ids" ]] || { echo "migrate: nothing to do"; return 0; }
   for id in $ids; do
     set_status "$id" failing "migrated from blocked_human: re-evaluate; if it still needs the owner, record ledger.sh owner with a check" " | .attempts = 0" >/dev/null
   done
-  echo "migrate: reopened $(printf '%s' "$ids" | tr '\n' ' ')"
+  # Older runs could hand an unsolved item to the owner as "Needs an engineer": that work is the run's.
+  local done_eng="" review_eng=""
+  if [[ -f "$OWNER" ]]; then
+    local rec action check
+    while IFS= read -r rec; do
+      [[ -n "$rec" ]] || continue
+      id="$(jq -r '.[0]' <<< "$rec")"; action="$(jq -r '.[1]' <<< "$rec")"; check="$(jq -r '.[2]' <<< "$rec")"
+      [[ "$(item_field "$id" status)" == "needs_owner" ]] || continue
+      owner_approved "$id" && continue
+      if ! not_owner "$id" "$action" "$check" --legacy >/dev/null; then
+        # Not clearly a hand-off, but never reviewed: the verifier decides before it can count as the owner's.
+        owner_request_legacy "$id" "$action" "$check" && review_eng="$review_eng $id"
+        continue
+      fi
+      set_status "$id" stuck "an engineering hand-off isn't an owner action: back to research rounds" >/dev/null
+      tmp="$(mktemp)"; jq --arg id "$id" 'del(.[$id])' "$OWNER" > "$tmp" && mv "$tmp" "$OWNER"
+      done_eng="$done_eng $id"
+    done < <(jq -c 'to_entries[] | [.key, .value.action, .value.check]' "$OWNER" 2>/dev/null)
+    owner_md
+  fi
+  ids="$(printf '%s %s' "$ids" "$done_eng" | tr '\n' ' ' | sed 's/^ *//; s/ *$//')"
+  review_eng="${review_eng# }"
+  [[ -n "$ids" || -n "$review_eng" ]] || { echo "migrate: nothing to do"; return 0; }
+  [[ -z "$ids" ]] || echo "migrate: reopened $ids"
+  [[ -z "$review_eng" ]] || echo "migrate: owner actions awaiting the verifier's review: $review_eng"
 }
 
 cmd_done_check() {
   need_ledger
   local scope out
   scope="$(fl_scope_n "$FD")"
-  out="$(jq -r --argjson scope "$scope" "[.items[] | select($in_scope)] as \$in |
-    (\$in | map(select(.status != \"passing\" and .status != \"needs_owner\")) | map(.id)) as \$open |
-    if (\$open | length) > 0 then \"OPEN \(\$open | join(\" \"))\"
-    elif any(\$in[]; .status == \"needs_owner\") then \"READY_FOR_OWNER\" else \"LAUNCH_READY\" end" "$LEDGER")"
+  local open owners id unreviewed=""
+  open="$(jq -r --argjson scope "$scope" "[.items[] | select($in_scope) | select(.status != \"passing\" and .status != \"needs_owner\") | .id] | join(\" \")" "$LEDGER")"
+  owners="$(jq -r --argjson scope "$scope" ".items[] | select($in_scope) | select(.status == \"needs_owner\") | .id" "$LEDGER")"
+  for id in $owners; do owner_approved "$id" || unreviewed="$unreviewed $id"; done
+  open="$(printf '%s%s' "$open" "$unreviewed" | sed 's/^ *//')"
+  if [[ -n "$open" ]]; then out="OPEN $open"
+  elif [[ -n "$owners" ]]; then out="READY_FOR_OWNER"
+  else out="LAUNCH_READY"; fi
   echo "$out"
   [[ "$out" != OPEN* ]]
 }
@@ -516,9 +747,9 @@ cmd_amend() {
     local review="$AMD_DIR/$applyn.review.md" reqhash kind
     reqhash="$(fl_sha < "$AMD_DIR/$applyn.request.md")"
     [[ -f "$review" ]] || fl_die "no review at $review — spawn finish-verifier in amendment mode with: $AMD_DIR/$applyn.request.md"
-    grep -Eq '^VERDICT: *APPROVE' "$review" || fl_die "the verifier did not approve amendment $applyn — take another route (owner action, or keep working the item)"
+    grep -Eq '^VERDICT: *APPROVE' "$review" || fl_die "the verifier did not approve amendment $applyn — keep working the item (research rounds, protocol §5.1)"
     grep -Eq "^REQUEST: *$reqhash" "$review" || fl_die "review $applyn is for a different request (REQUEST hash mismatch)"
-    [[ "$(amd_weakening_count)" -lt "${FINISH_MAX_AMENDMENTS:-5}" ]] || fl_die "amendment cap reached (${FINISH_MAX_AMENDMENTS:-5}); park the item with ledger.sh owner instead"
+    [[ "$(amd_weakening_count)" -lt "${FINISH_MAX_AMENDMENTS:-5}" ]] || fl_die "amendment cap reached (${FINISH_MAX_AMENDMENTS:-5}); the criteria stand — keep working the item (research rounds, protocol §5.1)"
     kind="$(sed -n 's/^KIND: *//p' "$AMD_DIR/$applyn.request.md" | head -1)"
     reason="$(sed -n 's/^REASON: *//p' "$AMD_DIR/$applyn.request.md" | head -1)"
     if [[ "$kind" == "rebaseline" ]]; then
@@ -593,7 +824,7 @@ cmd_amend() {
 # to its request.
 cmd_amend_verify() {
   local old_lock="$1" old_freeze="$2" old_n="$3" prev="$4" lock freeze total
-  lock="$(tr -d '[:space:]' < "$FD/LEDGER.lock" 2>/dev/null)"; freeze="$(tr -d '[:space:]' < "$FD/FREEZE" 2>/dev/null)"
+  lock="$(tr -d '[:space:]' 2>/dev/null < "$FD/LEDGER.lock")"; freeze="$(tr -d '[:space:]' 2>/dev/null < "$FD/FREEZE")"
   total="$(cat "$AMD_LOG" 2>/dev/null | wc -l | tr -d ' ')"
   if [[ "$lock" == "$old_lock" && "$freeze" == "$old_freeze" ]]; then echo "AMENDMENTS: none"; return 0; fi
   [[ "$total" -gt "$old_n" ]] || { echo "AMENDMENTS: lock or FREEZE changed with no logged amendment"; return 1; }
@@ -634,7 +865,8 @@ sub="${1:-}"; shift || true
 case "$sub" in
   validate) cmd_validate "${1:-}" ;;
   status) cmd_status "${1:-}" ;;
-  next) cmd_next ;;
+  next) cmd_next "${1:-}" ;;
+  open) cmd_open ;;
   show) need_ledger; need_item "${1:-}"; jq --arg id "$1" '.items[] | select(.id == $id)' "$LEDGER" ;;
   specs) cmd_specs "$@" ;;
   pass) cmd_pass "${1:-}" ;;
@@ -649,7 +881,8 @@ case "$sub" in
   migrate) cmd_migrate ;;
   reopen) set_status "${1:-}" failing "${2:-}" " | .attempts = 0" ;;
   regress) [[ -n "${2:-}" ]] || fl_die "regress needs a one-line reason"; set_status "${1:-}" failing "regressed: $2" ;;
-  round2) cmd_round2 "${1:-}" ;;
+  round|round2) cmd_round "${1:-}" ;;
+  issue) cmd_issue "$@" ;;
   hash) need_ledger; fl_criteria_hash "$LEDGER" ;;
   state) fl_code_state ;;
   run-commands) cmd_run_commands "${1:-}" ;;

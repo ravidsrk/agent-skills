@@ -4,7 +4,7 @@
 # shellcheck disable=SC2034  # variables are used by the scripts that source this file
 
 FL_STATUSES="failing passing stuck needs_owner"
-FL_TYPES="journey feature gate"
+FL_TYPES="journey feature gate issue"
 FL_METHODS="e2e-web e2e-mobile api command"
 
 # A test-looking path: test dirs, *.test.ts / *.spec.ts, *_test.py, test_*.py, *Test.kt, Maestro flows.
@@ -55,7 +55,7 @@ fl_criteria_hash() {
 # SCOPE file → number (P0 → 0). Defaults to 0.
 fl_scope_n() {
   local s
-  s="$(tr -d '[:space:]' < "$1/SCOPE" 2>/dev/null)"
+  s="$(tr -d '[:space:]' 2>/dev/null < "$1/SCOPE")"
   case "$s" in P1) echo 1 ;; P2) echo 2 ;; *) echo 0 ;; esac
 }
 

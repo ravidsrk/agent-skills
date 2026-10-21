@@ -107,7 +107,7 @@ FINISH_AGENT="codex exec --full-auto" ~/.claude/skills/finish-line/scripts/finis
 | Judgment calls (ambiguous spec, missing design, which library) | A fixed decision procedure; one line per decision in `.finish/DECISIONS.md` |
 | Changing the definition of done | `ledger.sh amend`: additions apply at once; removals, rewording and demotions need the independent verifier's `APPROVE` against the docs, capped at 5 |
 | A tamper false positive | A verifier-approved rebaseline (`ledger.sh amend --rebaseline`) |
-| Missing keys, accounts, production, DNS, store listings | `ledger.sh owner` records the exact action and a check; everything else keeps moving; the item reopens itself when the check passes |
+| Missing keys, accounts, production, DNS, store listings | `ledger.sh owner` requests the exact action and a check; the independent verifier approves it (only what you alone can provide); everything else keeps moving; the item reopens itself when the check passes |
 | A session that games the gate or claims a false finish | The runner reverts it with new commits (uncommitted work stashed, `.env*` never touched) and tells the next session why |
 | Sessions that make no progress | The runner pauses the item as stuck and moves on; when nothing else is failing it opens the least-tried stuck item's next research round |
 | A problem that won't yield | Never abandoned and never handed to you as "needs an engineer": research rounds go deeper each time — reproduce, the installed version's docs and source, others' bug reports, a minimal reproduction and `git bisect`, a different approach — logged in `.finish/research/<ID>.md`, until it passes |
@@ -133,7 +133,7 @@ FINISH_AGENT="codex exec --full-auto" ~/.claude/skills/finish-line/scripts/finis
 ├── FREEZE · LEDGER.lock        freeze commit + criteria hash
 ├── ratchet.json                assertion counts of passing specs (can only go up)
 ├── amendments/ · amendments.jsonl   every change to the definition of done, with its review
-├── OWNER_ACTIONS.md · owner.json   what only you can do, and how it's detected
+├── OWNER_ACTIONS.md · owner.json · owner/   what only you can do, how it's detected, and the verifier's approval
 ├── PROGRESS.md · DECISIONS.md · LATER.md
 ├── research/<ID>.md            every research round on an item that didn't yield at first
 ├── init.sh · verify.sh         boot + gate
@@ -179,7 +179,7 @@ finish-line/
 │   └── portfolio.sh                ← offline repo snapshot
 ├── templates/
 │   ├── verify.sh                   ← gate template
-│   ├── finish-verifier.md          ← verifier subagent (item, amendment and first-user modes)
+│   ├── finish-verifier.md          ← verifier subagent (item, amendment, owner and first-user modes)
 │   ├── claude-settings.local.json  ← no permission prompts or questions in interactive sessions (+ .history)
 │   ├── ledger.example.json
 │   ├── e2e/                        ← playwright.config.ts · finish-fixture.ts · J-001.example.spec.ts

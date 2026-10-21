@@ -66,7 +66,7 @@ Never run the build loop without the protocol: the laws in its §0 are what keep
 | A judgment call (ambiguous spec, missing design, which library) | Decision procedure in protocol §7 → one line in `DECISIONS.md` → act |
 | The definition of done is wrong or too big | `ledger.sh amend`: additions apply at once; anything else needs the verifier's `APPROVE` against the docs; capped |
 | `tamper.sh` flags a legitimate change | `ledger.sh amend --rebaseline`, same review |
-| A key, account or production step is missing | `ledger.sh owner <ID> "<action>" "<check>"`; work continues; the item reopens by itself when the check passes |
+| A key, account or production step is missing | `ledger.sh owner <ID> "<action>" "<check>"` → the verifier approves it in owner mode (and rejects engineering work dressed up as an owner action) → `owner --apply`; work continues; the item reopens by itself when the check passes |
 | An item won't converge | `fail` ×3 → `stuck` (a pause) → `ledger.sh round`: unlimited research rounds, each a deeper step (reproduce → primary sources → others' reports → isolate → change approach → re-scope by amendment → fresh angle), logged in `.finish/research/<ID>.md`. Never handed to the owner as "needs an engineer": `ledger.sh owner` refuses that |
 | A defect turns up (verifier, first-user pass, Lighthouse, security review, while working) | `ledger.sh issue` adds it as an `I-###` item at once; fixed and verified like any item, never parked in `LATER.md` |
 | A session games the gate or claims a false finish | The runner reverts it (new commits, nothing lost), tells the next session why, and continues |

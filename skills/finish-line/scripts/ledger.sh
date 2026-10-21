@@ -26,7 +26,9 @@
 #                   [--platform web] [--method M] [--source <evidence>] [--spec <path> | --command "<cmd>"]
 #                                   add a defect found during the run as a new I-### item (additive
 #                                   amendment, applies at once), so it gets fixed and verified like any item
-#   ledger.sh owner <ID> "<owner action>" "<check cmd>"   park as needs_owner; check exits 0 once done.
+#   ledger.sh owner <ID> "<owner action>" "<check cmd>"   request an owner action (the verifier reviews it,
+#                                   owner mode); ledger.sh owner --apply <ID> records it as needs_owner after
+#                                   APPROVE. The check must fail now and exit 0 once the owner has acted.
 #                                   Only for what the owner alone can provide; refuses a check that just
 #                                   re-runs the item's own test ("needs an engineer" is research, not an owner action)
 #   ledger.sh owner-check           re-run owner checks; reopen items whose check now passes
@@ -451,11 +453,15 @@ owner_md() { # regenerate .finish/OWNER_ACTIONS.md from owner.json
 #   - a check that runs a test suite, or the item's own spec, would detect the fix rather than
 #     anything the owner did. A plain credential/account check (test -n "$KEY", <cli> whoami) is fine,
 #     even when it is the item's own frozen verify.command;
-#   - the check must fail now (cmd_owner runs it): one that already passes waits on nobody.
+#   - the check must fail now (cmd_owner runs it): one that already passes waits on nobody;
+#   - then the independent verifier decides (owner mode), and only --apply after its APPROVE records it.
 HANDOFF_RE='needs? (an? )?(engineer|developer|human|person|someone)|someone (to|must|should|who)|manual(ly)? (fix|debug)|could ?n.?t (fix|figure)|unable to (fix|figure|get it)|don.?t know how'
 ENG_VERB_RE='^[[:space:]]*(fix|debug|investigate|implement|refactor|rewrite|diagnose)([^A-Za-z]|$)|(fix|debug)(es|ing)? (it|this|that|the (bug|issue|code|test|error))'
 OWNER_TOPIC_RE='dns|domain|registrar|production|credentials?|api key|secret key|billing|subscription|paid plan|app store|play console|testflight|store listing|legal|certificate|signing identity'
 TEST_RUNNER_RE='playwright|vitest|jest|pytest|mocha|cypress|maestro|go test|cargo test|(npm|pnpm|yarn|bun)( run)? test|gradlew|xcodebuild|flutter test|verify\.sh|ledger\.sh'
+# A check that runs the product's own code or local app tests behaviour, not the owner's step.
+# shellcheck disable=SC2016  # a literal backtick in a regex
+REPO_CODE_RE='(^|[;&|(`[:space:]])(node|python3?|ruby|php|perl|deno|tsx|ts-node|bash|sh|zsh)[[:space:]]+[^-[:space:]]|(^|[;&|(`[:space:]])(npm|pnpm|yarn|bun)[[:space:]]+(run|exec|start)|(^|[;&|(`[:space:]])\.{1,2}/|(^|[;&|(`[:space:]])make([[:space:]]|$)|(^|[;&|(`[:space:]])(go|cargo) run|(localhost|127\.0\.0\.1|0\.0\.0\.0)'
 
 not_owner() { # <ID> <action> <check> → exit 0 (with the reason) when this isn't a real owner action
   local id="$1" action="$2" check="$3" spec
@@ -467,11 +473,17 @@ not_owner() { # <ID> <action> <check> → exit 0 (with the reason) when this isn
   if [[ -n "$spec" && "$check" == *"$spec"* ]] || printf '%s\n' "$check" | grep -qiE "$TEST_RUNNER_RE"; then
     echo "the check runs a test, so it detects the fix, not anything the owner did"; return 0
   fi
+  if printf '%s\n' "$check" | grep -qE "$REPO_CODE_RE"; then
+    echo "the check runs the product's own code or local app, so it detects the fix, not anything the owner did"; return 0
+  fi
   return 1
 }
 
+OWNER_DIR="$FD/owner"
+
 cmd_owner() {
-  local id="$1" action="${2:-}" check="${3:-}" tmp
+  [[ "${1:-}" == "--apply" ]] && { owner_apply "${2:-}"; return $?; }
+  local id="$1" action="${2:-}" check="${3:-}" req rc
   need_ledger; need_item "$id"
   [[ -n "$action" ]] || fl_die "owner needs the exact action, e.g. \"Add STRIPE_SECRET_KEY (test mode) to .env.local\""
   [[ -n "$check" ]] || fl_die "owner needs a check command that exits 0 once the action is done, e.g. 'grep -q ^STRIPE_SECRET_KEY= .env.local'"
@@ -482,10 +494,38 @@ cmd_owner() {
   if [[ -n "$why" ]]; then
     fl_die "refusing: not an owner action — $why. If only the code is missing, the work is yours: ledger.sh fail $id, then research rounds (ledger.sh round $id, protocol §5.1). Owner actions are for credentials, accounts, paid plans, production, real emails/payments, DNS, store listings, legal review and merging, with a check that detects the owner's step (test -n \"\$KEY\", vercel whoami, dig +short …)."
   fi
-  set_status "$id" needs_owner "owner action: $action"
+  # Judgment the text rules can't make (is "billing" a bug or the owner's Stripe account?) belongs to
+  # the independent verifier, as for weakening amendments: nothing leaves the run without its APPROVE.
+  run_limited "${FINISH_OWNER_CHECK_TIMEOUT:-60}" "$check"; rc=$?
+  mkdir -p "$OWNER_DIR"
+  req="$OWNER_DIR/$id.request.md"
+  {
+    echo "# Owner action request — $id"
+    echo; echo "ITEM: $id"; echo "ACTION: $action"; echo "CHECK: $check"; echo "CHECK NOW: exit $rc"
+    echo; echo "## The item"; echo '```json'; jq --arg id "$id" '.items[] | select(.id == $id) | del(.evidence)' "$LEDGER"; echo '```'
+    if [[ -f "$FD/research/$id.md" ]]; then echo; echo "## Research so far"; head -80 "$FD/research/$id.md"; fi
+  } > "$req"
+  rm -f "$OWNER_DIR/$id.review.md"
+  echo "owner action for $id needs review. Spawn finish-verifier in owner mode with: ${req#"$ROOT"/}"
+  echo "then: ledger.sh owner --apply $id   (REJECT → it's yours: keep working it, protocol §5.1)"
+  return 3
+}
+
+owner_apply() { # <ID>: record an owner action the verifier approved
+  local id="$1" req review tmp action check
+  need_ledger; need_item "$id"
+  req="$OWNER_DIR/$id.request.md"; review="$OWNER_DIR/$id.review.md"
+  [[ -f "$req" ]] || fl_die "no request at ${req#"$ROOT"/} — run ledger.sh owner $id \"<action>\" \"<check>\" first"
+  [[ -f "$review" ]] || fl_die "no review at ${review#"$ROOT"/} — spawn finish-verifier in owner mode with: ${req#"$ROOT"/}"
+  grep -Eq "^REQUEST: *$(fl_sha < "$req")" "$review" || fl_die "review is for a different request (REQUEST hash mismatch)"
+  grep -Eq '^VERDICT: *APPROVE' "$review" || fl_die "the verifier rejected this owner action: the work is yours — ledger.sh fail $id / ledger.sh round $id (protocol §5.1)"
+  action="$(sed -n 's/^ACTION: //p' "$req" | head -1)"; check="$(sed -n 's/^CHECK: //p' "$req" | head -1)"
+  run_limited "${FINISH_OWNER_CHECK_TIMEOUT:-60}" "$check" && fl_die "the check passes now, so nothing is waiting on the owner; keep working $id"
+  set_status "$id" needs_owner "owner action (verifier-approved): $action"
   [[ -f "$OWNER" ]] || echo '{}' > "$OWNER"
   tmp="$(mktemp)"
-  jq --arg id "$id" --arg a "$action" --arg c "$check" --arg t "$(fl_now)" '.[$id] = {action: $a, check: $c, since: $t}' "$OWNER" > "$tmp" && mv "$tmp" "$OWNER"
+  jq --arg id "$id" --arg a "$action" --arg c "$check" --arg t "$(fl_now)" --arg r "$(fl_sha < "$req")" \
+    '.[$id] = {action: $a, check: $c, since: $t, request: $r}' "$OWNER" > "$tmp" && mv "$tmp" "$OWNER"
   owner_md
 }
 

@@ -20,10 +20,11 @@
 #
 #   finish.sh [--fresh] [repo]            default repo: current directory
 #
-# --fresh sets every previous run aside first (scripts/fresh.sh: archived, nothing deleted) and
-# starts the review over from the docs. A run an older version of the skill started (no
-# .finish/RUN) built its picture of the product without the checked brief; the runner starts
-# those fresh on its own, unless FINISH_KEEP_RUN=1.
+# The runner works on the finish-line branch, checking it out if it exists. --fresh sets every
+# previous run aside first (scripts/fresh.sh: archived, nothing deleted) and starts the review
+# over from the docs. A run an older version of the skill started (no .finish/RUN) built its
+# picture of the product without the checked brief; the runner starts those fresh on its own,
+# unless FINISH_KEEP_RUN=1.
 #
 # Env:
 #   MAX_SESSIONS=40          hard cap on sessions (your compute budget)
@@ -122,13 +123,17 @@ if dirty; then
   echo "• stashed uncommitted changes before the run (restore with: git stash pop)"
 fi
 
-# A run an older version of the skill started (no .finish/RUN, here or on the finish-line branch)
-# understood the product without a brief checked against the docs. Everything it built rests on
-# that reading, so it is set aside like --fresh.
-legacy_run() {
-  if [[ -f .finish/STATUS ]]; then [[ ! -f .finish/RUN ]]; return; fi
-  git cat-file -e refs/heads/finish-line:.finish/STATUS 2>/dev/null && ! git cat-file -e refs/heads/finish-line:.finish/RUN 2>/dev/null
-}
+# The run lives on finish-line (protocol §9): work there, so the checks below and every session
+# see the run itself, not a copy merged into another branch.
+if git rev-parse -q --verify refs/heads/finish-line >/dev/null && [[ "$(git symbolic-ref -q --short HEAD)" != finish-line ]]; then
+  git checkout -q finish-line || { echo "could not check out the finish-line branch"; exit 1; }
+  echo "• switched to the finish-line branch"
+fi
+
+# A run an older version of the skill started (no .finish/RUN) understood the product without a
+# brief checked against the docs. Everything it built rests on that reading, so it is set aside
+# like --fresh.
+legacy_run() { [[ -f .finish/STATUS && ! -f .finish/RUN ]]; }
 if [[ $FRESH -eq 0 && "${FINISH_KEEP_RUN:-}" != 1 ]] && legacy_run; then
   echo "• this run was started by an older finish-line, before the product brief was checked against the docs: starting the review fresh (FINISH_KEEP_RUN=1 keeps it)"
   FRESH=1

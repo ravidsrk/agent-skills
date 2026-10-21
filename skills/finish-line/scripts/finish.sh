@@ -118,19 +118,26 @@ KEEP=(':(exclude,glob)**/.env' ':(exclude,glob)**/.env.*')
 dirty() { [[ "$(git status --porcelain -uall -- . "${KEEP[@]}" 2>/dev/null | grep -cv ' \.finish/logs/')" -gt 0 ]]; }
 stash() { git stash push -u -q -m "$1" -- . "${KEEP[@]}" && ! dirty; }
 
-# Start from a clean tree: the run reverts by commit, so stash anything local first.
-if dirty; then
+stash_local() {
   stash "finish-line: local changes before run $(date +%Y-%m-%dT%H:%M)" \
     || { echo "uncommitted changes could not be stashed; commit or stash them, then rerun"; exit 1; }
   echo "• stashed uncommitted changes before the run (restore with: git stash pop)"
-fi
+}
 
 # The run lives on finish-line (protocol §9): work there, so the checks below and every session
-# see the run itself, not a copy merged into another branch.
+# see the run itself, not a copy merged into another branch. Switch before stashing: files that
+# finish-line ignores (evidence, logs, local settings) show as untracked on other branches, and a
+# stash would take them away from the run.
 if git rev-parse -q --verify refs/heads/finish-line >/dev/null && [[ "$(git symbolic-ref -q --short HEAD)" != finish-line ]]; then
-  git checkout -q finish-line || { echo "could not check out the finish-line branch"; exit 1; }
+  if ! git checkout -q finish-line 2>/dev/null; then
+    stash_local   # local changes that would be overwritten
+    git checkout -q finish-line || { echo "could not check out the finish-line branch"; exit 1; }
+  fi
   echo "• switched to the finish-line branch"
 fi
+
+# Start from a clean tree: the run reverts by commit, so stash anything local first.
+if dirty; then stash_local; fi
 
 # A run an older version of the skill started (no .finish/RUN) understood the product without a
 # brief checked against the docs. Everything it built rests on that reading, so it is set aside

@@ -1,0 +1,194 @@
+{
+  "product": "Tasklet",
+  "one_liner": "A to-do list that a new user can sign up for and use in under a minute, on phone or desktop.",
+  "items": [
+    {
+      "id": "G-000",
+      "type": "gate",
+      "priority": "P0",
+      "platforms": ["web"],
+      "title": "Fresh clone boots with no manual steps",
+      "source": "README.md#getting-started",
+      "acceptance": [
+        "Given a fresh clone of the repo on port 3100, when ./.finish/init.sh runs, then it exits 0 and GET / on that port returns 200"
+      ],
+      "verify": { "method": "command", "command": "d=$(mktemp -d) && git clone -q . \"$d/rc\" && cd \"$d/rc\" && PORT=3100 ./.finish/init.sh && curl -fsS -o /dev/null http://localhost:3100/; s=$?; kill \"$(cat \"$d/rc/.finish/logs/app.pid\" 2>/dev/null)\" 2>/dev/null; exit $s" },
+      "status": "failing",
+      "attempts": 0,
+      "evidence": [],
+      "notes": ""
+    },
+    {
+      "id": "J-001",
+      "type": "journey",
+      "priority": "P0",
+      "platforms": ["web"],
+      "title": "New user signs up and reaches an empty dashboard",
+      "source": "docs/PRD.md#onboarding",
+      "acceptance": [
+        "Given a new email, when the user completes signup, then they land on /dashboard",
+        "Given an already-registered email, when the user signs up, then an inline error is shown and no account is created",
+        "Given a signed-up user, when they reload /dashboard, then they are still signed in"
+      ],
+      "verify": { "method": "e2e-web", "spec": "e2e/finish/J-001.spec.ts" },
+      "status": "failing",
+      "attempts": 0,
+      "evidence": [],
+      "notes": ""
+    },
+    {
+      "id": "J-002",
+      "type": "journey",
+      "priority": "P0",
+      "platforms": ["web"],
+      "title": "User adds their first task and it persists",
+      "source": "docs/PRD.md#core-loop",
+      "acceptance": [
+        "Given a signed-in user with no tasks, when they open /dashboard, then an empty state invites them to add a task",
+        "Given a signed-in user, when they add a task titled 'Buy milk', then it appears at the top of the list",
+        "Given a task was added, when the user reloads the page, then the task is still listed",
+        "Given the tasks API returns 500, when the user adds a task, then an error message is shown and the typed text is kept"
+      ],
+      "verify": { "method": "e2e-web", "spec": "e2e/finish/J-002.spec.ts" },
+      "status": "failing",
+      "attempts": 0,
+      "evidence": [],
+      "notes": ""
+    },
+    {
+      "id": "J-003",
+      "type": "journey",
+      "priority": "P0",
+      "platforms": ["web"],
+      "title": "Returning user logs back in and finds their tasks",
+      "source": "docs/PRD.md#retention",
+      "acceptance": [
+        "Given a user with tasks, when they log out, then they land on / and /dashboard redirects to /login",
+        "Given a logged-out user with tasks, when they log in with the right password, then their tasks are listed",
+        "Given a logged-out user, when they log in with a wrong password, then an inline error is shown and they stay on /login"
+      ],
+      "verify": { "method": "e2e-web", "spec": "e2e/finish/J-003.spec.ts" },
+      "status": "failing",
+      "attempts": 0,
+      "evidence": [],
+      "notes": ""
+    },
+    {
+      "id": "J-004",
+      "type": "journey",
+      "priority": "P0",
+      "platforms": ["web"],
+      "title": "User resets a forgotten password by email",
+      "source": "docs/specs/auth.md#reset",
+      "acceptance": [
+        "Given a registered email, when the user requests a reset, then a reset email arrives in Mailpit within 10 seconds",
+        "Given a reset link, when the user sets a new password, then they can log in with it and not with the old one",
+        "Given a used or expired reset link, when the user opens it, then an error explains the link is no longer valid"
+      ],
+      "verify": { "method": "e2e-web", "spec": "e2e/finish/J-004.spec.ts" },
+      "status": "failing",
+      "attempts": 0,
+      "evidence": [],
+      "notes": ""
+    },
+    {
+      "id": "G-001",
+      "type": "gate",
+      "priority": "P0",
+      "platforms": ["web"],
+      "title": "Production build succeeds",
+      "source": "launch gate",
+      "acceptance": [
+        "Given a clean install, when the production build runs, then it exits 0 with no type errors"
+      ],
+      "verify": { "method": "command", "command": "npm ci && npm run build" },
+      "status": "failing",
+      "attempts": 0,
+      "evidence": [],
+      "notes": ""
+    },
+    {
+      "id": "G-002",
+      "type": "gate",
+      "priority": "P0",
+      "platforms": ["web"],
+      "title": "P0 screens are responsive and accessible",
+      "source": "launch gate",
+      "acceptance": [
+        "Given each P0 screen, when it loads at 375x812 and at 1440x900, then nothing overflows horizontally and no control is clipped",
+        "Given each P0 screen, when axe runs, then it reports no serious or critical violations"
+      ],
+      "verify": { "method": "e2e-web", "spec": "e2e/finish/G-002.spec.ts" },
+      "status": "failing",
+      "attempts": 0,
+      "evidence": [],
+      "notes": ""
+    },
+    {
+      "id": "G-003",
+      "type": "gate",
+      "priority": "P0",
+      "platforms": ["web"],
+      "title": "No leaked secrets, no critical dependency vulnerabilities, env documented",
+      "source": "launch gate",
+      "acceptance": [
+        "Given the full git history, when gitleaks scans it, then it reports no leaks",
+        "Given the lockfile, when the dependency audit runs, then it reports no critical vulnerabilities",
+        "Given the source, when every environment variable it reads is listed, then each one appears in .env.example"
+      ],
+      "verify": { "method": "command", "command": "gitleaks git --no-banner && npm audit --audit-level=critical --omit=dev && node scripts/check-env-example.mjs" },
+      "status": "failing",
+      "attempts": 0,
+      "evidence": [],
+      "notes": ""
+    },
+    {
+      "id": "G-004",
+      "type": "gate",
+      "priority": "P0",
+      "platforms": ["web"],
+      "title": "P0 journeys pass on a deployed preview",
+      "source": "launch gate",
+      "acceptance": [
+        "Given the preview URL in .finish/PREVIEW_URL, when the P0 journey specs run against it, then they all pass"
+      ],
+      "verify": { "method": "command", "command": "BASE_URL=\"$(cat .finish/PREVIEW_URL)\" npx playwright test -c e2e/finish/playwright.config.ts J-" },
+      "status": "failing",
+      "attempts": 0,
+      "evidence": [],
+      "notes": ""
+    },
+    {
+      "id": "F-010",
+      "type": "feature",
+      "priority": "P1",
+      "platforms": ["web"],
+      "title": "Dark mode follows the system setting",
+      "source": "docs/PRD.md#polish",
+      "acceptance": [
+        "Given the OS prefers dark, when the user opens /dashboard, then the dark theme is applied with readable contrast"
+      ],
+      "verify": { "method": "e2e-web", "spec": "e2e/finish/F-010.spec.ts" },
+      "status": "failing",
+      "attempts": 0,
+      "evidence": [],
+      "notes": ""
+    },
+    {
+      "id": "F-020",
+      "type": "feature",
+      "priority": "P2",
+      "platforms": ["web"],
+      "title": "Tasks with due dates sync to Google Calendar",
+      "source": "docs/PRD.md#phase-2",
+      "acceptance": [
+        "Given a connected Google account, when the user adds a task with a due date, then a matching calendar event is created"
+      ],
+      "verify": { "method": "e2e-web", "spec": "e2e/finish/F-020.spec.ts" },
+      "status": "failing",
+      "attempts": 0,
+      "evidence": [],
+      "notes": ""
+    }
+  ]
+}

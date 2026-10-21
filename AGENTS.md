@@ -4,7 +4,7 @@ This file provides guidance to AI coding agents (Claude Code, Cursor, GitHub Cop
 
 # Repository Overview
 
-A collection of production-grade **capability skills** for AI agents, focused on real infrastructure and content work — DNS migration, AWS migration, multi-source research, viral image generation. Each skill is battle-tested in production, not theoretical.
+A collection of production-grade **capability skills** for AI agents, focused on real infrastructure and content work — DNS migration, AWS migration, multi-source research, product finishing, viral image generation. Each skill is battle-tested in production, not theoretical.
 
 Unlike SDLC-shaped skill packs (e.g. `addyosmani/agent-skills`), these are discrete tools an agent reaches for when the task requires them, not lifecycle steps that fire in sequence.
 
@@ -26,6 +26,7 @@ When working in this repo:
 | "Add a CNAME / MX / A record on Namecheap" / "link my domain to my Fly/Vercel app" | [`namecheap-dns`](skills/namecheap-dns/SKILL.md) |
 | "Migrate from Fly to AWS" / "leave Fly" / "ECS migration" / "AWS migration" | [`fly-to-aws-migration`](skills/fly-to-aws-migration/SKILL.md) |
 | "Research X" / "deep dive on Y" / "what's the discourse on Z" | [`deep-research`](skills/deep-research/SKILL.md) |
+| "Finish this product" / "take it to launch" / "verify what actually works" / "the AI says it's done but it isn't" | [`finish-line`](skills/finish-line/SKILL.md) |
 | "Generate a viral poster" / "terminal aesthetic infographic" / "agent stack visualization" | [`terminal-poster`](skills/terminal-poster/SKILL.md) |
 
 # Execution Model

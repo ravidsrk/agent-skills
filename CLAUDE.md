@@ -1,11 +1,11 @@
 # agent-skills
 
-Production-grade skills for AI agents — DNS migration, AWS migration, deep research, viral image generation.
+Production-grade skills for AI agents — DNS migration, AWS migration, deep research, product finishing, viral image generation.
 
 # Project Structure
 
 ```
-skills/        → 5 capability skills (each with SKILL.md + README.md; scripts/ references/
+skills/        → 6 capability skills (each with SKILL.md + README.md; scripts/ references/
                  templates/ assets/ as needed)
 docs/          → Per-runtime setup guides + skill-anatomy spec
 scripts/       → Repo-level helpers (validate-skills.py) + banner/ (repo hero reproducer)
@@ -25,9 +25,10 @@ The autonomous Orca fleets (spec-to-ship, clean-sweep, and the rest) moved to th
 | `namecheap-dns` | 🌐 Infrastructure | Namecheap XML API wrapper (handles wholesale-replace quirk) |
 | `fly-to-aws-migration` | 🌐 Infrastructure | 7-phase Fly.io → AWS playbook with ≤9 min downtime |
 | `deep-research` | 🔍 Research | 8-source parallel evidence orchestrator (X, Reddit, HN, GitHub, Polymarket, YouTube, Exa) |
+| `finish-line` | 🛠️ Dev workflow | Drives a half-built product to verified launch (frozen ledger, visual checks, verifier, tamper guards) |
 | `terminal-poster` | 🎨 Creative | Retro-cyberpunk image posters (5 reusable templates, Nano Banana Pro) |
 
-All five are cataloged in [README.md](README.md) and mapped to trigger intents in
+All six are cataloged in [README.md](README.md) and mapped to trigger intents in
 [AGENTS.md](AGENTS.md).
 
 # Conventions

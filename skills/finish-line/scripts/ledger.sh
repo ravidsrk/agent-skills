@@ -323,6 +323,9 @@ cmd_issue() {
   done
   [[ -n "$title" && "$crit" != '[]' ]] || fl_die "usage: ledger.sh issue $ISSUE_ARGS"
   [[ -n "$priority" ]] || priority="P$(fl_scope_n "$FD")"
+  local dup
+  dup="$(jq -r --arg t "$title" '[.items[] | select(.type == "issue" and (.title | ascii_downcase) == ($t | ascii_downcase)) | .id][0] // empty' "$LEDGER")"
+  [[ -z "$dup" ]] || fl_die "already filed as $dup — work that item (ledger.sh show $dup)"
   n="$(jq -r '[.items[].id | select(test("^I-[0-9]{3}$")) | ltrimstr("I-") | tonumber] | max // 0' "$LEDGER")"
   id="$(printf 'I-%03d' $((n + 1)))"
   if [[ -n "$command" ]]; then method="command"

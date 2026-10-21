@@ -277,8 +277,8 @@ upgrade_project() {
         cp "$SKILL/templates/finish-verifier.md" .claude/agents/finish-verifier.md
         runner_commit "chore(finish): runner refreshes the verifier agent" .claude/agents/finish-verifier.md
         echo "• refreshed .claude/agents/finish-verifier.md"
-      elif ! grep -q '^## Amendment mode' .claude/agents/finish-verifier.md; then
-        echo "⚠ .claude/agents/finish-verifier.md is customised and has no amendment mode; merge $SKILL/templates/finish-verifier.md into it"
+      elif ! grep -q '^## Amendment mode' .claude/agents/finish-verifier.md || ! grep -q '^## Freeze mode' .claude/agents/finish-verifier.md; then
+        echo "⚠ .claude/agents/finish-verifier.md is customised and lacks freeze or amendment mode; merge $SKILL/templates/finish-verifier.md into it"
       fi
     fi
   fi

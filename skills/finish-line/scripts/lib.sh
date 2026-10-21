@@ -4,7 +4,7 @@
 # shellcheck disable=SC2034  # variables are used by the scripts that source this file
 
 FL_STATUSES="failing passing stuck needs_owner"
-FL_TYPES="journey feature gate"
+FL_TYPES="journey feature gate issue"
 FL_METHODS="e2e-web e2e-mobile api command"
 
 # A test-looking path: test dirs, *.test.ts / *.spec.ts, *_test.py, test_*.py, *Test.kt, Maestro flows.

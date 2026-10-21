@@ -21,6 +21,10 @@
 #   ledger.sh stuck <ID> "<why>"    pause now
 #   ledger.sh round <ID>            next research round for a stuck item: back to failing, attempts 0.
 #                                   Unlimited; each round escalates (protocol §5.1). round2 is an alias.
+#   ledger.sh issue --title "<t>" --given "<Given … when … then …>" [--given …] [--priority P0]
+#                   [--platform web] [--source <evidence>] [--spec <path> | --command "<cmd>"]
+#                                   add a defect found during the run as a new I-### item (additive
+#                                   amendment, applies at once), so it gets fixed and verified like any item
 #   ledger.sh owner <ID> "<owner action>" "<check cmd>"   park as needs_owner; check exits 0 once done
 #   ledger.sh owner-check           re-run owner checks; reopen items whose check now passes
 #   ledger.sh done-check            which terminal STATUS the ledger supports: LAUNCH_READY,
@@ -85,7 +89,7 @@ cmd_validate() {
       (if (.items | type) != "array" or (.items | length) == 0 then "ledger: items must be a non-empty array" else empty end),
       ((.items // []) | group_by(.id)[] | select(length > 1) | "\(.[0].id): duplicate id"),
       ((.items // [])[] | . as $i | ($i.id // "?") as $id |
-        (if ($id | test("^[A-Z]+-[0-9]{3}$")) | not then err($id; "id must look like J-001 / F-001 / G-001") else empty end),
+        (if ($id | test("^[A-Z]+-[0-9]{3}$")) | not then err($id; "id must look like J-001 / F-001 / G-001 / I-001") else empty end),
         (if ($T | index($i.type)) == null then err($id; "type must be one of \($T | join(", "))") else empty end),
         (if (["P0","P1","P2"] | index($i.priority)) == null then err($id; "priority must be P0, P1 or P2") else empty end),
         (if ($i.title | type) != "string" or $i.title == "" then err($id; "title required") else empty end),
@@ -294,6 +298,48 @@ cmd_round() {
   set_status "$id" failing "research round $n: $(ladder_step "$n")" " | .attempts = 0" >/dev/null
   echo "$id → failing, research round $n: $(ladder_step "$n")"
   echo "Read .finish/research/$id.md first; log this round there (hypothesis · evidence · sources · change · result) and commit it."
+}
+
+ISSUE_ARGS='--title "<t>" --given "<Given …, when …, then …>" [--given …] [--priority P0|P1|P2] [--platform web|android|ios|api|cli] [--source <evidence>] [--spec <path> | --command "<cmd>"]'
+cmd_issue() {
+  need_ledger
+  [[ -f "$FD/FREEZE" ]] || fl_die "not frozen yet — add the defect to .finish/ledger.json directly before ledger.sh lock"
+  local title="" priority="" platform="web" source="" spec="" command="" crit='[]' id n method
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --title) title="${2:-}"; shift ;;
+      --given) crit="$(jq -c --arg c "${2:-}" '. + [$c]' <<< "$crit")"; shift ;;
+      --priority) priority="${2:-}"; shift ;;
+      --platform) platform="${2:-}"; shift ;;
+      --source) source="${2:-}"; shift ;;
+      --spec) spec="${2:-}"; shift ;;
+      --command) command="${2:-}"; shift ;;
+      *) fl_die "unknown argument: $1 — usage: ledger.sh issue $ISSUE_ARGS" ;;
+    esac
+    shift
+  done
+  [[ -n "$title" && "$crit" != '[]' ]] || fl_die "usage: ledger.sh issue $ISSUE_ARGS"
+  [[ -n "$priority" ]] || priority="P$(fl_scope_n "$FD")"
+  n="$(jq -r '[.items[].id | select(test("^I-[0-9]{3}$")) | ltrimstr("I-") | tonumber] | max // 0' "$LEDGER")"
+  id="$(printf 'I-%03d' $((n + 1)))"
+  if [[ -n "$command" ]]; then method="command"
+  elif [[ -n "$spec" ]]; then
+    case "$spec" in *.spec.ts|*.spec.js|*.spec.mjs|*.spec.cjs) method=e2e-web ;; *.yaml|*.yml) method=e2e-mobile ;; *) method=api ;; esac
+  else
+    case "$platform" in
+      web) method=e2e-web; spec="e2e/finish/$id.spec.ts" ;;
+      android|ios) method=e2e-mobile; spec=".maestro/finish/$id.yaml" ;;
+      *) fl_die "platform $platform has no default spec: give --spec <tests/finish/…> or --command \"<cmd>\"" ;;
+    esac
+  fi
+  jq --arg id "$id" --arg t "$title" --arg p "$priority" --arg pl "$platform" --arg src "${source:-found during the run}" \
+     --arg m "$method" --arg sp "$spec" --arg cmd "$command" --argjson crit "$crit" '
+    .items += [{id: $id, type: "issue", priority: $p, platforms: [$pl], title: $t, source: $src, acceptance: $crit,
+                verify: (if $m == "command" then {method: $m, command: $cmd} else {method: $m, spec: $sp} end),
+                status: "failing", attempts: 0, evidence: [], notes: ""}]' "$LEDGER" > "$PROPOSED" \
+    || fl_die "could not build the proposed ledger"
+  cmd_amend "defect $id: $title" || return $?
+  echo "$id added ($priority, $method${spec:+ $spec}). Work it like any item: test first (protocol §5a)."
 }
 
 
@@ -677,6 +723,7 @@ case "$sub" in
   reopen) set_status "${1:-}" failing "${2:-}" " | .attempts = 0" ;;
   regress) [[ -n "${2:-}" ]] || fl_die "regress needs a one-line reason"; set_status "${1:-}" failing "regressed: $2" ;;
   round|round2) cmd_round "${1:-}" ;;
+  issue) cmd_issue "$@" ;;
   hash) need_ledger; fl_criteria_hash "$LEDGER" ;;
   state) fl_code_state ;;
   run-commands) cmd_run_commands "${1:-}" ;;

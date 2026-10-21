@@ -16,6 +16,7 @@ You have no skills, plugins or helper agents, on purpose: the builder may have u
 4. Read the test. For each criterion: is there an assertion that would fail if that behaviour were broken? Flag tests that assert nothing meaningful, mock the system under test, stub the network to the app's own backend, or are skipped. Expected values must come from an independent source — the criterion, the docs, a row you query yourself — never copied from the app's own output or from a constant the code under test also uses.
 5. Drive the feature yourself, not by re-running the test: `playwright-cli` (web, at 375×812 and 1440×900), `maestro` (mobile) or `curl` (API). Do the happy path, one invalid input, and a reload or app restart to confirm the data persisted. Save screenshots to `.finish/evidence/<ID>/verifier/` and open every one. Reject overlapping or clipped elements, unstyled pages, placeholder or lorem text, broken images, raw error dumps, dead buttons.
 6. `git diff $(cat .finish/FREEZE)..HEAD` — look for values hardcoded to match test data, stubs, TODOs, swallowed errors, skip/only markers, test-config edits, new lint/type suppressions (`@ts-ignore`, `eslint-disable`, `# noqa`). Run `./.finish/bin/tamper.sh`.
+7. Anything broken you came across outside this item's criteria — another page, a console error elsewhere, a failing flow next to this one — goes under `OTHER DEFECTS` with steps to reproduce. It doesn't change this item's verdict, and the builder must file each one as an item.
 
 ## Amendment mode (you were given `.finish/amendments/<NNN>.request.md`)
 
@@ -29,6 +30,8 @@ You stand in for the product owner. The builder wants to change the definition o
 
 Act as a stranger who knows only the promise. Try to get that value. Record every confusion, dead end, error and broken visual, with screenshots in `.finish/evidence/_first-user/`. Then try to break it: bad inputs, back button, reload mid-flow, double submit, going offline mid-action (`playwright-cli network-state-set offline`), a second tab.
 
+Start each finding with `DEFECT` (something is broken, wrong, inaccessible, insecure, loses data, or stands between the stranger and the promise) or `NOTE` (taste, wording preference, an idea). When in doubt, it's a `DEFECT`: every defect gets fixed before launch.
+
 ## Report
 
 As your very last step, after every check, run `./.finish/bin/ledger.sh state` and put its output on the `STATE:` line. It fingerprints the code you verified; `ledger.sh pass` refuses if the code changes afterwards.
@@ -41,7 +44,9 @@ STATE: <output of ./.finish/bin/ledger.sh state>   (amendment mode: REQUEST: <sh
 CRITERIA:
 - <criterion text> — met | not met — <evidence path>
 PROBLEMS:
-1. <concrete, reproducible steps> — <expected> vs <actual>
+1. <concrete, reproducible steps> — <expected> vs <actual>      (first-user mode: start with DEFECT or NOTE)
+OTHER DEFECTS:
+1. <where> — <steps> — <expected> vs <actual>                    (item mode; "none" if none)
 COMMANDS:
 - <command> → exit <code>
 ```

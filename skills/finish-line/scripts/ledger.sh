@@ -31,7 +31,8 @@
 #   ledger.sh amend "<why>"         change the definition of done from .finish/ledger.proposed.json
 #   ledger.sh amend --rebaseline "<why>"   move FREEZE to HEAD (a gate change tamper.sh flags)
 #   ledger.sh amend --apply <NNN>   apply an amendment the verifier approved
-#   ledger.sh amend-verify <lock> <freeze> <count>   check the amendment chain (used by the runner)
+#   ledger.sh amend-verify <lock> <freeze> <count> <ledger>   re-check the amendment chain (used by the runner)
+#   ledger.sh migrate               reopen items left in the old blocked_human status
 
 set -uo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -354,6 +355,22 @@ cmd_owner() {
   owner_md
 }
 
+# Run a shell check with a time limit (portable: no coreutils timeout on macOS). 124 = timed out.
+run_limited() {
+  local secs="$1" cmd="$2" pid t=0
+  bash -c "$cmd" >/dev/null 2>&1 &
+  pid=$!
+  while kill -0 "$pid" 2>/dev/null; do
+    if [[ $t -ge $((secs * 10)) ]]; then
+      pkill -P "$pid" 2>/dev/null; kill "$pid" 2>/dev/null; sleep 0.2; kill -9 "$pid" 2>/dev/null
+      wait "$pid" 2>/dev/null
+      return 124
+    fi
+    sleep 0.1; t=$((t + 1))
+  done
+  wait "$pid"
+}
+
 cmd_owner_check() {
   need_ledger
   [[ -f "$OWNER" ]] || { owner_md; echo "owner-check: nothing waiting"; return 0; }
@@ -364,7 +381,7 @@ cmd_owner_check() {
     if [[ "$(item_field "$id" status)" != "needs_owner" ]]; then
       tmp="$(mktemp)"; jq --arg id "$id" 'del(.[$id])' "$OWNER" > "$tmp" && mv "$tmp" "$OWNER"; continue
     fi
-    if bash -c "$check" >/dev/null 2>&1; then
+    if run_limited "${FINISH_OWNER_CHECK_TIMEOUT:-60}" "$check"; then
       set_status "$id" failing "owner action detected: $action" " | .attempts = 0" >/dev/null
       tmp="$(mktemp)"; jq --arg id "$id" 'del(.[$id])' "$OWNER" > "$tmp" && mv "$tmp" "$OWNER"
       reopened="$reopened $id"
@@ -372,6 +389,19 @@ cmd_owner_check() {
   done < <(jq -c 'to_entries[] | [.key, .value.check, .value.action]' "$OWNER")
   owner_md
   if [[ -n "$reopened" ]]; then echo "owner-check: reopened$reopened"; else echo "owner-check: still waiting on $(jq 'length' "$OWNER")"; fi
+}
+
+# Products started before needs_owner existed: reopen their blocked_human items so the
+# agent re-evaluates them and, if still needed, records a proper owner action with a check.
+cmd_migrate() {
+  need_ledger
+  local ids
+  ids="$(jq -r '.items[] | select(.status == "blocked_human") | .id' "$LEDGER")"
+  [[ -n "$ids" ]] || { echo "migrate: nothing to do"; return 0; }
+  for id in $ids; do
+    set_status "$id" failing "migrated from blocked_human: re-evaluate; if it still needs the owner, record ledger.sh owner with a check" " | .attempts = 0" >/dev/null
+  done
+  echo "migrate: reopened $(printf '%s' "$ids" | tr '\n' ' ')"
 }
 
 cmd_done_check() {
@@ -398,8 +428,14 @@ AMD_DIR="$FD/amendments"
 AMD_LOG="$FD/amendments.jsonl"
 PROPOSED="$FD/ledger.proposed.json"
 
-amd_next_n() { local n; n="$(cat "$AMD_LOG" 2>/dev/null | wc -l | tr -d ' ')"; printf '%03d' $((n + 1)); }
-amd_weakening_count() { jq -s '[.[] | select(.class == "weakening")] | length' "$AMD_LOG" 2>/dev/null || echo 0; }
+amd_next_n() { # next number across applied (log) and pending (request files) amendments
+  local n m
+  n="$(cat "$AMD_LOG" 2>/dev/null | wc -l | tr -d ' ')"
+  m="$(find "$AMD_DIR" -name '[0-9][0-9][0-9].request.md' 2>/dev/null | sed 's|.*/||; s|\.request\.md$||; s/^0*//' | sort -n | tail -1)"
+  [[ -n "$m" && "$m" -gt "$n" ]] && n="$m"
+  printf '%03d' $((n + 1))
+}
+amd_weakening_count() { if [[ -s "$AMD_LOG" ]]; then jq -s '[.[] | select(.class == "weakening")] | length' "$AMD_LOG"; else echo 0; fi; }
 
 # shellcheck disable=SC2016  # jq program
 AMD_VIEW='def view: del(.status, .attempts, .evidence, .notes); def pn: .priority | ltrimstr("P") | tonumber;'
@@ -413,7 +449,7 @@ amd_class() { # amd_class <old ledger> <new ledger> → strengthening | weakenin
          $ni != null and $ni.type == $oi.type and ($ni | pn) <= ($oi | pn)
          and (($oi.platforms - $ni.platforms) | length) == 0
          and (($oi.acceptance - $ni.acceptance) | length) == 0
-         and $ni.verify == $oi.verify)
+         and $ni.verify == $oi.verify and $ni.title == $oi.title and ($ni.source // "") == ($oi.source // ""))
     then "strengthening" else "weakening" end'
 }
 
@@ -442,7 +478,7 @@ amd_log() { # amd_log n kind class reason lock_before lock_after freeze_before f
       freeze_before: $fb, freeze_after: $fa, request: $req, review: (if $rev == "" then null else $rev end)}' >> "$AMD_LOG"
 }
 
-amd_apply_ledger() { # merge mutable fields from the current ledger into the proposed one, then install it
+amd_apply_ledger() { # amd_apply_ledger <n>: merge mutable fields from the current ledger into the proposed one, install it, snapshot it
   local tmp
   tmp="$(mktemp)"
   jq --slurpfile cur "$LEDGER" "$AMD_VIEW"'
@@ -454,6 +490,7 @@ amd_apply_ledger() { # merge mutable fields from the current ledger into the pro
       end)' "$PROPOSED" > "$tmp" || { rm -f "$tmp"; fl_die "could not merge the proposed ledger"; }
   mv "$tmp" "$LEDGER"
   rm -f "$PROPOSED"
+  cp "$LEDGER" "$AMD_DIR/$1.ledger.json"
 }
 
 cmd_amend() {
@@ -471,6 +508,7 @@ cmd_amend() {
 
   if [[ "$mode" == "apply" ]]; then
     [[ -n "$applyn" && -f "$AMD_DIR/$applyn.request.md" ]] || fl_die "no request $AMD_DIR/$applyn.request.md"
+    if jq -e --arg n "$applyn" 'select(.n == $n)' "$AMD_LOG" >/dev/null 2>&1; then fl_die "amendment $applyn was already applied"; fi
     local review="$AMD_DIR/$applyn.review.md" reqhash kind
     reqhash="$(fl_sha < "$AMD_DIR/$applyn.request.md")"
     [[ -f "$review" ]] || fl_die "no review at $review — spawn finish-verifier in amendment mode with: $AMD_DIR/$applyn.request.md"
@@ -482,13 +520,16 @@ cmd_amend() {
     if [[ "$kind" == "rebaseline" ]]; then
       local want_head; want_head="$(sed -n 's/^HEAD: *//p' "$AMD_DIR/$applyn.request.md" | head -1)"
       [[ "$(git rev-parse HEAD)" == "$want_head" ]] || fl_die "HEAD moved since the rebaseline request; propose it again"
+      [[ "$(sed -n 's/^FREEZE: *//p' "$AMD_DIR/$applyn.request.md" | head -1)" == "$freeze_before" ]] || fl_die "FREEZE moved since request $applyn; propose it again"
       git rev-parse HEAD > "$FD/FREEZE"
       amd_log "$applyn" rebaseline weakening "$reason" "$lock_before" "$lock_before" "$freeze_before" "$(cat "$FD/FREEZE")" "$AMD_DIR/$applyn.request.md" "$review"
       echo "amendment $applyn applied: FREEZE → $(cat "$FD/FREEZE")"
     else
       local want_after; want_after="$(sed -n 's/^AFTER: *//p' "$AMD_DIR/$applyn.request.md" | head -1)"
+      [[ "$(sed -n 's/^BEFORE: *//p' "$AMD_DIR/$applyn.request.md" | head -1)" == "$lock_before" ]] \
+        || fl_die "the definition of done changed since request $applyn was reviewed; propose it again"
       [[ -f "$PROPOSED" && "$(fl_criteria_hash "$PROPOSED")" == "$want_after" ]] || fl_die ".finish/ledger.proposed.json no longer matches request $applyn"
-      amd_apply_ledger
+      amd_apply_ledger "$applyn"
       fl_criteria_hash "$LEDGER" > "$FD/LEDGER.lock"
       amd_log "$applyn" ledger weakening "$reason" "$lock_before" "$(cat "$FD/LEDGER.lock")" "$freeze_before" "$freeze_before" "$AMD_DIR/$applyn.request.md" "$review"
       echo "amendment $applyn applied: criteria $(cat "$FD/LEDGER.lock")"
@@ -529,7 +570,7 @@ cmd_amend() {
     echo; echo "## Changes"; amd_diff "$LEDGER" "$PROPOSED"
   } > "$req"
   if [[ "$class" == "strengthening" ]]; then
-    amd_apply_ledger
+    amd_apply_ledger "$n"
     fl_criteria_hash "$LEDGER" > "$FD/LEDGER.lock"
     amd_log "$n" ledger strengthening "$reason" "$lock_before" "$(cat "$FD/LEDGER.lock")" "$freeze_before" "$freeze_before" "$req" ""
     echo "amendment $n applied (strengthening, no review needed): criteria $(cat "$FD/LEDGER.lock")"
@@ -541,31 +582,47 @@ cmd_amend() {
   return 3
 }
 
-# amend-verify <old lock> <old freeze> <old log line count>: the lock/FREEZE moved
-# only through logged amendments, and every weakening one carries an APPROVE review.
+# amend-verify <old lock> <old freeze> <old log line count> <ledger at session start>:
+# the lock/FREEZE moved only through logged amendments. Nothing in the log is
+# trusted: each ledger step is recomputed from its snapshot, and every step that
+# isn't purely additive — and every FREEZE move — needs an APPROVE review bound
+# to its request.
 cmd_amend_verify() {
-  local old_lock="$1" old_freeze="$2" old_n="$3" lock freeze total
+  local old_lock="$1" old_freeze="$2" old_n="$3" prev="$4" lock freeze total
   lock="$(tr -d '[:space:]' < "$FD/LEDGER.lock" 2>/dev/null)"; freeze="$(tr -d '[:space:]' < "$FD/FREEZE" 2>/dev/null)"
   total="$(cat "$AMD_LOG" 2>/dev/null | wc -l | tr -d ' ')"
   if [[ "$lock" == "$old_lock" && "$freeze" == "$old_freeze" ]]; then echo "AMENDMENTS: none"; return 0; fi
   [[ "$total" -gt "$old_n" ]] || { echo "AMENDMENTS: lock or FREEZE changed with no logged amendment"; return 1; }
-  local cl="$old_lock" cf="$old_freeze" rec lb la fb fa class req rev
+  [[ -f "$prev" && "$(fl_criteria_hash "$prev")" == "$old_lock" ]] || { echo "AMENDMENTS: no trusted snapshot of the starting ledger"; return 1; }
+  local cl="$old_lock" cf="$old_freeze" rec n lb la fb fa logged class req rev snap weak=0
+  weak=0; [[ "$old_n" -gt 0 ]] && weak="$(head -n "$old_n" "$AMD_LOG" | jq -s '[.[] | select(.class == "weakening")] | length')"
   while IFS= read -r rec; do
+    n="$(printf '%s' "$rec" | jq -r .n)"
     lb="$(printf '%s' "$rec" | jq -r .lock_before)"; la="$(printf '%s' "$rec" | jq -r .lock_after)"
     fb="$(printf '%s' "$rec" | jq -r .freeze_before)"; fa="$(printf '%s' "$rec" | jq -r .freeze_after)"
-    class="$(printf '%s' "$rec" | jq -r .class)"; req="$(printf '%s' "$rec" | jq -r .request)"; rev="$(printf '%s' "$rec" | jq -r '.review // ""')"
-    [[ "$lb" == "$cl" && "$fb" == "$cf" ]] || { echo "AMENDMENTS: broken chain at $(printf '%s' "$rec" | jq -r .n)"; return 1; }
-    [[ "$class" == "strengthening" || "$class" == "weakening" ]] || { echo "AMENDMENTS: a session logged a '$class' amendment (runner-only)"; return 1; }
+    logged="$(printf '%s' "$rec" | jq -r .class)"; req="$(printf '%s' "$rec" | jq -r '.request // ""')"; rev="$(printf '%s' "$rec" | jq -r '.review // ""')"
+    [[ "$lb" == "$cl" && "$fb" == "$cf" ]] || { echo "AMENDMENTS: broken chain at $n"; return 1; }
+    if [[ "$fa" != "$fb" ]]; then
+      [[ "$la" == "$lb" ]] || { echo "AMENDMENTS: $n moves FREEZE and the criteria at once"; return 1; }
+      class=weakening
+    else
+      snap="$AMD_DIR/$n.ledger.json"
+      [[ -f "$snap" && "$(fl_criteria_hash "$snap")" == "$la" ]] || { echo "AMENDMENTS: $n has no matching ledger snapshot"; return 1; }
+      class="$(amd_class "$prev" "$snap")"
+      prev="$snap"
+    fi
+    [[ "$logged" == "$class" ]] || { echo "AMENDMENTS: $n is logged as $logged but is $class"; return 1; }
     if [[ "$class" == "weakening" ]]; then
-      [[ -f "$req" && -f "$rev" ]] || { echo "AMENDMENTS: $(printf '%s' "$rec" | jq -r .n) has no request/review on disk"; return 1; }
+      weak=$((weak + 1))
+      [[ -f "$req" && -f "$rev" ]] || { echo "AMENDMENTS: $n has no request/review on disk"; return 1; }
       if ! grep -Eq '^VERDICT: *APPROVE' "$rev" || ! grep -Eq "^REQUEST: *$(fl_sha < "$req")" "$rev"; then
-        echo "AMENDMENTS: $(printf '%s' "$rec" | jq -r .n) is not approved for this exact request"; return 1
+        echo "AMENDMENTS: $n is not approved for this exact request"; return 1
       fi
     fi
     cl="$la"; cf="$fa"
   done < <(tail -n "$((total - old_n))" "$AMD_LOG")
   [[ "$cl" == "$lock" && "$cf" == "$freeze" ]] || { echo "AMENDMENTS: current lock/FREEZE don't match the last amendment"; return 1; }
-  [[ "$(amd_weakening_count)" -le "${FINISH_MAX_AMENDMENTS:-5}" ]] || { echo "AMENDMENTS: over the cap"; return 1; }
+  [[ "$weak" -le "${FINISH_MAX_AMENDMENTS:-5}" ]] || { echo "AMENDMENTS: over the cap"; return 1; }
   echo "AMENDMENTS: $((total - old_n)) verified"
 }
 
@@ -584,7 +641,8 @@ case "$sub" in
   owner-check) cmd_owner_check ;;
   done-check) cmd_done_check ;;
   amend) cmd_amend "$@" ;;
-  amend-verify) cmd_amend_verify "${1:-}" "${2:-}" "${3:-0}" ;;
+  amend-verify) cmd_amend_verify "${1:-}" "${2:-}" "${3:-0}" "${4:-}" ;;
+  migrate) cmd_migrate ;;
   reopen) set_status "${1:-}" failing "${2:-}" " | .attempts = 0" ;;
   regress) [[ -n "${2:-}" ]] || fl_die "regress needs a one-line reason"; set_status "${1:-}" failing "regressed: $2" ;;
   round2) cmd_round2 "${1:-}" ;;

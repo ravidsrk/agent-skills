@@ -177,7 +177,7 @@ finish-line/
 ├── templates/
 │   ├── verify.sh                   ← gate template
 │   ├── finish-verifier.md          ← verifier subagent (item, amendment and first-user modes)
-│   ├── claude-settings.local.json  ← no permission prompts or questions in interactive sessions
+│   ├── claude-settings.local.json  ← no permission prompts or questions in interactive sessions (+ .history)
 │   ├── ledger.example.json
 │   ├── e2e/                        ← playwright.config.ts · finish-fixture.ts · J-001.example.spec.ts
 │   └── maestro/J-001.example.yaml

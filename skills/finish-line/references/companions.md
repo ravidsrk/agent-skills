@@ -64,7 +64,7 @@ Every runner session gets `--settings "$(companions.sh policy --runner)"`. Flag-
 - **`disableAllHooks: true`:** Finish Line uses no hooks, and third-party hooks are exactly what would interfere — superpowers' and pstack's session-start routers, gstack's Stop hook, and whatever hooks the half-built product repo ships. `FINISH_KEEP_HOOKS=1` leaves them on.
 - **`env`:** `GSTACK_SESSION_KIND=spawned`.
 
-Interactive sessions get the same deny list merged into `.claude/settings.local.json` by scaffold and by the runner (`companions.sh settings`), plus `Skill` on the allow list — except gstack's unprefixed names and the hooks switch, which would otherwise reach into everything else you do in that repo.
+Interactive sessions get the same deny list merged into `.claude/settings.local.json` by scaffold and by the runner (`companions.sh settings`), plus `Skill` on the allow list — except gstack's unprefixed names and the hooks switch, which would otherwise reach into everything else you do in that repo. The merge only touches a file finish-line wrote and nobody changed since (a shipped template, listed in `templates/claude-settings.local.history`, or one of its own merges, recorded in `.git/finish-line.settings-owned`); your own file is left alone, with a note on how to merge the policy yourself.
 
 After every session the runner also hashes `.claude/agents/finish-verifier.md`, `.claude/settings.json` and `.claude/settings.local.json`: a frozen session that changes any of them is reverted, and so is a session that installs a verifier the skill didn't ship. The runner snapshots these three before each session and restores them on a revert, because a gitignored one (or a gitignored `.claude/`) would survive both `git revert` and the stash.
 

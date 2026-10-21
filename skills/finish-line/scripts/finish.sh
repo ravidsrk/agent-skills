@@ -116,6 +116,7 @@ else
 fi
 POLICY="$("$HERE/companions.sh" policy --runner 2>/dev/null)" || POLICY=""
 [[ -n "$POLICY" ]] || echo "⚠ could not build the session policy (companions/catalog.json); running without it"
+"$HERE/companions.sh" settings "$PWD" || true   # interactive sessions in this repo get the same deny list
 
 head_sha() { git rev-parse HEAD 2>/dev/null || echo none; }
 status_now() { tr -d '[:space:]' < .finish/STATUS 2>/dev/null || echo NEW; }
@@ -225,9 +226,9 @@ upgrade_project() {
   fi
   if [[ -d .claude && ! -e .claude/settings.local.json ]]; then
     cp "$SKILL/templates/claude-settings.local.json" .claude/settings.local.json
+    "$HERE/companions.sh" settings "$PWD" >/dev/null 2>&1 || true
     echo "• added .claude/settings.local.json (no permission prompts or questions in interactive sessions)"
   fi
-  "$HERE/companions.sh" settings "$PWD" 2>/dev/null || true
 }
 
 # Between sessions: reopen owner actions that are done, move past terminal states.

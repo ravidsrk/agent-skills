@@ -111,4 +111,4 @@ Installed community skills help at named protocol steps — superpowers' TDD, de
 - `references/portfolio-triage.md` — choosing the one product to finish.
 - `references/companions.md` — which community skills are used at which step, which are denied and why, the session policy, pins, licenses, limits.
 - `companions/` — `catalog.json` (packs, slots, deny lists) and `.claude-plugin/marketplace.json` (finish-line's marketplace, every plugin pinned to a commit).
-- `templates/` — `verify.sh`, `finish-verifier.md` (+ `finish-verifier.history`: hashes of shipped versions, so the runner only refreshes unmodified copies), `claude-settings.local.json`, `e2e/` (config, fixture, example spec), `maestro/` example flow, `ledger.example.json`.
+- `templates/` — `verify.sh`, `finish-verifier.md` (+ `finish-verifier.history`: hashes of shipped versions, so the runner only refreshes unmodified copies), `claude-settings.local.json` (+ `.history`, so only finish-line's own copy is ever merged into), `e2e/` (config, fixture, example spec), `maestro/` example flow, `ledger.example.json`.

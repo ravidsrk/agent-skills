@@ -180,9 +180,17 @@ policy() { # [--runner]
 }
 
 settings() { # <repo root> — merge the interactive policy into .claude/settings.local.json, if finish-line made it
-  local f="$1/.claude/settings.local.json" pol merged
+  local f="$1/.claude/settings.local.json" pol merged h gd owned
   [[ -f "$f" ]] || return 0
-  jq -e '(.permissions.deny // []) | index("AskUserQuestion")' "$f" >/dev/null 2>&1 || return 0   # not ours: leave it
+  gd="$(cd "$1" && cd "$(git rev-parse --git-dir)" && pwd)" || return 1
+  owned="$gd/finish-line.settings-owned"
+  h="$(fl_sha < "$f")"
+  # Only a file finish-line wrote and nobody changed since: a shipped template or one of its own merges.
+  if ! grep -qxF "$h" "$SKILL/templates/claude-settings.local.history" 2>/dev/null && ! grep -qxF "$h" "$owned" 2>/dev/null; then
+    jq -e '(.permissions.allow // []) | index("Skill")' "$f" >/dev/null 2>&1 \
+      || echo "• .claude/settings.local.json is your own, so it was left alone; to use companion skills in interactive sessions, merge in: companions.sh policy"
+    return 0
+  fi
   pol="$(policy)" || return 1
   merged="$(jq --argjson p "$pol" '
     def addall($xs): reduce $xs[] as $x (.; if any(.[]; . == $x) then . else . + [$x] end);
@@ -191,6 +199,7 @@ settings() { # <repo root> — merge the interactive policy into .claude/setting
     | .env = ((.env // {}) + $p.env)' "$f")" || return 1
   [[ "$(jq -S . <<< "$merged")" == "$(jq -S . "$f")" ]] && return 0
   printf '%s\n' "$merged" > "$f"
+  fl_sha < "$f" >> "$owned"
   echo "• updated .claude/settings.local.json: companion skills allowed, their asking/planning/publishing skills denied"
 }
 

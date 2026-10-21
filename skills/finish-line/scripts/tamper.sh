@@ -47,7 +47,7 @@ done
 [[ -z "$base" && -f "$FD/FREEZE" ]] && base="$(tr -d '[:space:]' < "$FD/FREEZE")"
 
 CONFIG_PATH_RE='(^|/)(playwright|jest|vitest|cypress|karma|vite)\.config\.[cm]?[jt]s$|(^|/)(jest\.config\.json|pytest\.ini|tox\.ini|setup\.cfg|pyproject\.toml|package\.json|build\.gradle|build\.gradle\.kts|\.mocharc|\.mocharc\.[a-z]+|\.nycrc|\.nycrc\.[a-z]+|\.c8rc|\.c8rc\.json|\.coveragerc|codecov\.ya?ml)$'
-CONFIG_KEY_RE='testIgnore|testPathIgnorePatterns|testMatch|testRegex|testDir|grepInvert|(^|[^A-Za-z])grep *:|exclude|norecursedirs|addopts|--ignore|--deselect|testpaths|"test(:[^"]*)?" *:|excludeTestsMatching|forbidOnly|retries|passWithNoTests|bail|coverageThreshold|thresholds|fail_under|fail-under|check-coverage|minimumCoverage'
+CONFIG_KEY_RE='testIgnore|testPathIgnorePatterns|testMatch|testRegex|testDir|grepInvert|(^|[^A-Za-z])grep *:|exclude|norecursedirs|addopts|--ignore|--deselect|testpaths|"test(:[^"]*)?" *:|excludeTestsMatching|forbidOnly|retries|passWithNoTests|bail|coverageThreshold|thresholds|fail_under|fail-under|check-coverage|minimumCoverage|(^|[^A-Za-z_])["'"'"']?(lines|branches|functions|statements|perFile|autoUpdate)["'"'"']? *[:=]'
 MARKER_RE="$FL_SKIP_RE|$FL_TAUTOLOGY_RE"
 
 findings=0

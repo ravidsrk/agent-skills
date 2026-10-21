@@ -109,7 +109,7 @@ pack_version() { # <pack> → "<id> <version>" or "<version> (<sha>)", empty whe
     skills-dir)
       base="$SKILLS_DIR/$(cat_get --arg p "$pack" '.packs[$p].dir')"
       [[ -f "$base/SKILL.md" ]] || return 0
-      v="$(tr -d '[:space:]' < "$base/VERSION" 2>/dev/null)"
+      v="$(tr -d '[:space:]' 2>/dev/null < "$base/VERSION")"
       printf '%s (%s)' "${v:-unknown}" "$(git -C "$base" rev-parse --short HEAD 2>/dev/null || echo 'no git')" ;;
   esac
 }

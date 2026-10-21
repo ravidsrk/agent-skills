@@ -121,7 +121,7 @@ in_scope='(.priority | ltrimstr("P") | tonumber) <= $scope'
 cmd_status() {
   local scope status
   scope="$(fl_scope_n "$FD")"
-  status="$(tr -d '[:space:]' < "$FD/STATUS" 2>/dev/null || echo NEW)"
+  status="$(tr -d '[:space:]' 2>/dev/null < "$FD/STATUS" || echo NEW)"
   if [[ ! -f "$LEDGER" ]]; then
     if [[ "${1:-}" == "--line" ]]; then echo "P0 0/0"; else echo "STATUS: ${status:-NEW} · no ledger yet"; fi
     return 0
@@ -593,7 +593,7 @@ cmd_amend() {
 # to its request.
 cmd_amend_verify() {
   local old_lock="$1" old_freeze="$2" old_n="$3" prev="$4" lock freeze total
-  lock="$(tr -d '[:space:]' < "$FD/LEDGER.lock" 2>/dev/null)"; freeze="$(tr -d '[:space:]' < "$FD/FREEZE" 2>/dev/null)"
+  lock="$(tr -d '[:space:]' 2>/dev/null < "$FD/LEDGER.lock")"; freeze="$(tr -d '[:space:]' 2>/dev/null < "$FD/FREEZE")"
   total="$(cat "$AMD_LOG" 2>/dev/null | wc -l | tr -d ' ')"
   if [[ "$lock" == "$old_lock" && "$freeze" == "$old_freeze" ]]; then echo "AMENDMENTS: none"; return 0; fi
   [[ "$total" -gt "$old_n" ]] || { echo "AMENDMENTS: lock or FREEZE changed with no logged amendment"; return 1; }

@@ -119,7 +119,7 @@ POLICY="$("$HERE/companions.sh" policy --runner 2>/dev/null)" || POLICY=""
 "$HERE/companions.sh" settings "$PWD" || true   # interactive sessions in this repo get the same deny list
 
 head_sha() { git rev-parse HEAD 2>/dev/null || echo none; }
-status_now() { tr -d '[:space:]' < .finish/STATUS 2>/dev/null || echo NEW; }
+status_now() { tr -d '[:space:]' 2>/dev/null < .finish/STATUS || echo NEW; }
 is_terminal() { case "$1" in LAUNCH_READY|READY_FOR_OWNER|BLOCKED_ON_HUMAN) return 0 ;; esac; return 1; }
 progress() { "$HERE/ledger.sh" status --line 2>/dev/null || echo "P0 ?"; }
 VERIFIER=.claude/agents/finish-verifier.md
@@ -156,7 +156,7 @@ verifier_shipped() { # the installed verifier is one this skill shipped (not one
   local h; h="$(fl_sha < "$VERIFIER")"
   [[ "$h" == "$(fl_sha < "$SKILL/templates/finish-verifier.md")" ]] || grep -qxF "$h" "$SKILL/templates/finish-verifier.history" 2>/dev/null
 }
-read_or() { tr -d '[:space:]' < "$1" 2>/dev/null || printf '%s' "$2"; }
+read_or() { tr -d '[:space:]' 2>/dev/null < "$1" || printf '%s' "$2"; }
 amd_count() { cat .finish/amendments.jsonl 2>/dev/null | wc -l | tr -d ' '; }
 
 run_agent() {
@@ -342,7 +342,7 @@ while :; do
     # Froze during this session: vendored scripts it touched must be the skill's own
     # copies, and SCOPE may only have been created with the default P0.
     for s in lib.sh ledger.sh tamper.sh; do
-      if ! printf '%s\n' "$before_fixed" | grep -qxF "$(fl_sha < ".finish/bin/$s" 2>/dev/null) .finish/bin/$s"; then
+      if ! printf '%s\n' "$before_fixed" | grep -qxF "$(fl_sha 2>/dev/null < ".finish/bin/$s") .finish/bin/$s"; then
         cmp -s "$HERE/$s" ".finish/bin/$s" || reason="the session froze the ledger with a modified .finish/bin/$s"
       fi
     done

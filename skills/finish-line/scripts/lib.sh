@@ -55,7 +55,7 @@ fl_criteria_hash() {
 # SCOPE file → number (P0 → 0). Defaults to 0.
 fl_scope_n() {
   local s
-  s="$(tr -d '[:space:]' < "$1/SCOPE" 2>/dev/null)"
+  s="$(tr -d '[:space:]' 2>/dev/null < "$1/SCOPE")"
   case "$s" in P1) echo 1 ;; P2) echo 2 ;; *) echo 0 ;; esac
 }
 

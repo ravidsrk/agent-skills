@@ -460,18 +460,23 @@ ENG_VERB_RE='^[[:space:]]*(fix|debug|investigate|implement|refactor|rewrite|diag
 OWNER_TOPIC_RE='dns|domain|registrar|production|credentials?|api key|secret key|billing|subscription|paid plan|app store|play console|testflight|store listing|legal|certificate|signing identity'
 TEST_RUNNER_RE='playwright|vitest|jest|pytest|mocha|cypress|maestro|go test|cargo test|(npm|pnpm|yarn|bun)( run)? test|gradlew|xcodebuild|flutter test|verify\.sh|ledger\.sh'
 # A check that runs the product's own code or local app tests behaviour, not the owner's step.
+# Commands count only in command position (start, or after ; & | ( ` $( ), so a path argument
+# such as `test -s ./certs/dist.p12` or `grep -q node package.json` is fine.
 # shellcheck disable=SC2016  # a literal backtick in a regex
-REPO_CODE_RE='(^|[;&|(`[:space:]])(node|python3?|ruby|php|perl|deno|tsx|ts-node|bash|sh|zsh)[[:space:]]+[^-[:space:]]|(^|[;&|(`[:space:]])(npm|pnpm|yarn|bun)[[:space:]]+(run|exec|start)|(^|[;&|(`[:space:]])\.{1,2}/|(^|[;&|(`[:space:]])make([[:space:]]|$)|(^|[;&|(`[:space:]])(go|cargo) run|(localhost|127\.0\.0\.1|0\.0\.0\.0)'
+REPO_CODE_RE='(^|[;&|(`]|\$\()[[:space:]]*((node|python3?|ruby|php|perl|deno|tsx|ts-node|bash|sh|zsh)[[:space:]]+[^-[:space:]]|(npm|pnpm|yarn|bun)[[:space:]]+(run|exec|start)|\.{1,2}/|make([[:space:]]|$)|(go|cargo)[[:space:]]+run)|(localhost|127\.0\.0\.1|0\.0\.0\.0)'
 
-not_owner() { # <ID> <action> <check> → exit 0 (with the reason) when this isn't a real owner action
-  local id="$1" action="$2" check="$3" spec
+not_owner() { # <ID> <action> <check> [--legacy] → exit 0 (with the reason) when this isn't a real owner action
+  # --legacy (migrate): only the high-precision signals, since a false positive there deletes a task
+  # the owner still has to do; new requests also get the broader rules, then the verifier's review.
+  local id="$1" action="$2" check="$3" legacy="${4:-}" spec
   spec="$(item_verify "$id" spec)"
   if printf '%s\n' "$action" | grep -qiE "$HANDOFF_RE"; then echo "the action hands over engineering work"; return 0; fi
-  if printf '%s\n' "$action" | grep -qiE "$ENG_VERB_RE" && ! printf '%s\n' "$action" | grep -qiE "$OWNER_TOPIC_RE"; then
-    echo "the action is engineering work, not something only the owner can provide"; return 0
-  fi
   if [[ -n "$spec" && "$check" == *"$spec"* ]] || printf '%s\n' "$check" | grep -qiE "$TEST_RUNNER_RE"; then
     echo "the check runs a test, so it detects the fix, not anything the owner did"; return 0
+  fi
+  [[ "$legacy" == --legacy ]] && return 1
+  if printf '%s\n' "$action" | grep -qiE "$ENG_VERB_RE" && ! printf '%s\n' "$action" | grep -qiE "$OWNER_TOPIC_RE"; then
+    echo "the action is engineering work, not something only the owner can provide"; return 0
   fi
   if printf '%s\n' "$check" | grep -qE "$REPO_CODE_RE"; then
     echo "the check runs the product's own code or local app, so it detects the fix, not anything the owner did"; return 0
@@ -586,7 +591,7 @@ cmd_migrate() {
       [[ -n "$rec" ]] || continue
       id="$(jq -r '.[0]' <<< "$rec")"; action="$(jq -r '.[1]' <<< "$rec")"; check="$(jq -r '.[2]' <<< "$rec")"
       [[ "$(item_field "$id" status)" == "needs_owner" ]] || continue
-      not_owner "$id" "$action" "$check" >/dev/null || continue
+      not_owner "$id" "$action" "$check" --legacy >/dev/null || continue
       set_status "$id" stuck "an engineering hand-off isn't an owner action: back to research rounds" >/dev/null
       tmp="$(mktemp)"; jq --arg id "$id" 'del(.[$id])' "$OWNER" > "$tmp" && mv "$tmp" "$OWNER"
       done_eng="$done_eng $id"

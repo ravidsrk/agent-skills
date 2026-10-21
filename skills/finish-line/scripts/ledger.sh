@@ -4,6 +4,9 @@
 # Mutating subcommands touch only status / attempts / evidence / notes, so the
 # frozen criteria can't drift. `pass` refuses without evidence, a fresh
 # verifier PASS report, a clean tamper check and a spec that asserts something.
+# Nothing here waits for a human: changes to the definition of done go through
+# `amend` (independent verifier approval instead of a person), and owner actions
+# are re-checked automatically by `owner-check`.
 #
 #   ledger.sh validate              schema + rule check (exit 1 on errors)
 #   ledger.sh status [--line]       summary, P0 progress, next item
@@ -15,13 +18,20 @@
 #   ledger.sh run-commands [--passing]  run in-scope verify.command items (used by verify.sh)
 #   ledger.sh fail <ID> "<why>"     attempts += 1; parks as stuck at 3
 #   ledger.sh stuck <ID> "<why>"    park now
-#   ledger.sh block <ID> "<why>"    needs a human (blocked_human)
+#   ledger.sh owner <ID> "<owner action>" "<check cmd>"   park as needs_owner; check exits 0 once done
 #   ledger.sh round2 <ID>           second and last round for a stuck item
-#   ledger.sh reopen <ID> "<why>"   back to failing with attempts 0 (resolved blocker)
+#   ledger.sh owner-check           re-run owner checks; reopen items whose check now passes
+#   ledger.sh done-check            which terminal STATUS the ledger supports: LAUNCH_READY,
+#                                   READY_FOR_OWNER, or OPEN <ids> (exit 1)
+#   ledger.sh reopen <ID> "<why>"   back to failing with attempts 0
 #   ledger.sh regress <ID> "<why>"  passing → failing (test broke)
 #   ledger.sh hash                  criteria hash
 #   ledger.sh check                 criteria hash matches .finish/LEDGER.lock (exit 1 if not)
-#   ledger.sh lock [--refreeze]     write .finish/FREEZE + .finish/LEDGER.lock (first freeze; --refreeze is human-only)
+#   ledger.sh lock                  first freeze: write .finish/FREEZE + .finish/LEDGER.lock
+#   ledger.sh amend "<why>"         change the definition of done from .finish/ledger.proposed.json
+#   ledger.sh amend --rebaseline "<why>"   move FREEZE to HEAD (a gate change tamper.sh flags)
+#   ledger.sh amend --apply <NNN>   apply an amendment the verifier approved
+#   ledger.sh amend-verify <lock> <freeze> <count>   check the amendment chain (used by the runner)
 
 set -uo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -60,7 +70,8 @@ update_item() {
 note_filter='.notes = ((if (.notes // "") == "" then "" else .notes + "\n" end) + $stamp + " " + $msg)'
 
 cmd_validate() {
-  need_ledger
+  local file="${1:-$LEDGER}"
+  [[ -f "$file" ]] || fl_die "no ledger at ${file#"$ROOT"/}"
   local errs
   errs="$(jq -r --arg st "$FL_STATUSES" --arg ty "$FL_TYPES" --arg me "$FL_METHODS" '
     ($st | split(" ")) as $S | ($ty | split(" ")) as $T | ($me | split(" ")) as $M |
@@ -91,16 +102,16 @@ cmd_validate() {
         (if ($i.notes | type) != "string" then err($id; "notes must be a string") else empty end)
       ),
       (if any((.items // [])[]; .priority == "P0" and .type == "journey") | not then "ledger: at least one P0 journey required" else empty end)
-    ] | .[]' "$LEDGER" 2>&1)" || fl_die "ledger.json is not valid JSON"
+    ] | .[]' "$file" 2>&1)" || fl_die "${file#"$ROOT"/} is not valid JSON"
   if [[ -n "$errs" ]]; then
     printf '%s\n' "$errs"
     echo "LEDGER: INVALID ($(printf '%s\n' "$errs" | wc -l | tr -d ' ') errors)"
     return 1
   fi
   local first
-  first="$(jq -r '.items[0].type' "$LEDGER")"
+  first="$(jq -r '.items[0].type' "$file")"
   [[ "$first" == "gate" ]] || echo "warning: item 1 should be the boot gate (fresh clone → init.sh → app runs)"
-  echo "LEDGER: VALID ($(jq '.items | length' "$LEDGER") items)"
+  echo "LEDGER: VALID ($(jq '.items | length' "$file") items)"
 }
 
 # shellcheck disable=SC2016  # jq variables, not shell
@@ -124,9 +135,9 @@ cmd_status() {
     (\$in | map(select(.status == \"failing\" and .attempts < 3)) | .[0]) as \$next |
     \"\(.product) — \(.one_liner)\",
     \"STATUS: \(\$status) · SCOPE: P\(\$scope)\",
-    \"In scope: \(\$in | length) — passing \(\$in | map(select(.status == \"passing\")) | length) · failing \(\$in | map(select(.status == \"failing\")) | length) · stuck \(\$in | map(select(.status == \"stuck\")) | length) · blocked_human \(\$in | map(select(.status == \"blocked_human\")) | length)\",
+    \"In scope: \(\$in | length) — passing \(\$in | map(select(.status == \"passing\")) | length) · failing \(\$in | map(select(.status == \"failing\")) | length) · stuck \(\$in | map(select(.status == \"stuck\")) | length) · needs_owner \(\$in | map(select(.status == \"needs_owner\")) | length)\",
     \"P0 \(\$p0 | map(select(.status == \"passing\")) | length)/\(\$p0 | length)\",
-    (if \$next then \"Next: \(\$next.id) — \(\$next.title) (attempts \(\$next.attempts)/3)\" else \"Next: none (see stuck / blocked_human)\" end)
+    (if \$next then \"Next: \(\$next.id) — \(\$next.title) (attempts \(\$next.attempts)/3)\" else \"Next: none (see stuck / needs_owner)\" end)
   " "$LEDGER"
 }
 
@@ -137,7 +148,7 @@ cmd_next() {
   out="$(jq -r --argjson scope "$scope" "[.items[] | select($in_scope) | select(.status == \"failing\" and .attempts < 3)] | .[0] // empty | \"\(.id)\t\(.title)\"" "$LEDGER")"
   if [[ -z "$out" ]]; then
     echo "none"
-    jq -r --argjson scope "$scope" ".items[] | select($in_scope) | select(.status == \"stuck\" or .status == \"blocked_human\") | \"  \(.status): \(.id) — \(.title)\"" "$LEDGER"
+    jq -r --argjson scope "$scope" ".items[] | select($in_scope) | select(.status == \"stuck\" or .status == \"needs_owner\") | \"  \(.status): \(.id) — \(.title)\"" "$LEDGER"
     return 1
   fi
   printf '%s\n' "$out"
@@ -227,7 +238,7 @@ cmd_fail() {
     --arg stamp "$(fl_now)" --arg msg "attempt failed: $msg"
   a="$(item_field "$id" attempts)"
   if [[ "$(item_field "$id" status)" == "stuck" ]]; then
-    echo "$id → stuck after $a attempts. Write a BLOCKERS.md entry (hypothesis, tried, next idea) and take the next item."
+    echo "$id → stuck after $a attempts. Note hypothesis / tried / next idea in PROGRESS.md and take the next item."
   else
     echo "$id → failing (attempt $a/3)"
   fi
@@ -253,7 +264,7 @@ cmd_round2() {
   need_ledger; need_item "$id"
   [[ "$(item_field "$id" status)" == "stuck" ]] || fl_die "$id is not stuck"
   if item_field "$id" notes | grep -q 'round 2'; then
-    fl_die "$id already had round 2 — use: ledger.sh block $id \"<what a human must do>\""
+    fl_die "$id already had round 2 — decide now: ledger.sh amend (split or re-scope, verifier-approved) or ledger.sh owner $id \"<action>\" \"<check>\""
   fi
   set_status "$id" failing "round 2: re-read code and docs from scratch" " | .attempts = 0"
 }
@@ -285,7 +296,7 @@ cmd_run_commands() { # run in-scope command items; --passing = only items alread
 cmd_lock() {
   need_ledger
   if [[ -f "$FD/FREEZE" && "${1:-}" != "--refreeze" ]]; then
-    fl_die "ledger already frozen at $(cat "$FD/FREEZE"). Re-freezing is a human decision: ledger.sh lock --refreeze"
+    fl_die "ledger already frozen at $(cat "$FD/FREEZE"). Change the definition of done with: ledger.sh amend \"<why>\""
   fi
   cmd_validate >/dev/null || fl_die "ledger invalid — run ledger.sh validate"
   if ! git ls-files --error-unmatch .finish/ledger.json >/dev/null 2>&1 || ! git diff --quiet HEAD -- .finish/ledger.json 2>/dev/null; then
@@ -303,14 +314,264 @@ cmd_check() {
   if [[ "$(fl_criteria_hash "$LEDGER")" == "$(tr -d '[:space:]' < "$FD/LEDGER.lock")" ]]; then
     echo "LEDGER LOCK: OK"
   else
-    echo "LEDGER LOCK: MISMATCH — frozen criteria were edited. Restore with: git checkout \$(cat .finish/FREEZE) -- .finish/ledger.json (then re-apply status changes via ledger.sh)"
+    echo "LEDGER LOCK: MISMATCH — frozen criteria were hand-edited. Restore the last committed .finish/ledger.json and change criteria only with ledger.sh amend"
     return 1
   fi
 }
 
+
+# ── Owner actions ─────────────────────────────────────────────────────────────
+# Things only the product owner can do (a credential, an account, DNS, a store
+# listing). The item is parked as needs_owner with an exact action and a shell
+# check that exits 0 once it's done; owner-check reopens it automatically, so
+# nobody has to mark anything as resolved.
+
+OWNER="$FD/owner.json"
+
+owner_md() { # regenerate .finish/OWNER_ACTIONS.md from owner.json
+  {
+    echo "# Owner actions"
+    echo
+    echo "Everything else is handled autonomously. Do these, then rerun finish.sh; each item reopens by itself once its check passes."
+    echo
+    if [[ -s "$OWNER" ]] && [[ "$(jq 'length' "$OWNER")" -gt 0 ]]; then
+      jq -r 'to_entries[] | "- **\(.key)** — \(.value.action)\n  - detected by: `\(.value.check)`\n  - waiting since \(.value.since)"' "$OWNER"
+    else
+      echo "None."
+    fi
+  } > "$FD/OWNER_ACTIONS.md"
+}
+
+cmd_owner() {
+  local id="$1" action="${2:-}" check="${3:-}" tmp
+  need_ledger; need_item "$id"
+  [[ -n "$action" ]] || fl_die "owner needs the exact action, e.g. \"Add STRIPE_SECRET_KEY (test mode) to .env.local\""
+  [[ -n "$check" ]] || fl_die "owner needs a check command that exits 0 once the action is done, e.g. 'grep -q ^STRIPE_SECRET_KEY= .env.local'"
+  set_status "$id" needs_owner "owner action: $action"
+  [[ -f "$OWNER" ]] || echo '{}' > "$OWNER"
+  tmp="$(mktemp)"
+  jq --arg id "$id" --arg a "$action" --arg c "$check" --arg t "$(fl_now)" '.[$id] = {action: $a, check: $c, since: $t}' "$OWNER" > "$tmp" && mv "$tmp" "$OWNER"
+  owner_md
+}
+
+cmd_owner_check() {
+  need_ledger
+  [[ -f "$OWNER" ]] || { owner_md; echo "owner-check: nothing waiting"; return 0; }
+  local reopened="" rec id check action tmp
+  while IFS= read -r rec; do
+    [[ -n "$rec" ]] || continue
+    id="$(printf '%s' "$rec" | jq -r '.[0]')"; check="$(printf '%s' "$rec" | jq -r '.[1]')"; action="$(printf '%s' "$rec" | jq -r '.[2]')"
+    if [[ "$(item_field "$id" status)" != "needs_owner" ]]; then
+      tmp="$(mktemp)"; jq --arg id "$id" 'del(.[$id])' "$OWNER" > "$tmp" && mv "$tmp" "$OWNER"; continue
+    fi
+    if bash -c "$check" >/dev/null 2>&1; then
+      set_status "$id" failing "owner action detected: $action" " | .attempts = 0" >/dev/null
+      tmp="$(mktemp)"; jq --arg id "$id" 'del(.[$id])' "$OWNER" > "$tmp" && mv "$tmp" "$OWNER"
+      reopened="$reopened $id"
+    fi
+  done < <(jq -c 'to_entries[] | [.key, .value.check, .value.action]' "$OWNER")
+  owner_md
+  if [[ -n "$reopened" ]]; then echo "owner-check: reopened$reopened"; else echo "owner-check: still waiting on $(jq 'length' "$OWNER")"; fi
+}
+
+cmd_done_check() {
+  need_ledger
+  local scope out
+  scope="$(fl_scope_n "$FD")"
+  out="$(jq -r --argjson scope "$scope" "[.items[] | select($in_scope)] as \$in |
+    (\$in | map(select(.status != \"passing\" and .status != \"needs_owner\")) | map(.id)) as \$open |
+    if (\$open | length) > 0 then \"OPEN \(\$open | join(\" \"))\"
+    elif any(\$in[]; .status == \"needs_owner\") then \"READY_FOR_OWNER\" else \"LAUNCH_READY\" end" "$LEDGER")"
+  echo "$out"
+  [[ "$out" != OPEN* ]]
+}
+
+# ── Amendments ────────────────────────────────────────────────────────────────
+# The definition of done can change without a human. Additions (new items, new
+# criteria, higher priority, more platforms) apply at once. Anything that removes,
+# rewords or demotes — and any FREEZE rebaseline — needs a finish-verifier review
+# that says VERDICT: APPROVE for that exact request, and is capped at
+# FINISH_MAX_AMENDMENTS (default 5) per product. Every change is logged in
+# .finish/amendments.jsonl with before/after hashes, so the runner can audit it.
+
+AMD_DIR="$FD/amendments"
+AMD_LOG="$FD/amendments.jsonl"
+PROPOSED="$FD/ledger.proposed.json"
+
+amd_next_n() { local n; n="$(cat "$AMD_LOG" 2>/dev/null | wc -l | tr -d ' ')"; printf '%03d' $((n + 1)); }
+amd_weakening_count() { jq -s '[.[] | select(.class == "weakening")] | length' "$AMD_LOG" 2>/dev/null || echo 0; }
+
+# shellcheck disable=SC2016  # jq program
+AMD_VIEW='def view: del(.status, .attempts, .evidence, .notes); def pn: .priority | ltrimstr("P") | tonumber;'
+
+amd_class() { # amd_class <old ledger> <new ledger> → strengthening | weakening
+  jq -rn --slurpfile o "$1" --slurpfile n "$2" "$AMD_VIEW"'
+    ($o[0]) as $o | ($n[0]) as $n |
+    ($n.items | map({key: .id, value: view}) | from_entries) as $N |
+    if $o.product == $n.product and $o.one_liner == $n.one_liner and
+       all($o.items[] | view; . as $oi | $N[$oi.id] as $ni |
+         $ni != null and $ni.type == $oi.type and ($ni | pn) <= ($oi | pn)
+         and (($oi.platforms - $ni.platforms) | length) == 0
+         and (($oi.acceptance - $ni.acceptance) | length) == 0
+         and $ni.verify == $oi.verify)
+    then "strengthening" else "weakening" end'
+}
+
+amd_diff() { # human-readable change list
+  jq -rn --slurpfile o "$1" --slurpfile n "$2" "$AMD_VIEW"'
+    ($o[0]) as $o | ($n[0]) as $n |
+    ($o.items | map({key: .id, value: view}) | from_entries) as $O |
+    ($n.items | map({key: .id, value: view}) | from_entries) as $N |
+    (if $o.one_liner != $n.one_liner then "- one_liner: \"\($o.one_liner)\" → \"\($n.one_liner)\"" else empty end),
+    ($O | keys[] | select($N[.] == null) | "- REMOVED \(.) — \($O[.].title)"),
+    ($N | keys[] | select($O[.] == null) | "- ADDED \(.) (\($N[.].priority)) — \($N[.].title)"),
+    ($O | keys[] | select($N[.] != null and $N[.] != $O[.]) | . as $id | $O[$id] as $a | $N[$id] as $b |
+      "- CHANGED \($id):",
+      (if $a.priority != $b.priority then "  - priority \($a.priority) → \($b.priority)" else empty end),
+      (($a.acceptance - $b.acceptance)[] | "  - criterion removed: \(.)"),
+      (($b.acceptance - $a.acceptance)[] | "  - criterion added: \(.)"),
+      (if $a.verify != $b.verify then "  - verify \($a.verify | tojson) → \($b.verify | tojson)" else empty end),
+      (if $a.platforms != $b.platforms then "  - platforms \($a.platforms | tojson) → \($b.platforms | tojson)" else empty end),
+      (if $a.title != $b.title then "  - title \"\($a.title)\" → \"\($b.title)\"" else empty end))'
+}
+
+amd_log() { # amd_log n kind class reason lock_before lock_after freeze_before freeze_after request review
+  jq -cn --arg n "$1" --arg kind "$2" --arg class "$3" --arg reason "$4" --arg lb "$5" --arg la "$6" \
+    --arg fb "$7" --arg fa "$8" --arg req "$9" --arg rev "${10}" --arg at "$(fl_now)" \
+    '{n: $n, at: $at, kind: $kind, class: $class, reason: $reason, lock_before: $lb, lock_after: $la,
+      freeze_before: $fb, freeze_after: $fa, request: $req, review: (if $rev == "" then null else $rev end)}' >> "$AMD_LOG"
+}
+
+amd_apply_ledger() { # merge mutable fields from the current ledger into the proposed one, then install it
+  local tmp
+  tmp="$(mktemp)"
+  jq --slurpfile cur "$LEDGER" "$AMD_VIEW"'
+    ($cur[0].items | map({key: .id, value: .}) | from_entries) as $C |
+    .items |= map(. as $p | $C[$p.id] as $c |
+      if $c != null and ($c | view) == ($p | view)
+      then $p + {status: $c.status, attempts: $c.attempts, evidence: $c.evidence, notes: $c.notes}
+      else $p + {status: "failing", attempts: 0, evidence: [], notes: (($c.notes // "") + (if $c then "\n" else "" end) + "amended: re-verify")}
+      end)' "$PROPOSED" > "$tmp" || { rm -f "$tmp"; fl_die "could not merge the proposed ledger"; }
+  mv "$tmp" "$LEDGER"
+  rm -f "$PROPOSED"
+}
+
+cmd_amend() {
+  need_ledger
+  [[ -f "$FD/FREEZE" ]] || fl_die "not frozen yet — edit .finish/ledger.json directly and run ledger.sh lock"
+  local mode=ledger reason="" applyn="" n req class lock_before freeze_before
+  case "${1:-}" in
+    --rebaseline) mode=rebaseline; reason="${2:-}" ;;
+    --apply) mode=apply; applyn="${2:-}" ;;
+    *) reason="${1:-}" ;;
+  esac
+  lock_before="$(tr -d '[:space:]' < "$FD/LEDGER.lock")"
+  freeze_before="$(tr -d '[:space:]' < "$FD/FREEZE")"
+  mkdir -p "$AMD_DIR"
+
+  if [[ "$mode" == "apply" ]]; then
+    [[ -n "$applyn" && -f "$AMD_DIR/$applyn.request.md" ]] || fl_die "no request $AMD_DIR/$applyn.request.md"
+    local review="$AMD_DIR/$applyn.review.md" reqhash kind
+    reqhash="$(fl_sha < "$AMD_DIR/$applyn.request.md")"
+    [[ -f "$review" ]] || fl_die "no review at $review — spawn finish-verifier in amendment mode with: $AMD_DIR/$applyn.request.md"
+    grep -Eq '^VERDICT: *APPROVE' "$review" || fl_die "the verifier did not approve amendment $applyn — take another route (owner action, or keep working the item)"
+    grep -Eq "^REQUEST: *$reqhash" "$review" || fl_die "review $applyn is for a different request (REQUEST hash mismatch)"
+    [[ "$(amd_weakening_count)" -lt "${FINISH_MAX_AMENDMENTS:-5}" ]] || fl_die "amendment cap reached (${FINISH_MAX_AMENDMENTS:-5}); park the item with ledger.sh owner instead"
+    kind="$(sed -n 's/^KIND: *//p' "$AMD_DIR/$applyn.request.md" | head -1)"
+    reason="$(sed -n 's/^REASON: *//p' "$AMD_DIR/$applyn.request.md" | head -1)"
+    if [[ "$kind" == "rebaseline" ]]; then
+      local want_head; want_head="$(sed -n 's/^HEAD: *//p' "$AMD_DIR/$applyn.request.md" | head -1)"
+      [[ "$(git rev-parse HEAD)" == "$want_head" ]] || fl_die "HEAD moved since the rebaseline request; propose it again"
+      git rev-parse HEAD > "$FD/FREEZE"
+      amd_log "$applyn" rebaseline weakening "$reason" "$lock_before" "$lock_before" "$freeze_before" "$(cat "$FD/FREEZE")" "$AMD_DIR/$applyn.request.md" "$review"
+      echo "amendment $applyn applied: FREEZE → $(cat "$FD/FREEZE")"
+    else
+      local want_after; want_after="$(sed -n 's/^AFTER: *//p' "$AMD_DIR/$applyn.request.md" | head -1)"
+      [[ -f "$PROPOSED" && "$(fl_criteria_hash "$PROPOSED")" == "$want_after" ]] || fl_die ".finish/ledger.proposed.json no longer matches request $applyn"
+      amd_apply_ledger
+      fl_criteria_hash "$LEDGER" > "$FD/LEDGER.lock"
+      amd_log "$applyn" ledger weakening "$reason" "$lock_before" "$(cat "$FD/LEDGER.lock")" "$freeze_before" "$freeze_before" "$AMD_DIR/$applyn.request.md" "$review"
+      echo "amendment $applyn applied: criteria $(cat "$FD/LEDGER.lock")"
+    fi
+    echo "now commit: git add .finish && git commit -m \"chore(finish): amendment $applyn — $reason\""
+    return 0
+  fi
+
+  [[ -n "$reason" ]] || fl_die "amend needs a one-line reason"
+  n="$(amd_next_n)"
+  req="$AMD_DIR/$n.request.md"
+
+  if [[ "$mode" == "rebaseline" ]]; then
+    [[ -z "$(git status --porcelain -- . ':(exclude).finish/amendments' ':(exclude).finish/logs' 2>/dev/null)" ]] \
+      || fl_die "commit the change first; a rebaseline freezes HEAD as it is"
+    git diff --quiet "$freeze_before" HEAD -- .finish/bin 2>/dev/null \
+      || fl_die "refusing: .finish/bin changed since the freeze; vendored scripts can't be rebaselined"
+    {
+      echo "# Amendment $n — rebaseline"
+      echo; echo "KIND: rebaseline"; echo "REASON: $reason"; echo "HEAD: $(git rev-parse HEAD)"; echo "FREEZE: $freeze_before"
+      echo; echo "## What tamper.sh flags now"; echo '```'; "$HERE/tamper.sh" 2>&1 | head -40; echo '```'
+      echo; echo "## Changes since the freeze in flagged areas"; echo '```'
+      git diff --stat "$freeze_before" HEAD 2>/dev/null | tail -40; echo '```'
+    } > "$req"
+    echo "amendment $n needs review (rebaseline). Spawn finish-verifier in amendment mode with: $req"
+    echo "then: ledger.sh amend --apply $n"
+    return 3
+  fi
+
+  [[ -f "$PROPOSED" ]] || fl_die "write the full proposed ledger to .finish/ledger.proposed.json first"
+  cmd_validate "$PROPOSED" >/dev/null || { cmd_validate "$PROPOSED"; fl_die "proposed ledger is invalid"; }
+  [[ "$(fl_criteria_hash "$PROPOSED")" != "$lock_before" ]] || fl_die "the proposed ledger changes no criteria"
+  class="$(amd_class "$LEDGER" "$PROPOSED")"
+  {
+    echo "# Amendment $n — $class"
+    echo; echo "KIND: ledger"; echo "CLASS: $class"; echo "REASON: $reason"
+    echo "BEFORE: $lock_before"; echo "AFTER: $(fl_criteria_hash "$PROPOSED")"
+    echo; echo "## Changes"; amd_diff "$LEDGER" "$PROPOSED"
+  } > "$req"
+  if [[ "$class" == "strengthening" ]]; then
+    amd_apply_ledger
+    fl_criteria_hash "$LEDGER" > "$FD/LEDGER.lock"
+    amd_log "$n" ledger strengthening "$reason" "$lock_before" "$(cat "$FD/LEDGER.lock")" "$freeze_before" "$freeze_before" "$req" ""
+    echo "amendment $n applied (strengthening, no review needed): criteria $(cat "$FD/LEDGER.lock")"
+    echo "now commit: git add .finish && git commit -m \"chore(finish): amendment $n — $reason\""
+    return 0
+  fi
+  echo "amendment $n weakens the definition of done and needs review. Spawn finish-verifier in amendment mode with: $req"
+  echo "then: ledger.sh amend --apply $n   ($(amd_weakening_count)/${FINISH_MAX_AMENDMENTS:-5} weakening amendments used)"
+  return 3
+}
+
+# amend-verify <old lock> <old freeze> <old log line count>: the lock/FREEZE moved
+# only through logged amendments, and every weakening one carries an APPROVE review.
+cmd_amend_verify() {
+  local old_lock="$1" old_freeze="$2" old_n="$3" lock freeze total
+  lock="$(tr -d '[:space:]' < "$FD/LEDGER.lock" 2>/dev/null)"; freeze="$(tr -d '[:space:]' < "$FD/FREEZE" 2>/dev/null)"
+  total="$(cat "$AMD_LOG" 2>/dev/null | wc -l | tr -d ' ')"
+  if [[ "$lock" == "$old_lock" && "$freeze" == "$old_freeze" ]]; then echo "AMENDMENTS: none"; return 0; fi
+  [[ "$total" -gt "$old_n" ]] || { echo "AMENDMENTS: lock or FREEZE changed with no logged amendment"; return 1; }
+  local cl="$old_lock" cf="$old_freeze" rec lb la fb fa class req rev
+  while IFS= read -r rec; do
+    lb="$(printf '%s' "$rec" | jq -r .lock_before)"; la="$(printf '%s' "$rec" | jq -r .lock_after)"
+    fb="$(printf '%s' "$rec" | jq -r .freeze_before)"; fa="$(printf '%s' "$rec" | jq -r .freeze_after)"
+    class="$(printf '%s' "$rec" | jq -r .class)"; req="$(printf '%s' "$rec" | jq -r .request)"; rev="$(printf '%s' "$rec" | jq -r '.review // ""')"
+    [[ "$lb" == "$cl" && "$fb" == "$cf" ]] || { echo "AMENDMENTS: broken chain at $(printf '%s' "$rec" | jq -r .n)"; return 1; }
+    [[ "$class" == "strengthening" || "$class" == "weakening" ]] || { echo "AMENDMENTS: a session logged a '$class' amendment (runner-only)"; return 1; }
+    if [[ "$class" == "weakening" ]]; then
+      [[ -f "$req" && -f "$rev" ]] || { echo "AMENDMENTS: $(printf '%s' "$rec" | jq -r .n) has no request/review on disk"; return 1; }
+      if ! grep -Eq '^VERDICT: *APPROVE' "$rev" || ! grep -Eq "^REQUEST: *$(fl_sha < "$req")" "$rev"; then
+        echo "AMENDMENTS: $(printf '%s' "$rec" | jq -r .n) is not approved for this exact request"; return 1
+      fi
+    fi
+    cl="$la"; cf="$fa"
+  done < <(tail -n "$((total - old_n))" "$AMD_LOG")
+  [[ "$cl" == "$lock" && "$cf" == "$freeze" ]] || { echo "AMENDMENTS: current lock/FREEZE don't match the last amendment"; return 1; }
+  [[ "$(amd_weakening_count)" -le "${FINISH_MAX_AMENDMENTS:-5}" ]] || { echo "AMENDMENTS: over the cap"; return 1; }
+  echo "AMENDMENTS: $((total - old_n)) verified"
+}
+
 sub="${1:-}"; shift || true
 case "$sub" in
-  validate) cmd_validate ;;
+  validate) cmd_validate "${1:-}" ;;
   status) cmd_status "${1:-}" ;;
   next) cmd_next ;;
   show) need_ledger; need_item "${1:-}"; jq --arg id "$1" '.items[] | select(.id == $id)' "$LEDGER" ;;
@@ -318,7 +579,12 @@ case "$sub" in
   pass) cmd_pass "${1:-}" ;;
   fail) cmd_fail "${1:-}" "${2:-}" ;;
   stuck) set_status "${1:-}" stuck "${2:-}" ;;
-  block) set_status "${1:-}" blocked_human "${2:-}" ;;
+  owner) cmd_owner "${1:-}" "${2:-}" "${3:-}" ;;
+  block) cmd_owner "${1:-}" "${2:-}" "${3:-}" ;;
+  owner-check) cmd_owner_check ;;
+  done-check) cmd_done_check ;;
+  amend) cmd_amend "$@" ;;
+  amend-verify) cmd_amend_verify "${1:-}" "${2:-}" "${3:-0}" ;;
   reopen) set_status "${1:-}" failing "${2:-}" " | .attempts = 0" ;;
   regress) [[ -n "${2:-}" ]] || fl_die "regress needs a one-line reason"; set_status "${1:-}" failing "regressed: $2" ;;
   round2) cmd_round2 "${1:-}" ;;

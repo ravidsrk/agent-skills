@@ -44,6 +44,26 @@ curl -Ls "https://get.maestro.mobile.dev" | bash   # plus Android Studio emulato
 
 Per-repo pieces — `@playwright/test`, `@axe-core/playwright`, the Playwright config and fixture, the verifier subagent — are installed by the agent in Phase 0.
 
+**Optional: companion skills.** Community packs that make the build loop sharper, each pinned to a reviewed commit:
+
+```bash
+~/.claude/skills/finish-line/scripts/companions.sh install                    # superpowers + Addy Osmani's agent-skills
+~/.claude/skills/finish-line/scripts/companions.sh install mattpocock-skills gstack   # optional extras (gstack needs Bun)
+~/.claude/skills/finish-line/scripts/companions.sh list                       # what's pinned and what fills which step
+```
+
+| Step | Uses, when installed |
+|---|---|
+| Writing the test first | superpowers `test-driven-development` (or Addy's, or Matt Pocock's `tdd`) |
+| A fix that keeps failing | superpowers `systematic-debugging` (or Addy's `debugging-and-error-recovery`, Pocock's `diagnosing-bugs`, gstack `investigate`) |
+| Before claiming an item passes | superpowers `verification-before-completion` |
+| Self-review before the verifier | Addy's `code-review-and-quality` (or Pocock's `code-review`) |
+| Phase 0 reality map | gstack's `browse` binary and read-only `qa-only` sweep |
+| Release security and performance | Addy's `security-and-hardening` and `performance-optimization` (or gstack `cso`, `benchmark`) |
+| Launch checklist | Addy's `shipping-and-launch` |
+
+They help; they never decide. The packs' planning, interview, shipping and merging skills (superpowers `brainstorming`, Addy's `spec-driven-development`, gstack `ship` and `land-and-deploy`, …) are denied in every session, hooks are off, and the verifier can't use any skill. pstack is deliberately not installed: its Claude Code port routes every session through its own hook. Details: [`references/companions.md`](references/companions.md).
+
 # Usage
 
 **1. Pick one product** (if you have several):
@@ -64,6 +84,8 @@ export FINISH_NO_AI_TRAILERS=1                                           # optio
 # options
 MAX_SESSIONS=60 CLAUDE_MODEL=opus ~/.claude/skills/finish-line/scripts/finish.sh ~/code/my-product
 FINISH_UNTIL=P2 ~/.claude/skills/finish-line/scripts/finish.sh ~/code/my-product     # don't stop at P0: finish everything in the docs
+FINISH_COMPANIONS=install ~/.claude/skills/finish-line/scripts/finish.sh ~/code/my-product   # install the pinned companion packs first
+FINISH_COMPANIONS=off ~/.claude/skills/finish-line/scripts/finish.sh ~/code/my-product       # built-in steps only
 # other agent CLIs: the protocol is appended as the last argument
 FINISH_AGENT="codex exec --full-auto" ~/.claude/skills/finish-line/scripts/finish.sh ~/code/my-product
 ```
@@ -90,6 +112,7 @@ FINISH_AGENT="codex exec --full-auto" ~/.claude/skills/finish-line/scripts/finis
 | Sessions that make no progress | The runner parks the item as stuck and moves on |
 | P0 done | With `FINISH_UNTIL=P1`/`P2`, the runner opens the next scope itself |
 | Skill upgrades | The runner refreshes `.finish/bin/` (re-anchoring the freeze) and an unmodified verifier agent, and migrates old statuses |
+| Community skills that ask, plan or ship | Taken at their recommended option and logged (Law 9); the gated ones are denied by the session policy, and gstack runs in its no-human mode |
 
 # Your part (none of it during the run)
 
@@ -112,6 +135,7 @@ FINISH_AGENT="codex exec --full-auto" ~/.claude/skills/finish-line/scripts/finis
 ├── PROGRESS.md · DECISIONS.md · LATER.md
 ├── init.sh · verify.sh         boot + gate
 ├── bin/                        ledger.sh · tamper.sh · lib.sh
+├── companions.json             which installed community skills fill which step (gitignored)
 ├── evidence/INDEX.md           committed index (screenshots and reports are gitignored)
 └── LAUNCH_REPORT.md
 ```
@@ -126,6 +150,9 @@ FINISH_AGENT="codex exec --full-auto" ~/.claude/skills/finish-line/scripts/finis
 | CI fails tamper on a shallow clone | `actions/checkout` with `fetch-depth: 0`. |
 | Mobile flows can't find an emulator | Boot one first (`emulator -avd <name>` / `xcrun simctl boot <device>`); the agent can't install SDKs for you. |
 | It ends `READY_FOR_OWNER` over a paid-API feature | Expected without a key. Add the test-mode key to `.env.local` and rerun; the item reopens by itself. |
+| Your own Claude Code hooks don't fire during a run | Runner sessions turn hooks off so third-party hooks can't interfere. `FINISH_KEEP_HOOKS=1` keeps them. |
+| A pack is already installed from `claude-plugins-official` | It's used as is (and auto-updates). Uninstall it, then `companions.sh install`, to get the pinned build. |
+| `tamper.sh` flags a new `eslint-disable` / `@ts-ignore` | That's the floor guard. Fix the code instead; a genuine need goes through `ledger.sh amend --rebaseline`. |
 
 # File layout
 
@@ -137,12 +164,14 @@ finish-line/
 │   ├── protocol.md                 ← the per-session protocol (the runner's prompt)
 │   ├── ledger.md                   ← definition-of-done rules, schema, freeze, amendments
 │   ├── verification.md             ← init.sh, local infra, per-stack gate commands, spec rules
+│   ├── companions.md               ← community skills: slots, denied skills, session policy, pins
 │   └── portfolio-triage.md         ← picking the one product to finish
 ├── scripts/
 │   ├── finish.sh                   ← unattended runner with guards
 │   ├── scaffold.sh                 ← Phase 0 setup
 │   ├── ledger.sh                   ← the only way to read/change the ledger
 │   ├── tamper.sh                   ← anti-gaming check
+│   ├── companions.sh               ← detect / install / policy for companion skills
 │   ├── lib.sh                      ← shared helpers
 │   └── portfolio.sh                ← offline repo snapshot
 ├── templates/
@@ -152,6 +181,9 @@ finish-line/
 │   ├── ledger.example.json
 │   ├── e2e/                        ← playwright.config.ts · finish-fixture.ts · J-001.example.spec.ts
 │   └── maestro/J-001.example.yaml
+├── companions/
+│   ├── catalog.json                ← packs, slots, deny lists
+│   └── .claude-plugin/marketplace.json   ← finish-line-companions: every plugin pinned to a commit
 └── assets/banner-prompt.txt
 ```
 
@@ -166,6 +198,7 @@ finish-line/
 - Anthropic Engineering — [Effective harnesses for long-running agents](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents) (feature list with pass flags, progress file, one feature per session, browser-verified completion) and [Harness design for long-running application development](https://www.anthropic.com/engineering/harness-design-long-running-apps) (separate skeptical evaluator driving the app with Playwright)
 - The Ralph Wiggum loop technique — keep iterating against a completion promise
 - [dunnit](https://pypi.org/project/dunnit/) — the idea of a tamper-evident definition of done
+- Companion packs, used at runtime and never vendored: [obra/superpowers](https://github.com/obra/superpowers), [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills) (the floor guard in `tamper.sh` follows its `constraint-driven-development`), [mattpocock/skills](https://github.com/mattpocock/skills), [garrytan/gstack](https://github.com/garrytan/gstack); and [pstack](https://github.com/michael-denyer/pstack-claude) for *inconclusive is not a pass*
 
 # License
 

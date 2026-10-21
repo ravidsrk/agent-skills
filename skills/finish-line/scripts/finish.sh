@@ -240,7 +240,7 @@ upgrade_project() {
   local out cur inst
   if [[ -f .finish/ledger.json ]]; then
     out="$("$HERE/ledger.sh" migrate 2>/dev/null)"
-    case "$out" in *reopened*) echo "• $out"; runner_commit "chore(finish): runner moves old blocked and engineer hand-off items back into the run" .finish/ledger.json .finish/owner.json .finish/OWNER_ACTIONS.md ;; esac
+    case "$out" in *reopened*|*awaiting*) printf '%s\n' "$out" | sed 's/^/• /'; runner_commit "chore(finish): runner moves old hand-offs back into the run and sends unreviewed owner actions to the verifier" .finish/ledger.json .finish/owner.json .finish/OWNER_ACTIONS.md .finish/owner ;; esac
   fi
   if [[ -f .claude/agents/finish-verifier.md ]]; then
     cur="$(fl_sha < "$SKILL/templates/finish-verifier.md")"; inst="$(fl_sha < .claude/agents/finish-verifier.md)"

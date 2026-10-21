@@ -57,7 +57,7 @@ This protocol runs once per session, with a fresh context each time. Your memory
 2. **Companions.** `"$FINISH_SKILL_DIR/scripts/companions.sh" show` (if it says there's no file, run `companions.sh detect` first). Each filled slot names a skill to invoke with the Skill tool, by that exact name, at its step only: `tdd` §5a · `debug` §5c/§5e · `review` and `claim` §5e · `explore` and the `browse` tool §3.6 · `security` and `perf` §6.3 · `launch` §6.6 · `claim` again before any terminal `STATUS`. An empty slot means the built-in step below is the whole step. Law 9 governs every companion.
 3. If `.finish/STATUS` doesn't exist → **Phase 0**.
 4. `./.finish/bin/ledger.sh status`. Read the last ~80 lines of `PROGRESS.md` (including any **Runner** notes — a reverted session or a rejected status is explained there; don't repeat it), `OWNER_ACTIONS.md` and `DECISIONS.md`.
-5. `./.finish/bin/ledger.sh owner-check` — reopens owner-action items whose check now passes. If `STATUS` is `LAUNCH_READY` or `READY_FOR_OWNER`, run `./.finish/bin/ledger.sh done-check`: if it prints `OPEN …`, set `STATUS=BUILDING` and continue; otherwise go straight to §10 and stop.
+5. `./.finish/bin/ledger.sh owner-check` — reopens owner-action items whose check now passes. If it lists owner actions **awaiting the verifier's review** (recorded before reviews existed, or never approved), review each first, in owner mode (§8) with `.finish/owner/<ID>.request.md`: `APPROVE` → `ledger.sh owner --apply <ID>`; `REJECT` → `ledger.sh reopen <ID> "<why>"` and work it. Until approved, such an item stays open in `done-check`. If `STATUS` is `LAUNCH_READY` or `READY_FOR_OWNER`, run `./.finish/bin/ledger.sh done-check`: if it prints `OPEN …`, set `STATUS=BUILDING` and continue; otherwise go straight to §10 and stop.
 6. Run `./.finish/init.sh`, then a smoke check: the app boots, its primary route or screen renders, no console errors. **If smoke fails, fixing it is the current item.** Nothing else until it passes.
 7. Run `./.finish/verify.sh --quick`. For every `passing` item whose test now fails: `ledger.sh regress <ID> "<what broke>"`.
 8. Run `./.finish/bin/tamper.sh`. On `FAIL`: revert the offending change (never by editing tamper.sh or the ledger) and log it in `PROGRESS.md`. If you're certain a finding is a false positive caused by a legitimate change, commit that change and propose `ledger.sh amend --rebaseline "<why>"` (§4.6). Nothing can pass while tamper fails.
@@ -121,6 +121,7 @@ i. **Commit** (§9). Update `PROGRESS.md` and tick the tracking issue checkbox.
 j. **Context hygiene.** After 3 verified items in one session, or sooner if the context is getting long, end the session cleanly (§10). Fresh sessions are intentional.
 
 When `ledger.sh next` prints `none`:
+- If `owner-check` lists owner actions awaiting review, do those reviews (step §2.5).
 - If anything in scope is `stuck`: `ledger.sh round "$(./.finish/bin/ledger.sh next --stuck)"` (the runner may already have opened it) and work it as a research round (§5.1). Fewest rounds first, so every stuck item gets its turn; one at a time.
 - When nothing in scope is `failing` or `stuck` → `STATUS=RELEASING`.
 

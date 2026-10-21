@@ -33,7 +33,8 @@
 #                                   re-runs the item's own test ("needs an engineer" is research, not an owner action)
 #   ledger.sh owner-check           re-run owner checks; reopen items whose check now passes
 #   ledger.sh done-check            which terminal STATUS the ledger supports: LAUNCH_READY,
-#                                   READY_FOR_OWNER, or OPEN <ids> (exit 1)
+#                                   READY_FOR_OWNER, or OPEN <ids> (exit 1). An owner action without the
+#                                   verifier's approval keeps its item open.
 #   ledger.sh reopen <ID> "<why>"   back to failing with attempts 0
 #   ledger.sh regress <ID> "<why>"  passing → failing (test broke)
 #   ledger.sh hash                  criteria hash
@@ -516,6 +517,25 @@ cmd_owner() {
   return 3
 }
 
+owner_approved() { # <ID>: its owner action carries the verifier's APPROVE for the exact request
+  local id="$1" req="$OWNER_DIR/$1.request.md" rev="$OWNER_DIR/$1.review.md" h
+  [[ -f "$req" && -f "$rev" && -f "$OWNER" ]] || return 1
+  h="$(fl_sha < "$req")"
+  grep -Eq "^REQUEST: *$h" "$rev" && grep -Eq '^VERDICT: *APPROVE' "$rev" \
+    && jq -e --arg id "$id" --arg h "$h" '.[$id].request == $h' "$OWNER" >/dev/null 2>&1
+}
+
+owner_request_legacy() { # <ID> <action> <check>: write a review request for an owner action recorded before reviews existed (1 = already there)
+  local id="$1" req="$OWNER_DIR/$1.request.md"
+  mkdir -p "$OWNER_DIR"
+  [[ -f "$req" ]] && return 1   # already requested (owner-check keeps listing it until reviewed)
+  {
+    echo "# Owner action request — $id (recorded before owner reviews existed)"
+    echo; echo "ITEM: $id"; echo "ACTION: $2"; echo "CHECK: $3"; echo "CHECK NOW: exit $(run_limited "${FINISH_OWNER_CHECK_TIMEOUT:-60}" "$3"; echo $?)"
+    echo; echo "## The item"; echo '```json'; jq --arg id "$id" '.items[] | select(.id == $id) | del(.evidence)' "$LEDGER"; echo '```'
+  } > "$req"
+}
+
 owner_apply() { # <ID>: record an owner action the verifier approved
   local id="$1" req review tmp action check
   need_ledger; need_item "$id"
@@ -571,7 +591,12 @@ cmd_owner_check() {
     fi
   done < <(jq -c 'to_entries[] | [.key, .value.check, .value.action]' "$OWNER")
   owner_md
+  local unreviewed="" k
+  for k in $(jq -r 'keys[]' "$OWNER"); do
+    [[ "$(item_field "$k" status)" == "needs_owner" ]] && ! owner_approved "$k" && unreviewed="$unreviewed $k"
+  done
   if [[ -n "$reopened" ]]; then echo "owner-check: reopened$reopened"; else echo "owner-check: still waiting on $(jq 'length' "$OWNER")"; fi
+  [[ -z "$unreviewed" ]] || echo "owner-check: awaiting the verifier's review (owner mode, .finish/owner/<ID>.request.md):$unreviewed"
 }
 
 # Products started before needs_owner existed: reopen their blocked_human items so the
@@ -584,14 +609,19 @@ cmd_migrate() {
     set_status "$id" failing "migrated from blocked_human: re-evaluate; if it still needs the owner, record ledger.sh owner with a check" " | .attempts = 0" >/dev/null
   done
   # Older runs could hand an unsolved item to the owner as "Needs an engineer": that work is the run's.
-  local done_eng=""
+  local done_eng="" review_eng=""
   if [[ -f "$OWNER" ]]; then
     local rec action check
     while IFS= read -r rec; do
       [[ -n "$rec" ]] || continue
       id="$(jq -r '.[0]' <<< "$rec")"; action="$(jq -r '.[1]' <<< "$rec")"; check="$(jq -r '.[2]' <<< "$rec")"
       [[ "$(item_field "$id" status)" == "needs_owner" ]] || continue
-      not_owner "$id" "$action" "$check" --legacy >/dev/null || continue
+      owner_approved "$id" && continue
+      if ! not_owner "$id" "$action" "$check" --legacy >/dev/null; then
+        # Not clearly a hand-off, but never reviewed: the verifier decides before it can count as the owner's.
+        owner_request_legacy "$id" "$action" "$check" && review_eng="$review_eng $id"
+        continue
+      fi
       set_status "$id" stuck "an engineering hand-off isn't an owner action: back to research rounds" >/dev/null
       tmp="$(mktemp)"; jq --arg id "$id" 'del(.[$id])' "$OWNER" > "$tmp" && mv "$tmp" "$OWNER"
       done_eng="$done_eng $id"
@@ -599,18 +629,24 @@ cmd_migrate() {
     owner_md
   fi
   ids="$(printf '%s %s' "$ids" "$done_eng" | tr '\n' ' ' | sed 's/^ *//; s/ *$//')"
-  [[ -n "$ids" ]] || { echo "migrate: nothing to do"; return 0; }
-  echo "migrate: reopened $ids"
+  review_eng="${review_eng# }"
+  [[ -n "$ids" || -n "$review_eng" ]] || { echo "migrate: nothing to do"; return 0; }
+  [[ -z "$ids" ]] || echo "migrate: reopened $ids"
+  [[ -z "$review_eng" ]] || echo "migrate: owner actions awaiting the verifier's review: $review_eng"
 }
 
 cmd_done_check() {
   need_ledger
   local scope out
   scope="$(fl_scope_n "$FD")"
-  out="$(jq -r --argjson scope "$scope" "[.items[] | select($in_scope)] as \$in |
-    (\$in | map(select(.status != \"passing\" and .status != \"needs_owner\")) | map(.id)) as \$open |
-    if (\$open | length) > 0 then \"OPEN \(\$open | join(\" \"))\"
-    elif any(\$in[]; .status == \"needs_owner\") then \"READY_FOR_OWNER\" else \"LAUNCH_READY\" end" "$LEDGER")"
+  local open owners id unreviewed=""
+  open="$(jq -r --argjson scope "$scope" "[.items[] | select($in_scope) | select(.status != \"passing\" and .status != \"needs_owner\") | .id] | join(\" \")" "$LEDGER")"
+  owners="$(jq -r --argjson scope "$scope" ".items[] | select($in_scope) | select(.status == \"needs_owner\") | .id" "$LEDGER")"
+  for id in $owners; do owner_approved "$id" || unreviewed="$unreviewed $id"; done
+  open="$(printf '%s%s' "$open" "$unreviewed" | sed 's/^ *//')"
+  if [[ -n "$open" ]]; then out="OPEN $open"
+  elif [[ -n "$owners" ]]; then out="READY_FOR_OWNER"
+  else out="LAUNCH_READY"; fi
   echo "$out"
   [[ "$out" != OPEN* ]]
 }

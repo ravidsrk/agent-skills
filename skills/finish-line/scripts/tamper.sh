@@ -214,18 +214,23 @@ fi
   git ls-files --others --exclude-standard 2>/dev/null
 } | sort -u | grep -E "$FL_GATE_IGNORE_RE" | while IFS= read -r f; do
   if git cat-file -e "$base:$f" 2>/dev/null; then
-    # An added rule counts unless it re-includes (!…) or narrows a removed one (src/** → src/generated/**).
+    # An added rule counts unless it re-includes (!…) or provably narrows a removed one: the removed
+    # rule ignored a whole literal directory (dir, dir/, dir/*, dir/**, dir/**/*) and the added one
+    # names a literal path inside it (src/** → src/generated/**). Anything else is assumed to widen.
     git diff -U0 "${diffargs[@]}" -- "$f" 2>/dev/null | awk '
+      function literal(s) { return s !~ /[*?[]/ }
       /^(\+\+\+|---) / { next }
       /^-/ { r = substr($0, 2); if (r !~ /^[[:space:]]*(#.*)?$/) rem[++nr] = r; next }
       /^\+/ { a = substr($0, 2); if (a !~ /^[[:space:]]*(#.*)?$/ && a !~ /^[[:space:]]*!/) add[++na] = a; next }
       END {
         for (i = 1; i <= na; i++) {
           narrows = 0
-          for (j = 1; j <= nr; j++) {
-            st = rem[j]; sub(/[*\/]+$/, "", st)
-            if (st != "" && add[i] != rem[j] && index(add[i], st) == 1 \
-                && (length(add[i]) == length(st) || substr(add[i], length(st) + 1, 1) == "/")) { narrows = 1; break }
+          for (j = 1; j <= nr && !narrows; j++) {
+            b = rem[j]
+            if (!sub(/\/\*\*\/\*$/, "", b) && !sub(/\/\*\*$/, "", b) && !sub(/\/\*$/, "", b)) sub(/\/$/, "", b)
+            if (b == "" || !literal(b) || index(add[i], b "/") != 1) continue
+            seg = substr(add[i], length(b) + 2); sub(/\/.*/, "", seg)
+            if (seg != "" && literal(seg)) narrows = 1
           }
           if (!narrows) print add[i]
         }

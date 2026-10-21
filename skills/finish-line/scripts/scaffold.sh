@@ -11,8 +11,10 @@
 #   .claude/agents/finish-verifier.md  independent verifier subagent
 #   .claude/settings.local.json        no permission prompts and no questions in interactive sessions
 #                                      (allow the tools the protocol uses; deny AskUserQuestion, plan mode,
-#                                      force-push and history rewrites)
-#   .gitignore entries for evidence, logs and browser-tool scratch dirs
+#                                      force-push, history rewrites, and the community-pack skills that
+#                                      ask, plan, publish or merge — see references/companions.md)
+#   .finish/companions.json            which installed community skills fill which protocol step
+#   .gitignore entries for evidence, logs, companion state and browser-tool scratch dirs
 #   --web: e2e/finish/playwright.config.ts + e2e/finish/finish-fixture.ts
 
 set -uo pipefail
@@ -77,6 +79,8 @@ if [[ -e .claude/settings.local.json ]]; then
 else
   copy "$SKILL/templates/claude-settings.local.json" ".claude/settings.local.json"
 fi
+"$HERE/companions.sh" settings "$ROOT" | sed 's/^• /  ~ /'
+[[ -f "$FD/companions.json" ]] || "$HERE/companions.sh" detect "$ROOT" | sed 's/^/  /'
 
 if [[ $web -eq 1 ]]; then
   copy "$SKILL/templates/e2e/playwright.config.ts" "e2e/finish/playwright.config.ts"
@@ -84,7 +88,7 @@ if [[ $web -eq 1 ]]; then
 fi
 
 touch .gitignore
-for line in '.finish/evidence/*' '!.finish/evidence/INDEX.md' '.finish/logs/' '.finish/ledger.proposed.json' '.claude/settings.local.json' '.env*.local' '.playwright-cli/' 'test-results/' 'playwright-report/'; do
+for line in '.finish/evidence/*' '!.finish/evidence/INDEX.md' '.finish/logs/' '.finish/ledger.proposed.json' '.finish/companions.json' '.claude/settings.local.json' '.env*.local' '.playwright-cli/' '.gstack/' 'test-results/' 'playwright-report/'; do
   if ! grep -qxF -- "$line" .gitignore; then
     if [[ -s .gitignore && -n "$(tail -c1 .gitignore)" ]]; then echo >> .gitignore; fi
     echo "$line" >> .gitignore

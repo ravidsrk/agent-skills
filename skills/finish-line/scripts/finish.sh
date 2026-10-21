@@ -12,6 +12,8 @@
 #   - FINISH_UNTIL=P1 or P2 opens the next scope once P0 is done
 #   - after a skill upgrade it refreshes .finish/bin/ (re-anchoring the freeze), an
 #     unmodified verifier agent and old statuses itself
+# Every session runs with a policy (--settings) that denies community skills which ask,
+# plan, publish or merge, turns hooks off, and tells gstack nobody is there to answer.
 # Its own commits contain only the files it changed, never anything else you staged.
 #
 #   finish.sh [repo]                      default repo: current directory
@@ -27,6 +29,10 @@
 #   CLAUDE_MODEL=            optional --model for claude
 #   FINISH_AGENT=            other headless agent command; the prompt is appended as the last argument
 #   FINISH_GIT_NAME / FINISH_GIT_EMAIL / FINISH_NO_AI_TRAILERS=1   commit identity and trailers
+#   FINISH_COMPANIONS=auto   use installed community skill packs at their protocol steps
+#                            (references/companions.md); off = never; install = install the
+#                            recommended pinned packs first. Default off with FINISH_AGENT.
+#   FINISH_KEEP_HOOKS=1      leave Claude Code hooks on (default: off for every session)
 #
 # Exit: 0 LAUNCH_READY or READY_FOR_OWNER · 1 setup error · 2 no progress possible
 #       3 session cap · 4 too many reverted sessions · 5 agent CLI keeps failing
@@ -78,7 +84,7 @@ LOCK="$GITDIR/finish-line.lock"
 if ! mkdir "$LOCK" 2>/dev/null; then
   echo "another finish.sh is running in this repo (stale? rmdir $LOCK)"; exit 1
 fi
-trap 'rmdir "$LOCK" 2>/dev/null; rm -f "$GITDIR/finish-line.ledger.json"' EXIT
+trap 'rmdir "$LOCK" 2>/dev/null; rm -f "$GITDIR/finish-line.ledger.json" "$GITDIR/finish-line.settings.local.json"' EXIT
 
 # Env files are where owner actions put keys: a stash must never take them.
 # (Literal excludes of ignored paths make `git stash push` fail, so logs are filtered separately.)
@@ -97,15 +103,38 @@ mkdir -p .finish/logs
 
 export FINISH_SKILL_DIR="$SKILL"
 
+# Companion skills: record which installed packs fill which protocol step (the session
+# reads .finish/companions.json), and build the policy every session runs under.
+export GSTACK_SESSION_KIND=spawned   # gstack: never ask, take the recommended option, log it
+COMPANIONS="${FINISH_COMPANIONS:-}"
+[[ -n "$COMPANIONS" ]] || { if [[ -n "${FINISH_AGENT:-}" ]]; then COMPANIONS=off; else COMPANIONS=auto; fi; }
+if [[ "$COMPANIONS" == install ]]; then
+  FINISH_COMPANIONS=install "$HERE/companions.sh" install || echo "⚠ some companion packs did not install; using what is there"
+else
+  FINISH_COMPANIONS="$COMPANIONS" "$HERE/companions.sh" detect "$PWD" || echo "⚠ companion detection failed; sessions use the built-in steps"
+fi
+POLICY="$("$HERE/companions.sh" policy --runner 2>/dev/null)" || POLICY=""
+[[ -n "$POLICY" ]] || echo "⚠ could not build the session policy (companions/catalog.json); running without it"
+
 head_sha() { git rev-parse HEAD 2>/dev/null || echo none; }
 status_now() { tr -d '[:space:]' < .finish/STATUS 2>/dev/null || echo NEW; }
 is_terminal() { case "$1" in LAUNCH_READY|READY_FOR_OWNER|BLOCKED_ON_HUMAN) return 0 ;; esac; return 1; }
 progress() { "$HERE/ledger.sh" status --line 2>/dev/null || echo "P0 ?"; }
+VERIFIER=.claude/agents/finish-verifier.md
 fixed() { # files the agent must never change during a frozen session (FREEZE/LEDGER.lock move only by amendment)
   local f
-  for f in .finish/SCOPE .finish/bin/lib.sh .finish/bin/ledger.sh .finish/bin/tamper.sh; do
+  for f in .finish/SCOPE .finish/bin/lib.sh .finish/bin/ledger.sh .finish/bin/tamper.sh \
+           "$VERIFIER" .claude/settings.json .claude/settings.local.json; do
     if [[ -f "$f" ]]; then printf '%s %s\n' "$(fl_sha < "$f")" "$f"; else printf 'absent %s\n' "$f"; fi
   done
+}
+changed_fixed() { # <before> <after> → the fixed files that differ, space-separated
+  diff <(printf '%s\n' "$1") <(printf '%s\n' "$2") | sed -n 's/^> [^ ]* //p' | tr '\n' ' ' | sed 's/ $//'
+}
+verifier_shipped() { # the installed verifier is one this skill shipped (not one a session wrote)
+  [[ -f "$VERIFIER" ]] || return 0
+  local h; h="$(fl_sha < "$VERIFIER")"
+  [[ "$h" == "$(fl_sha < "$SKILL/templates/finish-verifier.md")" ]] || grep -qxF "$h" "$SKILL/templates/finish-verifier.history" 2>/dev/null
 }
 read_or() { tr -d '[:space:]' < "$1" 2>/dev/null || printf '%s' "$2"; }
 amd_count() { cat .finish/amendments.jsonl 2>/dev/null | wc -l | tr -d ' '; }
@@ -118,12 +147,13 @@ This is one session of an unattended, fully autonomous Finish Line run. No human
 $(cat "$PROTOCOL")"
   if [[ -n "${FINISH_AGENT:-}" ]]; then
     # shellcheck disable=SC2086  # FINISH_AGENT is a command line; split it on purpose
-    $FINISH_AGENT "$prompt"
+    $FINISH_AGENT "$prompt" < /dev/null
   else
     local extra=(--dangerously-skip-permissions --disallowedTools "AskUserQuestion,EnterPlanMode,ExitPlanMode")
     claude --help 2>/dev/null | grep -q -- '--permission-prompts' && extra+=(--permission-prompts none)
     [[ -n "${CLAUDE_MODEL:-}" ]] && extra+=(--model "$CLAUDE_MODEL")
-    claude -p "$prompt" "${extra[@]}"
+    [[ -n "$POLICY" ]] && extra+=(--settings "$POLICY")   # flag scope: outranks the repo's and the user's settings
+    claude -p "$prompt" "${extra[@]}" < /dev/null
   fi
 }
 
@@ -169,15 +199,16 @@ upgrade_project() {
   if [[ -d .finish ]]; then
     local line added=0
     touch .gitignore
-    for line in '.claude/settings.local.json' '.env*.local' '.finish/ledger.proposed.json'; do
+    for line in '.claude/settings.local.json' '.env*.local' '.finish/ledger.proposed.json' '.finish/companions.json' '.gstack/'; do
       grep -qxF -- "$line" .gitignore || { [[ -s .gitignore && -n "$(tail -c1 .gitignore)" ]] && echo >> .gitignore; echo "$line" >> .gitignore; added=1; }
     done
-    [[ $added -eq 0 ]] || runner_commit "chore(finish): runner adds ignore rules for local settings and env files" .gitignore
+    [[ $added -eq 0 ]] || runner_commit "chore(finish): runner adds ignore rules for local settings, env files and tool state" .gitignore
   fi
   if [[ -d .claude && ! -e .claude/settings.local.json ]]; then
     cp "$SKILL/templates/claude-settings.local.json" .claude/settings.local.json
     echo "• added .claude/settings.local.json (no permission prompts or questions in interactive sessions)"
   fi
+  "$HERE/companions.sh" settings "$PWD" 2>/dev/null || true
 }
 
 # Between sessions: reopen owner actions that are done, move past terminal states.
@@ -239,6 +270,11 @@ revert_session() { # revert_session <start sha> <reason>
       exit 4
     fi
   fi
+  if [[ -f "$GITDIR/finish-line.settings.local.json" ]]; then
+    mkdir -p .claude && cp "$GITDIR/finish-line.settings.local.json" .claude/settings.local.json
+  elif [[ -f .claude/settings.local.json ]] && ! git ls-files --error-unmatch .claude/settings.local.json >/dev/null 2>&1; then
+    rm -f .claude/settings.local.json   # the session created it
+  fi
   mkdir -p .finish
   note_progress "Session $sessions was reverted by the runner: $reason
 Do not repeat it. Details: .finish/logs/tamper-$sessions.txt and .finish/logs/$(basename "$log")"
@@ -269,6 +305,8 @@ while :; do
   before_freeze="$(read_or .finish/FREEZE none)"
   before_amd="$(amd_count)"
   before_ratchet="$(cat .finish/ratchet.json 2>/dev/null || echo '{}')"
+  # Gitignored, so neither a revert nor a stash would undo a session's edit: keep a copy.
+  cp .claude/settings.local.json "$GITDIR/finish-line.settings.local.json" 2>/dev/null || rm -f "$GITDIR/finish-line.settings.local.json"
   cp .finish/ledger.json "$GITDIR/finish-line.ledger.json" 2>/dev/null || rm -f "$GITDIR/finish-line.ledger.json"
 
   run_agent 2>&1 | tee "$log"
@@ -276,7 +314,8 @@ while :; do
 
   reason=""
   if [[ $frozen -eq 1 ]]; then
-    [[ "$(fixed)" == "$before_fixed" ]] || reason="the agent changed SCOPE or .finish/bin/"
+    ch="$(changed_fixed "$before_fixed" "$(fixed)")"
+    [[ -z "$ch" ]] || reason="the session changed $ch (only the runner or the owner may)"
     if [[ -z "$reason" ]] && ! out="$("$HERE/ledger.sh" amend-verify "$before_lock" "$before_freeze" "$before_amd" "$GITDIR/finish-line.ledger.json" 2>&1)"; then
       reason="unapproved change to the frozen definition of done ($out)"
     fi
@@ -297,6 +336,9 @@ while :; do
     if [[ "$scope_before" != "$scope_after" ]] && ! [[ "$scope_before" == "absent .finish/SCOPE" && "$(read_or .finish/SCOPE '')" == "P0" ]]; then
       reason="the session changed .finish/SCOPE"
     fi
+  fi
+  if [[ -z "$reason" && $frozen -eq 0 ]] && [[ " $(changed_fixed "$before_fixed" "$(fixed)") " == *" $VERIFIER "* ]] && ! verifier_shipped; then
+    reason="the session wrote its own $VERIFIER; the verifier must be the one the skill ships (owners customise it between runs)"
   fi
   if [[ -z "$reason" && -f .finish/FREEZE ]]; then
     "$HERE/ledger.sh" check >/dev/null 2>&1 || reason="frozen criteria were hand-edited (ledger.sh check)"

@@ -42,7 +42,10 @@
 #   ledger.sh check                 criteria hash matches .finish/LEDGER.lock (exit 1 if not)
 #   ledger.sh brief                 check .finish/product.json — every claim's source exists and every
 #                                   quote is really in it — and write .finish/PRODUCT.md (exit 1 on errors)
-#   ledger.sh lock                  first freeze: write .finish/FREEZE + .finish/LEDGER.lock
+#   ledger.sh lock                  first freeze: needs a valid brief and the verifier's APPROVE (freeze
+#                                   mode) for exactly this brief and ledger — writes .finish/freeze/request.md
+#                                   and exits 3 until then; then writes .finish/FREEZE + .finish/LEDGER.lock
+#   ledger.sh freeze-check          the first freeze was approved for the brief and ledger it froze (runner)
 #   ledger.sh amend "<why>"         change the definition of done from .finish/ledger.proposed.json
 #   ledger.sh amend --rebaseline "<why>"   move FREEZE to HEAD (a gate change tamper.sh flags)
 #   ledger.sh amend --apply <NNN>   apply an amendment the verifier approved
@@ -416,19 +419,33 @@ cmd_run_commands() { # run in-scope command items; --passing = only items alread
   echo "$n command item(s) passed"
 }
 
+committed() { # <path>: tracked and unchanged since HEAD
+  git ls-files --error-unmatch "$1" >/dev/null 2>&1 && git diff --quiet HEAD -- "$1" 2>/dev/null
+}
+
 cmd_lock() {
   need_ledger
-  if [[ -f "$FD/FREEZE" && "${1:-}" != "--refreeze" ]]; then
+  [[ "${1:-}" == "--apply" ]] && shift   # same as lock: it freezes once the review approves
+  local refreeze=0 rc
+  [[ "${1:-}" == "--refreeze" ]] && refreeze=1
+  if [[ -f "$FD/FREEZE" && $refreeze -eq 0 ]]; then
     fl_die "ledger already frozen at $(cat "$FD/FREEZE"). Change the definition of done with: ledger.sh amend \"<why>\""
   fi
-  cmd_validate >/dev/null || fl_die "ledger invalid — run ledger.sh validate"
-  if ! git ls-files --error-unmatch .finish/ledger.json >/dev/null 2>&1 || ! git diff --quiet HEAD -- .finish/ledger.json 2>/dev/null; then
-    fl_die "commit .finish/ledger.json first; FREEZE must point at the commit that contains it"
+  if [[ ! -f "$FD/FREEZE" ]]; then   # the first freeze: the brief comes first, and the verifier approves both
+    [[ -f "$BRIEF" ]] || fl_die "no product brief — write .finish/product.json from the docs (protocol §3.2) before the ledger can freeze"
+    cmd_brief >/dev/null || { cmd_brief; fl_die "the brief doesn't check out — fix .finish/product.json"; }
+  fi
+  cmd_validate >/dev/null || { cmd_validate; fl_die "ledger invalid"; }
+  committed .finish/ledger.json || fl_die "commit .finish/ledger.json first; FREEZE must point at the commit that contains it"
+  if [[ ! -f "$FD/FREEZE" ]]; then
+    committed .finish/product.json || fl_die "commit .finish/product.json (and .finish/PRODUCT.md) first; FREEZE must point at the commit that contains the brief"
+    freeze_request; rc=$?
+    [[ $rc -eq 0 ]] || return "$rc"
   fi
   git rev-parse HEAD > "$FD/FREEZE"
   fl_criteria_hash "$LEDGER" > "$FD/LEDGER.lock"
   echo "frozen at $(cat "$FD/FREEZE") · criteria $(cat "$FD/LEDGER.lock")"
-  echo "now: git add .finish/FREEZE .finish/LEDGER.lock && git commit -m \"chore(finish): freeze ledger\""
+  echo "now: git add .finish/FREEZE .finish/LEDGER.lock .finish/freeze && git commit -m \"chore(finish): freeze ledger\""
 }
 
 cmd_check() {
@@ -575,6 +592,56 @@ brief_md() { # .finish/PRODUCT.md: the brief, readable — what the run thinks t
     "## Docs read",
     (.docs | if length > 0 then .[] | "- `\(.)`" else "None." end)' "$BRIEF" > "$FD/PRODUCT.md"
 }
+
+# ── Freeze review ─────────────────────────────────────────────────────────────
+# Everything after the freeze is built on the brief and the ledger, so the first freeze needs
+# the verifier's APPROVE (freeze mode) for exactly this brief and this ledger.
+
+FREEZE_DIR="$FD/freeze"
+
+freeze_request() { # write .finish/freeze/request.md; 0 when the verifier approved exactly it, 3 when it waits
+  local req="$FREEZE_DIR/request.md" rev="$FREEZE_DIR/review.md" tmp
+  mkdir -p "$FREEZE_DIR"
+  tmp="$(mktemp)"
+  {
+    echo "# Freeze request — $(jq -r .product "$LEDGER")"
+    echo
+    echo "BRIEF: $(fl_sha < "$BRIEF")"
+    echo "LEDGER: $(fl_criteria_hash "$LEDGER")"
+    echo
+    echo "Everything the run builds rests on .finish/product.json and .finish/ledger.json. Check both against the docs."
+    echo
+    echo "## Brief check"; echo '```'; cmd_brief 2>&1; echo '```'
+    echo
+    echo "## Items"
+    jq -r '.items[] | "- \(.id) (\(.priority) \(.type)) — \(.title) — source: \(.source // "")"' "$LEDGER"
+  } > "$tmp"
+  if cmp -s "$tmp" "$req"; then rm -f "$tmp"; else mv "$tmp" "$req"; rm -f "$rev"; fi
+  if [[ -f "$rev" ]] && grep -Eq "^REQUEST: *$(fl_sha < "$req")" "$rev"; then
+    grep -Eq '^VERDICT: *APPROVE' "$rev" && return 0
+    fl_die "the verifier rejected the brief or the ledger: fix what .finish/freeze/review.md lists (re-read the sources it names), commit, then ledger.sh lock again"
+  fi
+  echo "freezing needs the verifier's approval of the brief and the ledger. Spawn finish-verifier in freeze mode with: .finish/freeze/request.md"
+  echo "then: ledger.sh lock   (REJECT → fix what its review lists, commit, lock again)"
+  return 3
+}
+
+cmd_freeze_check() { # the first freeze carries an APPROVE for the brief and ledger it froze
+  [[ -f "$FD/FREEZE" ]] || { echo "not frozen yet"; return 0; }
+  local req="$FREEZE_DIR/request.md" rev="$FREEZE_DIR/review.md" f0 tmp l
+  [[ -f "$req" && -f "$rev" ]] || { echo "no freeze request and review in .finish/freeze/"; return 1; }
+  if ! grep -Eq "^REQUEST: *$(fl_sha < "$req")" "$rev" || ! grep -Eq '^VERDICT: *APPROVE' "$rev"; then
+    echo "the freeze review doesn't approve this request"; return 1
+  fi
+  f0="$(jq -rs '.[0].freeze_before // empty' "$FD/amendments.jsonl" 2>/dev/null)"
+  [[ -n "$f0" ]] || f0="$(tr -d '[:space:]' < "$FD/FREEZE")"
+  git cat-file -e "$f0:.finish/product.json" 2>/dev/null || { echo "the freeze commit has no .finish/product.json"; return 1; }
+  grep -qxF "BRIEF: $(git show "$f0:.finish/product.json" | fl_sha)" "$req" || { echo "the brief at the freeze isn't the one reviewed"; return 1; }
+  tmp="$(mktemp)"; git show "$f0:.finish/ledger.json" > "$tmp" 2>/dev/null; l="$(fl_criteria_hash "$tmp" 2>/dev/null)"; rm -f "$tmp"
+  grep -qxF "LEDGER: $l" "$req" || { echo "the ledger at the freeze isn't the one reviewed"; return 1; }
+  echo "FREEZE REVIEW: OK"
+}
+
 
 # ── Owner actions ─────────────────────────────────────────────────────────────
 # Things only the product owner can do (a credential, an account, DNS, a store
@@ -1047,7 +1114,8 @@ case "$sub" in
   run-commands) cmd_run_commands "${1:-}" ;;
   check) cmd_check ;;
   brief) cmd_brief ;;
-  lock) cmd_lock "${1:-}" ;;
+  freeze-check) cmd_freeze_check ;;
+  lock) cmd_lock "$@" ;;
   ""|-h|--help|help) awk 'NR > 1 && /^#/ { sub(/^# ?/, ""); print; next } NR > 1 { exit }' "${BASH_SOURCE[0]}" ;;
   *) fl_die "unknown subcommand: $sub (try --help)" ;;
 esac

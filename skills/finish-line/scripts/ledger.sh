@@ -356,19 +356,23 @@ cmd_owner() {
 }
 
 # Run a shell check with a time limit (portable: no coreutils timeout on macOS). 124 = timed out.
+# The check gets its own process group, so a timeout stops everything it started
+# (test workers, browsers), not just its shell.
 run_limited() {
   local secs="$1" cmd="$2" pid t=0
+  set -m
   bash -c "$cmd" >/dev/null 2>&1 &
   pid=$!
+  set +m
   while kill -0 "$pid" 2>/dev/null; do
     if [[ $t -ge $((secs * 10)) ]]; then
-      pkill -P "$pid" 2>/dev/null; kill "$pid" 2>/dev/null; sleep 0.2; kill -9 "$pid" 2>/dev/null
+      kill -TERM -- "-$pid" 2>/dev/null; sleep 0.5; kill -KILL -- "-$pid" 2>/dev/null
       wait "$pid" 2>/dev/null
       return 124
     fi
     sleep 0.1; t=$((t + 1))
   done
-  wait "$pid"
+  wait "$pid" 2>/dev/null
 }
 
 cmd_owner_check() {

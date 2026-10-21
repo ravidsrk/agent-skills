@@ -44,7 +44,7 @@ Looking for the autonomous Orca fleets that used to live here (spec-to-ship, cle
 
 | Skill | What it does | Cost / latency |
 |---|---|---|
-| 🏁 **[finish-line](skills/finish-line/)** | Drives a half-built, AI-coded product to verified launch-readiness, fully autonomously — no questions mid-run. Forensic audit of what really works, a hash-locked definition of done frozen from the product's docs, a one-item-at-a-time build loop with Playwright / Maestro screenshots, an independent verifier (which also approves scope changes in place of the owner), and tamper checks that catch skipped or weakened tests. The runner reverts gamed sessions, parks stalled items and re-checks owner actions by itself, ending at `LAUNCH_READY` or a short owner checklist. | Agent compute only, capped by `MAX_SESSIONS` |
+| 🏁 **[finish-line](skills/finish-line/)** | Drives a half-built, AI-coded product to verified launch-readiness, fully autonomously — no questions mid-run. Forensic audit of what really works, a hash-locked definition of done frozen from the product's docs, a one-item-at-a-time build loop with Playwright / Maestro screenshots, an independent verifier (which also approves scope changes in place of the owner), and tamper checks that catch skipped or weakened tests. The runner reverts gamed sessions, parks stalled items and re-checks owner actions by itself, ending at `LAUNCH_READY` or a short owner checklist. Optionally calls pinned community skills (superpowers, Addy Osmani's agent-skills, gstack, Matt Pocock's) at fixed steps, with their planning and shipping skills denied. | Agent compute only, capped by `MAX_SESSIONS` |
 
 # 🎨 Creative
 
@@ -341,7 +341,7 @@ PRs welcome — new skills, fixes to existing ones, better docs. Quality bar:
 
 - 🏗️ **Repo structure** — inspired by [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills). The plugin manifest pattern, multi-runtime setup docs, expandable installs, and `AGENTS.md` conventions came from there.
 - 🎨 **`terminal-poster`** — visual pattern reverse-engineered from public posts by [@shannholmberg](https://x.com/shannholmberg) on X. The skill makes the look reproducible across topics; Shann designed the look itself.
-- 🏁 **`finish-line`** — built on Anthropic's published harness patterns for long-running agents (feature list with pass flags, progress file, browser-verified completion, a separate skeptical evaluator), hardened with mechanical guards against test gaming.
+- 🏁 **`finish-line`** — built on Anthropic's published harness patterns for long-running agents (feature list with pass flags, progress file, browser-verified completion, a separate skeptical evaluator), hardened with mechanical guards against test gaming. Its optional companions — [obra/superpowers](https://github.com/obra/superpowers), [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills), [mattpocock/skills](https://github.com/mattpocock/skills), [garrytan/gstack](https://github.com/garrytan/gstack) — are installed from their own repos at pinned commits, never vendored.
 - 🔍 **`deep-research`** — originally inspired by [`mvanhorn/last30days-skill`](https://github.com/mvanhorn/last30days-skill). The 30-day default window came from that upstream; the 8-source fan-out and monid routing were rebuilt from scratch.
 
 ---

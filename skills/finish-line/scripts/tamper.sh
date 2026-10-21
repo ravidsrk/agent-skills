@@ -214,8 +214,22 @@ fi
   git ls-files --others --exclude-standard 2>/dev/null
 } | sort -u | grep -E "$FL_GATE_IGNORE_RE" | while IFS= read -r f; do
   if git cat-file -e "$base:$f" 2>/dev/null; then
-    git diff -U0 "${diffargs[@]}" -- "$f" 2>/dev/null | grep -E '^\+' | grep -vE '^\+\+\+ ' | grep -vE '^\+[[:space:]]*(#.*)?$' \
-      | head -3 | while IFS= read -r l; do printf 'gate ignore list grew in %s: %s\n' "$f" "${l#+}"; done
+    # An added rule counts unless it re-includes (!…) or narrows a removed one (src/** → src/generated/**).
+    git diff -U0 "${diffargs[@]}" -- "$f" 2>/dev/null | awk '
+      /^(\+\+\+|---) / { next }
+      /^-/ { r = substr($0, 2); if (r !~ /^[[:space:]]*(#.*)?$/) rem[++nr] = r; next }
+      /^\+/ { a = substr($0, 2); if (a !~ /^[[:space:]]*(#.*)?$/ && a !~ /^[[:space:]]*!/) add[++na] = a; next }
+      END {
+        for (i = 1; i <= na; i++) {
+          narrows = 0
+          for (j = 1; j <= nr; j++) {
+            st = rem[j]; sub(/[*\/]+$/, "", st)
+            if (st != "" && add[i] != rem[j] && index(add[i], st) == 1 \
+                && (length(add[i]) == length(st) || substr(add[i], length(st) + 1, 1) == "/")) { narrows = 1; break }
+          }
+          if (!narrows) print add[i]
+        }
+      }' | head -3 | while IFS= read -r l; do printf 'gate ignore list grew in %s: %s\n' "$f" "$l"; done
   elif [[ -f "$f" ]] && grep -qvE '^[[:space:]]*(#.*)?$' "$f"; then
     printf 'gate ignore file added after the freeze: %s\n' "$f"
   fi

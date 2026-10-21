@@ -6,7 +6,9 @@
 # It recovers on its own instead of stopping:
 #   - a session that games the gate is reverted with new commits (uncommitted
 #     work is stashed, nothing is lost) and the next session is told why
-#   - STALL_LIMIT sessions without a commit park the current item as stuck
+#   - STALL_LIMIT sessions without a commit pause the current item as stuck; an item is
+#     never abandoned: when nothing else is failing, the runner reopens the least-tried
+#     stuck item as its next research round (protocol §5.1) until it passes
 #   - agent CLI failures are retried with exponential backoff
 #   - owner actions are re-checked before every session; done ones reopen
 #   - FINISH_UNTIL=P1 or P2 opens the next scope once P0 is done
@@ -20,7 +22,8 @@
 #
 # Env:
 #   MAX_SESSIONS=40          hard cap on sessions (your compute budget)
-#   STALL_LIMIT=3            sessions without a commit before the item is parked
+#   STALL_LIMIT=3            sessions without a commit before the item is paused (or a research round opens)
+#   FINISH_MAX_DRY=9         consecutive sessions with no commit at all before the runner gives up (exit 2)
 #   FINISH_UNTIL=P0          keep going through P1 / P2 after P0 is done
 #   FINISH_MAX_TRIPS=3       reverted sessions allowed before giving up
 #   FINISH_MAX_AMENDMENTS=5  verifier-approved weakening amendments allowed
@@ -34,7 +37,7 @@
 #                            recommended pinned packs first. Default off with FINISH_AGENT.
 #   FINISH_KEEP_HOOKS=1      leave Claude Code hooks on (default: off for every session)
 #
-# Exit: 0 LAUNCH_READY or READY_FOR_OWNER · 1 setup error · 2 no progress possible
+# Exit: 0 LAUNCH_READY or READY_FOR_OWNER · 1 setup error · 2 the agent makes no commits at all
 #       3 session cap · 4 too many reverted sessions · 5 agent CLI keeps failing
 #
 # The default agent runs with --dangerously-skip-permissions. Run this in a
@@ -52,6 +55,7 @@ case "${1:-}" in -h|--help) awk 'NR > 1 && /^#/ { sub(/^# ?/, ""); print; next }
 REPO="${1:-$PWD}"
 MAX_SESSIONS="${MAX_SESSIONS:-40}"
 STALL_LIMIT="${STALL_LIMIT:-3}"
+MAX_DRY="${FINISH_MAX_DRY:-$((STALL_LIMIT * 3))}"
 MAX_TRIPS="${FINISH_MAX_TRIPS:-3}"
 BACKOFF="${FINISH_BACKOFF:-60}"
 case "${FINISH_UNTIL:-P0}" in P1) UNTIL=1 ;; P2) UNTIL=2 ;; *) UNTIL=0 ;; esac
@@ -73,7 +77,12 @@ gitc() { # git with the configured identity, if one was given
   fi
 }
 runner_commit() { # runner_commit "<message>" <paths…> — commits only these paths, never anything else staged
-  local msg="$1"; shift
+  local msg="$1" p keep=(); shift
+  for p in "$@"; do   # a path that neither exists nor is tracked would make git add refuse them all
+    if [[ -e "$p" ]] || git ls-files --error-unmatch -- "$p" >/dev/null 2>&1; then keep+=("$p"); fi
+  done
+  [[ ${#keep[@]} -gt 0 ]] || return 0
+  set -- "${keep[@]}"
   git add -A -- "$@" 2>/dev/null
   git diff --cached --quiet -- "$@" && return 0
   gitc commit -q -m "$msg" -- "$@" || echo "⚠ runner could not commit ($msg); the next session will"
@@ -202,7 +211,7 @@ upgrade_project() {
   local out cur inst
   if [[ -f .finish/ledger.json ]]; then
     out="$("$HERE/ledger.sh" migrate 2>/dev/null)"
-    case "$out" in *reopened*) echo "• $out"; runner_commit "chore(finish): runner migrates blocked items to the owner-action flow" .finish/ledger.json ;; esac
+    case "$out" in *reopened*) echo "• $out"; runner_commit "chore(finish): runner moves old blocked and engineer hand-off items back into the run" .finish/ledger.json .finish/owner.json .finish/OWNER_ACTIONS.md ;; esac
   fi
   if [[ -f .claude/agents/finish-verifier.md ]]; then
     cur="$(fl_sha < "$SKILL/templates/finish-verifier.md")"; inst="$(fl_sha < .claude/agents/finish-verifier.md)"
@@ -233,6 +242,18 @@ upgrade_project() {
 
 # Between sessions: reopen owner actions that are done, move past terminal states.
 # Exits 0 when the run is complete.
+# Nothing failing but something stuck: reopen the least-tried stuck item as its next research
+# round, so the next session always has an unresolved item to work. Items are never abandoned.
+open_round_if_idle() {
+  local sid
+  [[ -f .finish/FREEZE && "$(status_now)" == BUILDING ]] || return 0
+  "$HERE/ledger.sh" next >/dev/null 2>&1 && return 0
+  sid="$("$HERE/ledger.sh" next --stuck 2>/dev/null)" && [[ -n "$sid" ]] || return 0
+  "$HERE/ledger.sh" round "$sid" >/dev/null || return 0
+  runner_commit "chore(finish): runner opens a research round for $sid" .finish/ledger.json
+  echo "• nothing else is failing: research round for $sid"
+}
+
 between_sessions() {
   local out st scope
   upgrade_project
@@ -243,7 +264,7 @@ between_sessions() {
     case "$out" in *reopened*) runner_commit "chore(finish): owner action detected (${out#*reopened })" .finish ;; esac
   fi
   st="$(status_now)"
-  is_terminal "$st" || return 0
+  is_terminal "$st" || { open_round_if_idle; return 0; }
   # The ledger, not the agent, decides whether the product is done.
   local verdict
   verdict="$("$HERE/ledger.sh" done-check 2>/dev/null || true)"
@@ -257,6 +278,7 @@ between_sessions() {
     echo BUILDING > .finish/STATUS
     runner_commit "chore(finish): runner resumes building — ${verdict:-no ledger}" .finish/STATUS .finish/PROGRESS.md
     claimed=0
+    open_round_if_idle
     return 0
   fi
   st="$verdict"; echo "$st" > .finish/STATUS
@@ -300,6 +322,7 @@ Do not repeat it. Details: .finish/logs/tamper-$sessions.txt and .finish/logs/$(
 sessions=0
 claimed=0   # 1 when the last session itself wrote a terminal STATUS
 stall=0
+dry=0       # consecutive sessions in which the agent committed nothing at all
 agent_fail=0
 trips=0
 last_head="$(head_sha)"
@@ -308,6 +331,8 @@ while :; do
   between_sessions
   if [[ $sessions -ge $MAX_SESSIONS ]]; then
     echo "■ Session cap MAX_SESSIONS=$MAX_SESSIONS reached · $(status_now) · $(progress)"
+    "$HERE/ledger.sh" next 2>/dev/null | sed -n '2,$p' | sed 's/^/  unresolved/'
+    echo "  Nothing was abandoned: rerun with a higher MAX_SESSIONS to keep going; research so far is in .finish/research/"
     exit 3
   fi
   sessions=$((sessions + 1))
@@ -394,18 +419,28 @@ while :; do
   is_terminal "$(status_now)" && claimed=1
 
   h="$(head_sha)"
-  if [[ "$h" != "$last_head" ]]; then stall=0; last_head="$h"; continue; fi
-  stall=$((stall + 1))
+  if [[ "$h" != "$last_head" ]]; then stall=0; dry=0; last_head="$h"; continue; fi
+  stall=$((stall + 1)); dry=$((dry + 1))
   echo "⚠ no new commit this session ($stall/$STALL_LIMIT)"
-  [[ $stall -ge $STALL_LIMIT ]] || continue
-  id="$("$HERE/ledger.sh" next 2>/dev/null | head -1 | cut -f1)"
-  if [[ -z "$id" || "$id" == "none" ]]; then
-    echo "■ No progress possible: $STALL_LIMIT sessions without a commit and no item to park. Read $log and .finish/PROGRESS.md"
+  if [[ $dry -ge $MAX_DRY ]]; then
+    echo "■ $MAX_DRY sessions in a row committed nothing at all — not even research notes — so the agent isn't working (it can't run, or its CLI misbehaves). Read $log and .finish/PROGRESS.md"
     exit 2
   fi
-  "$HERE/ledger.sh" stuck "$id" "runner: $STALL_LIMIT sessions without a commit" >/dev/null
-  note_progress "The runner parked $id as stuck after $STALL_LIMIT sessions without a commit. Take the next item; $id gets its second round later."
-  runner_commit "chore(finish): runner parked $id after $STALL_LIMIT sessions without progress" .finish
-  echo "• parked $id as stuck"
+  [[ $stall -ge $STALL_LIMIT ]] || continue
+  id="$("$HERE/ledger.sh" next 2>/dev/null | head -1 | cut -f1)"
+  if [[ -n "$id" && "$id" != "none" ]]; then
+    "$HERE/ledger.sh" stuck "$id" "runner: $STALL_LIMIT sessions without a commit" >/dev/null
+    note_progress "The runner paused $id as stuck after $STALL_LIMIT sessions without a commit. Take the next item; $id comes back as a research round (protocol §5.1)."
+    runner_commit "chore(finish): runner pauses $id after $STALL_LIMIT sessions without progress" .finish
+    echo "• paused $id as stuck"
+  elif sid="$("$HERE/ledger.sh" next --stuck 2>/dev/null)" && [[ -n "$sid" ]]; then
+    "$HERE/ledger.sh" round "$sid" >/dev/null
+    note_progress "Nothing is failing and $STALL_LIMIT sessions made no commit, so the runner opened the next research round for $sid. Work it per protocol §5.1 and commit .finish/research/$sid.md every session, fixed or not."
+    runner_commit "chore(finish): runner opens a research round for $sid" .finish
+    echo "• research round for $sid"
+  else
+    echo "■ No progress possible: $STALL_LIMIT sessions without a commit and nothing in scope is failing or stuck. Read $log and .finish/PROGRESS.md"
+    exit 2
+  fi
   stall=0; last_head="$(head_sha)"
 done

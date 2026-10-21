@@ -44,7 +44,7 @@ Looking for the autonomous Orca fleets that used to live here (spec-to-ship, cle
 
 | Skill | What it does | Cost / latency |
 |---|---|---|
-| 🏁 **[finish-line](skills/finish-line/)** | Drives a half-built, AI-coded product to verified launch-readiness. Forensic audit of what really works, a hash-locked definition of done frozen from the product's docs, a one-item-at-a-time build loop with Playwright / Maestro screenshots, an independent verifier subagent, and tamper checks that catch skipped or weakened tests. Runs unattended across fresh-context sessions until `LAUNCH_READY` or a clear list of what only you can do. | Agent compute only, capped by `MAX_SESSIONS` |
+| 🏁 **[finish-line](skills/finish-line/)** | Drives a half-built, AI-coded product to verified launch-readiness, fully autonomously — no questions mid-run. Forensic audit of what really works, a hash-locked definition of done frozen from the product's docs, a one-item-at-a-time build loop with Playwright / Maestro screenshots, an independent verifier (which also approves scope changes in place of the owner), and tamper checks that catch skipped or weakened tests. The runner reverts gamed sessions, parks stalled items and re-checks owner actions by itself, ending at `LAUNCH_READY` or a short owner checklist. | Agent compute only, capped by `MAX_SESSIONS` |
 
 # 🎨 Creative
 

@@ -26,7 +26,7 @@ When working in this repo:
 | "Add a CNAME / MX / A record on Namecheap" / "link my domain to my Fly/Vercel app" | [`namecheap-dns`](skills/namecheap-dns/SKILL.md) |
 | "Migrate from Fly to AWS" / "leave Fly" / "ECS migration" / "AWS migration" | [`fly-to-aws-migration`](skills/fly-to-aws-migration/SKILL.md) |
 | "Research X" / "deep dive on Y" / "what's the discourse on Z" | [`deep-research`](skills/deep-research/SKILL.md) |
-| "Finish this product" / "take it to launch" / "verify what actually works" / "the AI says it's done but it isn't" | [`finish-line`](skills/finish-line/SKILL.md) |
+| "Finish this product" / "take it to launch" / "do it autonomously, don't ask me" / "verify what actually works" / "the AI says it's done but it isn't" | [`finish-line`](skills/finish-line/SKILL.md) |
 | "Generate a viral poster" / "terminal aesthetic infographic" / "agent stack visualization" | [`terminal-poster`](skills/terminal-poster/SKILL.md) |
 
 # Execution Model

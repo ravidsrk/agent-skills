@@ -3,7 +3,7 @@
 # Bash 3.2 compatible (macOS default shell): no associative arrays, no mapfile.
 # shellcheck disable=SC2034  # variables are used by the scripts that source this file
 
-FL_STATUSES="failing passing stuck blocked_human"
+FL_STATUSES="failing passing stuck needs_owner"
 FL_TYPES="journey feature gate"
 FL_METHODS="e2e-web e2e-mobile api command"
 

@@ -25,7 +25,7 @@ The autonomous Orca fleets (spec-to-ship, clean-sweep, and the rest) moved to th
 | `namecheap-dns` | 🌐 Infrastructure | Namecheap XML API wrapper (handles wholesale-replace quirk) |
 | `fly-to-aws-migration` | 🌐 Infrastructure | 7-phase Fly.io → AWS playbook with ≤9 min downtime |
 | `deep-research` | 🔍 Research | 8-source parallel evidence orchestrator (X, Reddit, HN, GitHub, Polymarket, YouTube, Exa) |
-| `finish-line` | 🛠️ Dev workflow | Drives a half-built product to verified launch (frozen ledger, visual checks, verifier, tamper guards) |
+| `finish-line` | 🛠️ Dev workflow | Drives a half-built product to verified launch, fully autonomously (frozen ledger, visual checks, verifier, tamper guards, self-recovering runner) |
 | `terminal-poster` | 🎨 Creative | Retro-cyberpunk image posters (5 reusable templates, Nano Banana Pro) |
 
 All six are cataloged in [README.md](README.md) and mapped to trigger intents in

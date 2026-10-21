@@ -56,7 +56,7 @@ Each skill needs different secrets. Set them in your shell or in Claude Code's e
 | `fly-to-aws-migration` | `AWS_PROFILE`, `FLY_API_TOKEN`, `CLOUDFLARE_API_KEY` |
 | `deep-research` | `MONID_API_KEY` |
 | `terminal-poster` | `OPENROUTER_API_KEY` |
-| `finish-line` | none — optional `FINISH_GIT_NAME`, `FINISH_GIT_EMAIL`, `FINISH_NO_AI_TRAILERS=1` |
+| `finish-line` | none — optional `FINISH_GIT_NAME`, `FINISH_GIT_EMAIL`, `FINISH_NO_AI_TRAILERS=1`, `FINISH_UNTIL=P1\|P2` |
 
 ```bash
 # Example: add to ~/.zshrc or ~/.bashrc

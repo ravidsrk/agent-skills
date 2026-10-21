@@ -1,9 +1,9 @@
 # finish-line
 
-Takes an AI-built product that has docs and code but never shipped, and drives it to a verified launch-ready state — or to an honest list of the things only you can do.
+Takes an AI-built product that has docs and code but never shipped, and drives it to a verified launch-ready state — fully autonomously. It never asks you a question mid-run; it decides, logs the decision, and keeps going. What's left at the end is a short list of things only you can do (a key, an account, DNS, merging), each of which reopens the work by itself once it's done.
 
 🟢 **Cost:** your agent's compute only, no API keys of its own; capped by `MAX_SESSIONS` (default 40) and stopped early after 3 sessions without progress
-🟢 **Runs:** unattended, one fresh-context session per loop, resuming from `.finish/` in the repo
+🟢 **Runs:** unattended, one fresh-context session per loop, resuming from `.finish/` in the repo; self-recovering (reverts gamed sessions, parks stalled items, backs off on CLI errors)
 🟢 **Output:** a `finish-line` branch and PR, a frozen definition of done, screenshots and a verifier report for every item, `LAUNCH_REPORT.md`
 
 # Why it exists
@@ -62,28 +62,41 @@ export FINISH_NO_AI_TRAILERS=1                                           # optio
 ~/.claude/skills/finish-line/scripts/finish.sh ~/code/my-product
 
 # options
-MAX_SESSIONS=60 STALL_LIMIT=3 CLAUDE_MODEL=opus ~/.claude/skills/finish-line/scripts/finish.sh ~/code/my-product
+MAX_SESSIONS=60 CLAUDE_MODEL=opus ~/.claude/skills/finish-line/scripts/finish.sh ~/code/my-product
+FINISH_UNTIL=P2 ~/.claude/skills/finish-line/scripts/finish.sh ~/code/my-product     # don't stop at P0: finish everything in the docs
 # other agent CLIs: the protocol is appended as the last argument
 FINISH_AGENT="codex exec --full-auto" ~/.claude/skills/finish-line/scripts/finish.sh ~/code/my-product
 ```
 
 | Exit | Meaning |
 |---|---|
-| `0` | `LAUNCH_READY`, or `BLOCKED_ON_HUMAN` — read `.finish/LAUNCH_REPORT.md` and `.finish/BLOCKERS.md` |
-| `2` | Stalled: 3 sessions with no commit — read the last `.finish/logs/session-*.log` |
+| `0` | `LAUNCH_READY`, or `READY_FOR_OWNER` — only owner actions remain; see `.finish/OWNER_ACTIONS.md` and `.finish/LAUNCH_REPORT.md` |
+| `2` | No progress possible: sessions keep making no commits and there's nothing left to park — usually the app can't boot |
 | `3` | Hit `MAX_SESSIONS` |
-| `4` | Guard tripped: the agent edited the frozen ledger, `SCOPE`, `.finish/bin/`, `verify.sh`, the ratchet, or gamed a test |
-| `5` | The agent CLI exited non-zero 3 sessions in a row (auth, rate limit, crash) |
+| `4` | `FINISH_MAX_TRIPS` (3) sessions had to be reverted for gaming the gate or claiming a false finish — see the Runner notes in `.finish/PROGRESS.md` |
+| `5` | The agent CLI kept exiting non-zero despite backoff (auth, rate limit, crash) |
 
-**Interactive alternative:** in Claude Code inside the repo, *"Run one Finish Line session"* — the skill loads and the agent follows [`references/protocol.md`](references/protocol.md) for one session.
+**Interactive alternative:** in Claude Code inside the repo, *"Run one Finish Line session"* — the skill loads and the agent follows [`references/protocol.md`](references/protocol.md) for one session. Scaffold installs `.claude/settings.local.json`, which pre-approves the tools the protocol uses and denies `AskUserQuestion` and plan mode, so the session runs without permission prompts or questions.
 
-# Your job while it runs
+# How it stays autonomous
+
+| Where a person used to be needed | What happens instead |
+|---|---|
+| Judgment calls (ambiguous spec, missing design, which library) | A fixed decision procedure; one line per decision in `.finish/DECISIONS.md` |
+| Changing the definition of done | `ledger.sh amend`: additions apply at once; removals, rewording and demotions need the independent verifier's `APPROVE` against the docs, capped at 5 |
+| A tamper false positive | A verifier-approved rebaseline (`ledger.sh amend --rebaseline`) |
+| Missing keys, accounts, production, DNS, store listings | `ledger.sh owner` records the exact action and a check; everything else keeps moving; the item reopens itself when the check passes |
+| A session that games the gate or claims a false finish | The runner reverts it with new commits (uncommitted work stashed, `.env*` never touched) and tells the next session why |
+| Sessions that make no progress | The runner parks the item as stuck and moves on |
+| P0 done | With `FINISH_UNTIL=P1`/`P2`, the runner opens the next scope itself |
+| Skill upgrades | The runner refreshes `.finish/bin/` (re-anchoring the freeze) and an unmodified verifier agent, and migrates old statuses |
+
+# Your part (none of it during the run)
 
 1. **One product at a time.** Don't start a second until the first is done.
-2. **Clear blockers daily.** `.finish/BLOCKERS.md` lists what only you can do (keys, accounts, DNS, store listings). Do it, change the line's `- ` to `RESOLVED: `, rerun.
-3. **Don't add scope mid-run.** Ideas go in `.finish/LATER.md`. To change the definition of done, re-freeze ([`references/ledger.md`](references/ledger.md) §8).
-4. **Check evidence, not summaries.** `.finish/evidence/INDEX.md` and the screenshots it points to.
-5. **After launch:** `echo P1 > .finish/SCOPE && git commit -am "chore(finish): open P1 scope"`, rerun.
+2. **When it ends `READY_FOR_OWNER`:** do what `.finish/OWNER_ACTIONS.md` lists (add a key to `.env.local`, log in a CLI), then rerun. Nothing to mark — each item's check reopens it.
+3. **When it ends `LAUNCH_READY`:** read `.finish/LAUNCH_REPORT.md`, review the PR, merge.
+4. **Whenever you like:** skim `.finish/DECISIONS.md` and `.finish/evidence/INDEX.md`. You can override anything between runs ([`references/ledger.md`](references/ledger.md) §9); the run never waits for it.
 
 # What's in `.finish/` after a run
 
@@ -94,7 +107,9 @@ FINISH_AGENT="codex exec --full-auto" ~/.claude/skills/finish-line/scripts/finis
 ├── ledger.json                 frozen definition of done
 ├── FREEZE · LEDGER.lock        freeze commit + criteria hash
 ├── ratchet.json                assertion counts of passing specs (can only go up)
-├── PROGRESS.md · DECISIONS.md · BLOCKERS.md · LATER.md
+├── amendments/ · amendments.jsonl   every change to the definition of done, with its review
+├── OWNER_ACTIONS.md · owner.json   what only you can do, and how it's detected
+├── PROGRESS.md · DECISIONS.md · LATER.md
 ├── init.sh · verify.sh         boot + gate
 ├── bin/                        ledger.sh · tamper.sh · lib.sh
 ├── evidence/INDEX.md           committed index (screenshots and reports are gitignored)
@@ -107,10 +122,10 @@ FINISH_AGENT="codex exec --full-auto" ~/.claude/skills/finish-line/scripts/finis
 |---|---|
 | The runner uses `--dangerously-skip-permissions` | Run it in a container, VM, or a separate OS user that has no production credentials. |
 | Laptop sleeps during a long run | `caffeinate -i ~/.claude/skills/finish-line/scripts/finish.sh <repo>` on macOS. |
-| Tamper false positive (a legit `exclude` change in a test config) | You re-freeze; the agent never can. |
+| Uncommitted changes in the repo before a run | Stashed automatically (`git stash list`); `.env*` files are never stashed. |
 | CI fails tamper on a shallow clone | `actions/checkout` with `fetch-depth: 0`. |
 | Mobile flows can't find an emulator | Boot one first (`emulator -avd <name>` / `xcrun simctl boot <device>`); the agent can't install SDKs for you. |
-| It marks the paid-API feature `blocked_human` | Expected without a key. Add the test-mode key to `.env.local`, mark the blocker `RESOLVED:`, rerun. |
+| It ends `READY_FOR_OWNER` over a paid-API feature | Expected without a key. Add the test-mode key to `.env.local` and rerun; the item reopens by itself. |
 
 # File layout
 
@@ -120,7 +135,7 @@ finish-line/
 ├── README.md                       ← this file
 ├── references/
 │   ├── protocol.md                 ← the per-session protocol (the runner's prompt)
-│   ├── ledger.md                   ← definition-of-done rules, schema, freeze
+│   ├── ledger.md                   ← definition-of-done rules, schema, freeze, amendments
 │   ├── verification.md             ← init.sh, local infra, per-stack gate commands, spec rules
 │   └── portfolio-triage.md         ← picking the one product to finish
 ├── scripts/
@@ -132,7 +147,8 @@ finish-line/
 │   └── portfolio.sh                ← offline repo snapshot
 ├── templates/
 │   ├── verify.sh                   ← gate template
-│   ├── finish-verifier.md          ← verifier subagent
+│   ├── finish-verifier.md          ← verifier subagent (item, amendment and first-user modes)
+│   ├── claude-settings.local.json  ← no permission prompts or questions in interactive sessions
 │   ├── ledger.example.json
 │   ├── e2e/                        ← playwright.config.ts · finish-fixture.ts · J-001.example.spec.ts
 │   └── maestro/J-001.example.yaml

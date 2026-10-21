@@ -325,7 +325,6 @@ stall=0
 dry=0       # consecutive sessions in which the agent committed nothing at all
 agent_fail=0
 trips=0
-last_head="$(head_sha)"
 
 while :; do
   between_sessions
@@ -395,7 +394,7 @@ while :; do
       echo "■ $MAX_TRIPS sessions had to be reverted; stopping so the pattern can be looked at. See .finish/PROGRESS.md"
       exit 4
     fi
-    last_head="$(head_sha)"; stall=0
+    stall=0
     continue
   fi
 
@@ -411,15 +410,16 @@ while :; do
     wait_s=$((BACKOFF * (1 << (agent_fail - 1)))); [[ $wait_s -le 900 ]] || wait_s=900
     echo "⚠ agent exited $rc ($agent_fail/$STALL_LIMIT); retrying in ${wait_s}s"
     sleep "$wait_s"
-    h="$(head_sha)"; [[ "$h" == "$last_head" ]] || { stall=0; last_head="$h"; }
+    [[ "$(head_sha)" == "$start" ]] || stall=0
     if is_terminal "$(status_now)"; then echo BUILDING > .finish/STATUS; runner_commit "chore(finish): runner discards STATUS from a failed session" .finish/STATUS; fi
     continue
   fi
   agent_fail=0
   is_terminal "$(status_now)" && claimed=1
 
-  h="$(head_sha)"
-  if [[ "$h" != "$last_head" ]]; then stall=0; dry=0; last_head="$h"; continue; fi
+  # Progress = the session's own commits. $start is taken after the runner's between-session
+  # commits (owner checks, research rounds), so those never count as the agent's work.
+  if [[ "$(head_sha)" != "$start" ]]; then stall=0; dry=0; continue; fi
   stall=$((stall + 1)); dry=$((dry + 1))
   echo "⚠ no new commit this session ($stall/$STALL_LIMIT)"
   if [[ $dry -ge $MAX_DRY ]]; then
@@ -442,5 +442,5 @@ while :; do
     echo "■ No progress possible: $STALL_LIMIT sessions without a commit and nothing in scope is failing or stuck. Read $log and .finish/PROGRESS.md"
     exit 2
   fi
-  stall=0; last_head="$(head_sha)"
+  stall=0
 done

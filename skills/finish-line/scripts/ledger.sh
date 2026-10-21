@@ -316,7 +316,7 @@ ISSUE_ARGS='--title "<t>" --given "<Given …, when …, then …>" [--given …
 cmd_issue() {
   need_ledger
   [[ -f "$FD/FREEZE" ]] || fl_die "not frozen yet — add the defect to .finish/ledger.json directly before ledger.sh lock"
-  local title="" priority="" platform="web" source="" spec="" command="" crit='[]' id n method=""
+  local title="" priority="" platform="" source="" spec="" command="" crit='[]' id n method=""
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --title) title="${2:-}"; shift ;;
@@ -339,6 +339,15 @@ cmd_issue() {
   n="$(jq -r '[.items[].id | select(test("^I-[0-9]{3}$")) | ltrimstr("I-") | tonumber] | max // 0' "$LEDGER")"
   id="$(printf 'I-%03d' $((n + 1)))"
   # The platform decides how it is verified (an API test may well be named *.spec.ts); --method overrides.
+  # With neither, the spec path must say it unambiguously, or the call is refused.
+  if [[ -z "$platform" && -z "$method" && -z "$command" && -n "$spec" ]]; then
+    case "$spec" in
+      e2e/*.spec.ts|e2e/*.spec.js|*/e2e/*.spec.ts|*/e2e/*.spec.js) platform=web ;;
+      .maestro/*|*/.maestro/*|*.yaml|*.yml) fl_die "a Maestro flow: say which platform — --platform android or --platform ios" ;;
+      *) fl_die "can't tell how $spec runs: give --platform (web, android, ios, api, cli) or --method" ;;
+    esac
+  fi
+  [[ -n "$platform" ]] || platform=web
   if [[ -n "$command" ]]; then method="command"
   elif [[ -z "$method" ]]; then
     case "$platform" in web) method=e2e-web ;; android|ios) method=e2e-mobile ;; *) method=api ;; esac

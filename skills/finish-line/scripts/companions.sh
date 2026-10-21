@@ -251,23 +251,35 @@ install_git() { # <pack> — skills-dir packs (gstack): fetch the pinned commit,
   fl_need git
   dir="$SKILLS_DIR/$(cat_get --arg p "$pack" '.packs[$p].dir')"
   url="$(cat_get --arg p "$pack" '.packs[$p].git')"; sha="$(cat_get --arg p "$pack" '.packs[$p].sha')"
+  # Markers live in the checkout's .git, so they never show up in gstack's own tree.
   if [[ -e "$dir" ]]; then
     have="$(git -C "$dir" rev-parse HEAD 2>/dev/null || echo unknown)"
-    if [[ "$have" == "$sha" ]]; then echo "• $pack: already at the pinned commit ${sha:0:12}"
-    else echo "• $pack: $dir exists at ${have:0:12}; keeping it (finish-line's pin is ${sha:0:12}: git -C $dir fetch --depth 1 origin $sha && git -C $dir checkout FETCH_HEAD && (cd $dir && ./setup))"; fi
-    return 0
+    if [[ "$have" == "$sha" && -f "$dir/.git/finish-line-setup" ]]; then
+      echo "• $pack: already at the pinned commit ${sha:0:12}"; return 0
+    elif [[ "$have" == "$sha" && -f "$dir/.git/finish-line-checkout" ]]; then
+      echo "• $pack: checkout at ${sha:0:12} but its setup never finished; running it again"
+    elif [[ "$have" == "$sha" ]]; then
+      echo "• $pack: your own install, already at the pinned commit ${sha:0:12}; left as is"; return 0
+    else
+      echo "• $pack: $dir is your own install (at ${have:0:12}); keeping it (finish-line's pin is ${sha:0:12}: git -C $dir fetch --depth 1 origin $sha && git -C $dir checkout FETCH_HEAD && (cd $dir && ./setup))"
+      return 0
+    fi
   fi
   command -v bun >/dev/null 2>&1 || { echo "⚠ $pack: its ./setup needs Bun (https://bun.sh); not installed"; return 1; }
-  mkdir -p "$SKILLS_DIR"
-  if ! { git init -q "$dir" && git -C "$dir" remote add origin "$url" \
-         && git -C "$dir" fetch -q --depth 1 origin "$sha" && git -C "$dir" checkout -q FETCH_HEAD; }; then
-    echo "⚠ $pack: could not fetch $url at $sha"; rm -rf "$dir"; return 1
+  if [[ ! -e "$dir" ]]; then
+    mkdir -p "$SKILLS_DIR"
+    if ! { git init -q "$dir" && git -C "$dir" remote add origin "$url" \
+           && git -C "$dir" fetch -q --depth 1 origin "$sha" && git -C "$dir" checkout -q FETCH_HEAD; }; then
+      echo "⚠ $pack: could not fetch $url at $sha"; rm -rf "$dir"; return 1
+    fi
+    printf '%s\n' "$sha" > "$dir/.git/finish-line-checkout"
   fi
   while IFS= read -r a; do args+=("$a"); done < <(cat_get --arg p "$pack" '.packs[$p].setup[]?')
   if (cd "$dir" && ./setup ${args[@]+"${args[@]}"}); then
+    printf '%s\n' "$sha" > "$dir/.git/finish-line-setup"
     echo "• $pack: installed at ${sha:0:12} into $dir"
   else
-    echo "⚠ $pack: ./setup failed in $dir"; return 1
+    echo "⚠ $pack: ./setup failed in $dir; rerun companions.sh install $pack to retry"; return 1
   fi
 }
 

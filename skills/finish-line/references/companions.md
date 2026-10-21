@@ -52,7 +52,7 @@ FINISH_COMPANIONS=install ~/.claude/skills/finish-line/scripts/finish.sh ~/code/
 
 - Plugins install at user scope from **finish-line's own marketplace** (`companions/.claude-plugin/marketplace.json`, named `finish-line-companions`), where each entry pins a 40-character commit SHA. Claude Code refuses a download that doesn't match the pin, and marketplaces other than Anthropic's don't auto-update, so nothing moves under a run. A skill upgrade that bumps a pin is picked up by the next `install`, which updates the plugin in place.
 - A pack already installed from another marketplace (for example `superpowers@claude-plugins-official`, which auto-updates) is kept and used as is; uninstall it first if you want the pinned build.
-- gstack is fetched at its pinned commit into `~/.claude/skills/gstack` and set up with `--prefix --no-team --no-timeline-stop-hook --no-plan-tune-hooks`. An existing gstack checkout is left alone. gstack writes `.gstack/` into the product repo; scaffold and the runner gitignore it.
+- gstack is fetched at its pinned commit into `~/.claude/skills/gstack` and set up with `--prefix --no-team --no-timeline-stop-hook --no-plan-tune-hooks`. If its setup fails, rerunning the install retries it (markers in the checkout's `.git/` record what finish-line did). A gstack you installed yourself is left alone. gstack writes `.gstack/` into the product repo; scaffold and the runner gitignore it.
 - Installing is never done by an agent session (Law 9): run it yourself, or let the runner do it with `FINISH_COMPANIONS=install`.
 
 ## The session policy

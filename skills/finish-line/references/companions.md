@@ -66,7 +66,7 @@ Every runner session gets `--settings "$(companions.sh policy --runner)"`. Flag-
 
 Interactive sessions get the same deny list merged into `.claude/settings.local.json` by scaffold and by the runner (`companions.sh settings`), plus `Skill` on the allow list — except gstack's unprefixed names and the hooks switch, which would otherwise reach into everything else you do in that repo.
 
-After every session the runner also hashes `.claude/agents/finish-verifier.md`, `.claude/settings.json` and `.claude/settings.local.json`: a frozen session that changes any of them is reverted, and so is a session that installs a verifier the skill didn't ship.
+After every session the runner also hashes `.claude/agents/finish-verifier.md`, `.claude/settings.json` and `.claude/settings.local.json`: a frozen session that changes any of them is reverted, and so is a session that installs a verifier the skill didn't ship. The runner snapshots these three before each session and restores them on a revert, because a gitignored one (or a gitignored `.claude/`) would survive both `git revert` and the stash.
 
 `FINISH_COMPANIONS=off` turns the whole mechanism off (the policy still applies). With `FINISH_AGENT` set to another CLI it is off by default, since detection only knows Claude Code's plugins and skill folders.
 

@@ -84,7 +84,8 @@ LOCK="$GITDIR/finish-line.lock"
 if ! mkdir "$LOCK" 2>/dev/null; then
   echo "another finish.sh is running in this repo (stale? rmdir $LOCK)"; exit 1
 fi
-trap 'rmdir "$LOCK" 2>/dev/null; rm -f "$GITDIR/finish-line.ledger.json" "$GITDIR/finish-line.settings.local.json"' EXIT
+SNAP="$GITDIR/finish-line.snapshot"
+trap 'rmdir "$LOCK" 2>/dev/null; rm -f "$GITDIR/finish-line.ledger.json"; rm -rf "$SNAP"' EXIT
 
 # Env files are where owner actions put keys: a stash must never take them.
 # (Literal excludes of ignored paths make `git stash push` fail, so logs are filtered separately.)
@@ -121,15 +122,33 @@ status_now() { tr -d '[:space:]' < .finish/STATUS 2>/dev/null || echo NEW; }
 is_terminal() { case "$1" in LAUNCH_READY|READY_FOR_OWNER|BLOCKED_ON_HUMAN) return 0 ;; esac; return 1; }
 progress() { "$HERE/ledger.sh" status --line 2>/dev/null || echo "P0 ?"; }
 VERIFIER=.claude/agents/finish-verifier.md
+GUARDED=("$VERIFIER" .claude/settings.json .claude/settings.local.json)   # only the runner or the owner changes these
 fixed() { # files the agent must never change during a frozen session (FREEZE/LEDGER.lock move only by amendment)
   local f
   for f in .finish/SCOPE .finish/bin/lib.sh .finish/bin/ledger.sh .finish/bin/tamper.sh \
-           "$VERIFIER" .claude/settings.json .claude/settings.local.json; do
+           "${GUARDED[@]}"; do
     if [[ -f "$f" ]]; then printf '%s %s\n' "$(fl_sha < "$f")" "$f"; else printf 'absent %s\n' "$f"; fi
   done
 }
 changed_fixed() { # <before> <after> → the fixed files that differ, space-separated
   diff <(printf '%s\n' "$1") <(printf '%s\n' "$2") | sed -n 's/^> [^ ]* //p' | tr '\n' ' ' | sed 's/ $//'
+}
+snapshot() { # copy the guarded files: a gitignored one would survive both the revert and the stash
+  local f
+  rm -rf "$SNAP"; mkdir -p "$SNAP"
+  for f in "${GUARDED[@]}"; do
+    [[ -f "$f" ]] && { mkdir -p "$SNAP/$(dirname "$f")"; cp "$f" "$SNAP/$f"; }
+  done
+}
+restore_snapshot() { # put the guarded files back as they were before the session
+  local f
+  for f in "${GUARDED[@]}"; do
+    if [[ -f "$SNAP/$f" ]]; then
+      cmp -s "$SNAP/$f" "$f" 2>/dev/null || { mkdir -p "$(dirname "$f")"; cp "$SNAP/$f" "$f"; }
+    else
+      rm -f "$f"
+    fi
+  done
 }
 verifier_shipped() { # the installed verifier is one this skill shipped (not one a session wrote)
   [[ -f "$VERIFIER" ]] || return 0
@@ -270,11 +289,7 @@ revert_session() { # revert_session <start sha> <reason>
       exit 4
     fi
   fi
-  if [[ -f "$GITDIR/finish-line.settings.local.json" ]]; then
-    mkdir -p .claude && cp "$GITDIR/finish-line.settings.local.json" .claude/settings.local.json
-  elif [[ -f .claude/settings.local.json ]] && ! git ls-files --error-unmatch .claude/settings.local.json >/dev/null 2>&1; then
-    rm -f .claude/settings.local.json   # the session created it
-  fi
+  restore_snapshot
   mkdir -p .finish
   note_progress "Session $sessions was reverted by the runner: $reason
 Do not repeat it. Details: .finish/logs/tamper-$sessions.txt and .finish/logs/$(basename "$log")"
@@ -305,8 +320,7 @@ while :; do
   before_freeze="$(read_or .finish/FREEZE none)"
   before_amd="$(amd_count)"
   before_ratchet="$(cat .finish/ratchet.json 2>/dev/null || echo '{}')"
-  # Gitignored, so neither a revert nor a stash would undo a session's edit: keep a copy.
-  cp .claude/settings.local.json "$GITDIR/finish-line.settings.local.json" 2>/dev/null || rm -f "$GITDIR/finish-line.settings.local.json"
+  snapshot
   cp .finish/ledger.json "$GITDIR/finish-line.ledger.json" 2>/dev/null || rm -f "$GITDIR/finish-line.ledger.json"
 
   run_agent 2>&1 | tee "$log"

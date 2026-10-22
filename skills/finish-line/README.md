@@ -134,7 +134,7 @@ FINISH_AGENT="codex exec --full-auto" ~/.claude/skills/finish-line/scripts/finis
 ├── RUN · STATUS · SCOPE        which skill version started the run, phase, scope
 ├── product.json · PRODUCT.md   the brief: what the product is, every claim quoting its source
 ├── sources/                    raw exports of docs that live outside the repo (GitHub issues)
-├── freeze/                     the verifier's review of the brief and the ledger before the freeze
+├── freeze-review/                     the verifier's review of the brief and the ledger before the freeze
 ├── AUDIT.md                    what actually worked on day 0
 ├── ledger.json                 frozen definition of done
 ├── FREEZE · LEDGER.lock        freeze commit + criteria hash

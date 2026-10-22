@@ -11,7 +11,7 @@
 # Spec stages (E2E_WEB, E2E_MOBILE, API) get their spec files from the ledger:
 #   - the command is run once with all spec paths appended, or
 #   - if the command contains {}, once per spec with {} replaced by the path.
-# No specs yet → the stage is skipped.
+# No selected items → the stage is skipped. A selected missing spec or selection error fails.
 #
 # COMMANDS runs the ledger's `command` items (all in scope, or passing only
 # with --quick). Command items must never call verify.sh themselves.
@@ -71,7 +71,10 @@ for s in $stages; do
 
   case "$s" in
     E2E_WEB|E2E_MOBILE|API)
-      specs="$(specs_for "$s")"
+      if ! specs="$(specs_for "$s")"; then
+        line "$s" FAIL 0 "could not select valid ledger specs"
+        echo "GATE: FAIL at $s" | tee -a "$summary"; exit 1
+      fi
       if [[ -z "$specs" ]]; then line "$s" SKIP 0 "no specs yet"; continue; fi
       rc=0
       if [[ "$cmd" == *"{}"* ]]; then

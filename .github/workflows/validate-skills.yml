@@ -15,3 +15,5 @@ jobs:
           python-version: "3.12"
       - name: Validate skills against agentskills.io spec
         run: python3 scripts/validate-skills.py
+      - name: Test Finish Line native protocol guards
+        run: python3 -m unittest discover -s skills/finish-line/tests -v

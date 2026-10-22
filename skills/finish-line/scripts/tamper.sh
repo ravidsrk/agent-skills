@@ -11,7 +11,8 @@
 #     passed; every passing item's spec exists
 # Checked against the freeze commit (once the ledger is frozen):
 #   - frozen criteria hash matches .finish/LEDGER.lock
-#   - no test files deleted; no skip markers or tautologies added to any test
+#   - no test files deleted; assertion-line counts cannot decrease, including
+#     before an item first passes; no skip markers or tautologies added to tests
 #   - test-runner and coverage configs: no changes to include/exclude/ignore/
 #     retries/only rules or coverage thresholds
 #   - floor guard: no more lint/type/coverage/scanner suppression comments than at
@@ -47,7 +48,8 @@ done
 [[ -z "$base" && -f "$FD/FREEZE" ]] && base="$(tr -d '[:space:]' < "$FD/FREEZE")"
 
 CONFIG_PATH_RE='(^|/)(playwright|jest|vitest|cypress|karma|vite)\.config\.[cm]?[jt]s$|(^|/)(jest\.config\.json|pytest\.ini|tox\.ini|setup\.cfg|pyproject\.toml|package\.json|build\.gradle|build\.gradle\.kts|\.mocharc|\.mocharc\.[a-z]+|\.nycrc|\.nycrc\.[a-z]+|\.c8rc|\.c8rc\.json|\.coveragerc|codecov\.ya?ml)$'
-CONFIG_KEY_RE='testIgnore|testPathIgnorePatterns|testMatch|testRegex|testDir|grepInvert|(^|[^A-Za-z])grep *:|exclude|norecursedirs|addopts|--ignore|--deselect|testpaths|"test(:[^"]*)?" *:|excludeTestsMatching|forbidOnly|retries|passWithNoTests|bail|coverageThreshold|thresholds|fail_under|fail-under|check-coverage|minimumCoverage|(^|[^A-Za-z_])["'"'"']?(lines|branches|functions|statements|perFile|autoUpdate)["'"'"']? *[:=]'
+CONFIG_KEY_RE='testIgnore|testPathIgnorePatterns|testMatch|testRegex|testDir|grepInvert|(^|[^A-Za-z])grep *:|include|exclude|norecursedirs|addopts|--ignore|--deselect|testpaths|"test(:[^"]*)?" *:|excludeTestsMatching|forbidOnly|retries|passWithNoTests|bail|coverageThreshold|thresholds|fail_under|fail-under|check-coverage|minimumCoverage|(^|[^A-Za-z_])["'"'"']?(lines|branches|functions|statements|perFile|autoUpdate)["'"'"']? *[:=]'
+INCLUDE_KEY_RE='(^|[^A-Za-z_])["'"'"']?include["'"'"']?[[:space:]]*[:=]'
 MARKER_RE="$FL_SKIP_RE|$FL_TAUTOLOGY_RE"
 
 findings=0
@@ -126,13 +128,17 @@ fi
 
 diffargs=(-M --no-color --no-ext-diff --src-prefix=a/ --dst-prefix=b/ "$base")
 
-# 3b. Deleted tests (renames to another test path are fine).
+# 3b. Deleted tests and decreased assertion counts. Count against the frozen
+#     file, including when Git detects a rename, even without a ratchet entry.
+#     This is a lexical floor, not proof that same-count edits preserve meaning.
 while IFS=$'\t' read -r st a b; do
   case "$st" in
     D*)
       if fl_is_protected_path "$a"; then
-        survivor="$(all_files | grep -E "$FL_PROTECTED_RE" | grep -F "/$(basename "$a")" || true)"
-        [[ -n "$survivor" ]] || report "protected test deleted: $a"
+        # A same-basename untracked file proves neither a rename nor preserved
+        # assertions. Stage a real move so Git reports R and the floor below
+        # compares the actual old/new pair; otherwise refuse the deletion.
+        report "protected test deleted: $a (stage an actual rename before checking)"
       elif fl_is_test_path "$a"; then
         report "test file deleted: $a"
       fi ;;
@@ -141,6 +147,18 @@ while IFS=$'\t' read -r st a b; do
         report "test file renamed out of the test tree: $a → $b"
       fi ;;
   esac
+  current="$a"
+  [[ "$st" == R* ]] && current="$b"
+  if { fl_is_test_path "$a" || fl_is_protected_path "$a"; } && [[ -f "$current" ]]; then
+    if git show "$base:$a" > "$TMP.old" 2>/dev/null; then
+      old="$(fl_assert_count "$TMP.old")"
+      now="$(fl_assert_count "$current")"
+      [[ "${now:-0}" -ge "${old:-0}" ]] \
+        || report "assertion count decreased in $current ($old → $now since freeze)"
+    elif [[ "$st" != A* ]]; then
+      report "could not read frozen test $a to check its assertion count"
+    fi
+  fi
 done < <(git diff --name-status "${diffargs[@]}" 2>/dev/null)
 
 # 3c. Added markers in tests, and filter changes in test configs.
@@ -151,6 +169,14 @@ while IFS= read -r f; do
       | while IFS= read -r l; do printf '%s\n' "test marker added in $f: ${l#+}"; done
   fi
   if printf '%s\n' "$f" | grep -Eq "$CONFIG_PATH_RE"; then
+    # A value in a multiline include array can change without the key appearing
+    # in the diff. Shell cannot evaluate arbitrary runner config safely: require
+    # review of any edit to a config containing include, even an unrelated edit.
+    # A legitimate change can use the existing reviewed rebaseline procedure.
+    git show "$base:$f" > "$TMP.old" 2>/dev/null || : > "$TMP.old"
+    if grep -Eq "$INCLUDE_KEY_RE" "$TMP.old" || { [[ -f "$f" ]] && grep -Eq "$INCLUDE_KEY_RE" "$f"; }; then
+      printf 'test or coverage config rule changed in %s: config containing include changed (review required)\n' "$f"
+    fi
     git diff -U0 "${diffargs[@]}" -- "$f" 2>/dev/null | grep -E '^[+-]' | grep -vE '^(\+\+\+|---) ' | grep -E "$CONFIG_KEY_RE" \
       | while IFS= read -r l; do printf '%s\n' "test or coverage config rule changed in $f: $l"; done
   fi

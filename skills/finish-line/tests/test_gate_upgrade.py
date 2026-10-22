@@ -203,6 +203,21 @@ class GateUpgrade(unittest.TestCase):
         self.assertIn("upgrade-gate", result.stdout + result.stderr)
         self.assertEqual(self.fingerprint(), before)
 
+    def test_runner_checks_compatibility_on_selected_run_branch(self):
+        starting_branch = self.run_command("git", "branch", "--show-current").stdout.strip()
+        self.run_command("git", "branch", "finish-line", check=True)
+        self.run_command("git", "checkout", "-q", "finish-line", check=True)
+        self.write(".finish/verify.sh", self.gate.replace(OLD, NEW))
+        self.commit()
+        self.run_command("git", "checkout", "-q", starting_branch, check=True)
+
+        result = self.run_command("bash", str(SKILL / "scripts/finish.sh"), str(self.root))
+
+        self.assertEqual(result.returncode, 3, result.stdout + result.stderr)
+        self.assertIn("switched to the finish-line branch", result.stdout)
+        self.assertIn("Session cap MAX_SESSIONS=0 reached", result.stdout)
+        self.assertEqual(self.run_command("git", "branch", "--show-current").stdout.strip(), "finish-line")
+
     def test_frozen_compatible_gate_with_stale_bin_is_never_reanchored(self):
         self.write(".finish/verify.sh", self.gate.replace(OLD, NEW))
         self.write(".finish/bin/lib.sh", "synthetic old-bin sentinel\n")

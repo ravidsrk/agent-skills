@@ -102,9 +102,6 @@ runner_commit() { # runner_commit "<message>" <paths…> — commits only these 
   gitc commit -q -m "$msg" -- "$@" || echo "⚠ runner could not commit ($msg); the next session will"
 }
 
-# Refuse incompatible distribution before locks, settings, commits or bin writes.
-[[ $FRESH -eq 1 ]] || "$HERE/upgrade-gate.sh" --check || exit 1
-
 GITDIR="$(cd "$(git rev-parse --git-dir)" && pwd)"
 LOCK="$GITDIR/finish-line.lock"
 if ! mkdir "$LOCK" 2>/dev/null; then
@@ -139,7 +136,7 @@ if git rev-parse -q --verify refs/heads/finish-line >/dev/null && [[ "$(git symb
   echo "• switched to the finish-line branch"
 fi
 
-# The finish-line branch may have a different gate from the initial checkout.
+# Check compatibility on the selected run branch before changing its run files.
 [[ $FRESH -eq 1 ]] || "$HERE/upgrade-gate.sh" --check || exit 1
 
 # Start from a clean tree: the run reverts by commit, so stash anything local first.

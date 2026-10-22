@@ -39,6 +39,9 @@ ROOT="$(fl_root)"
 cd "$ROOT" || exit 2
 FD=.finish
 
+# Compatibility is checked before any state, settings or scripts are written.
+"$HERE/upgrade-gate.sh" --check || exit 2
+
 created() { echo "  + $1"; }
 put() { # put <dest> <content>   (only if missing)
   if [[ ! -e "$1" ]]; then mkdir -p "$(dirname "$1")"; printf '%s\n' "$2" > "$1"; created "$1"; fi
@@ -64,13 +67,12 @@ Everything else is handled autonomously. Do these, then rerun finish.sh; each it
 None."
 put "$FD/LATER.md" "# Later — ideas and out-of-scope findings (never acted on during the run)"
 
-if [[ -f "$FD/FREEZE" ]]; then
+if [[ ! -e "$FD/FREEZE" && ! -L "$FD/FREEZE" && ! -e "$FD/LEDGER.lock" && ! -L "$FD/LEDGER.lock" ]]; then
   for s in lib.sh ledger.sh tamper.sh; do
-    cmp -s "$HERE/$s" "$FD/bin/$s" || echo "  ! $FD/bin/$s is older than the skill copy; finish.sh refreshes it and re-anchors the freeze on its next run"
-  done
-else
-  for s in lib.sh ledger.sh tamper.sh; do
-    if ! cmp -s "$HERE/$s" "$FD/bin/$s" 2>/dev/null; then cp "$HERE/$s" "$FD/bin/$s"; chmod 755 "$FD/bin/$s"; created "$FD/bin/$s"; fi
+    if ! cmp -s "$HERE/$s" "$FD/bin/$s" 2>/dev/null; then
+      cp "$HERE/$s" "$FD/bin/$s" && chmod 755 "$FD/bin/$s" || fl_die "could not refresh $FD/bin/$s"
+      created "$FD/bin/$s"
+    fi
   done
 fi
 

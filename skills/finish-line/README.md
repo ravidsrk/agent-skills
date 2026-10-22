@@ -116,7 +116,7 @@ FINISH_AGENT="codex exec --full-auto" ~/.claude/skills/finish-line/scripts/finis
 | A problem that won't yield | Never abandoned and never handed to you as "needs an engineer": research rounds go deeper each time — reproduce, the installed version's docs and source, others' bug reports, a minimal reproduction and `git bisect`, a different approach — logged in `.finish/research/<ID>.md`, until it passes |
 | Defects found along the way (verifier, first-user pass, Lighthouse, security review) | Each becomes an `I-###` item with `ledger.sh issue`, fixed and verified like the rest; `LATER.md` only holds ideas |
 | P0 done | With `FINISH_UNTIL=P1`/`P2`, the runner opens the next scope itself |
-| Skill upgrades | The runner refreshes `.finish/bin/` (re-anchoring the freeze) and an unmodified verifier agent, and migrates old statuses. A run started before the checked brief existed is set aside and reviewed again from the docs (`FINISH_KEEP_RUN=1` keeps it) |
+| Skill upgrades | Runner and scaffold refuse incompatible gates or frozen bin drift. The [checked upgrade procedure](references/upgrades.md) preserves configured stages; frozen gate repair needs the existing reviewed amendment, and frozen bin is never automatically refreshed/reanchored. A run started before the checked brief existed is set aside and reviewed again from the docs (`FINISH_KEEP_RUN=1` keeps it) |
 | Community skills that ask, plan or ship | Taken at their recommended option and logged (Law 9); the gated ones are denied by the session policy, and gstack runs in its no-human mode |
 
 # Your part (none of it during the run)

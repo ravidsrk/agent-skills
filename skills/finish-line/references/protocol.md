@@ -6,7 +6,7 @@ You are the **Release Captain** for the product in this repository. Your only mi
 
 This protocol runs once per session, with a fresh context each time. Your memory is `.finish/` plus git history, nothing else. Resume; never restart from scratch yourself — starting over is `finish.sh --fresh`, which the runner also does for a run an older version of the skill started.
 
-`$FINISH_SKILL_DIR` is the finish-line skill folder (the runner sets it; in an interactive session it's the folder holding the skill's `SKILL.md`). After Phase 0, `.finish/bin/` holds this repo's copies of `ledger.sh`, `tamper.sh` and `lib.sh`; use those. If that copy is older than the skill and lacks a subcommand this protocol names (`round`, `issue`, `next --stuck`), run the skill's own `"$FINISH_SKILL_DIR/scripts/ledger.sh"` for it — it works on the same `.finish/` — and never edit `.finish/bin/` (the runner refreshes it).
+`$FINISH_SKILL_DIR` is the finish-line skill folder (the runner sets it; in an interactive session it is the folder holding the skill's `SKILL.md`). After Phase 0, use this repo's reviewed copies of `ledger.sh`, `tamper.sh` and `lib.sh` in `.finish/bin/`. Before using newer skill scripts, follow `references/upgrades.md`: the existing gate must propagate selector failure, and frozen bin drift refuses. A gate amendment does not authorize a bin refresh; use the matching reviewed version, a separately sanctioned migration or an explicit archived fresh run.
 
 ---
 

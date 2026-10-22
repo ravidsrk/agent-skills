@@ -12,8 +12,8 @@
 #   - agent CLI failures are retried with exponential backoff
 #   - owner actions are re-checked before every session; done ones reopen
 #   - FINISH_UNTIL=P1 or P2 opens the next scope once P0 is done
-#   - after a skill upgrade it refreshes .finish/bin/ (re-anchoring the freeze), an
-#     unmodified verifier agent and old statuses itself
+#   - skill upgrades first check gate compatibility; frozen bin drift is refused
+#     without a separately sanctioned migration or explicit archived fresh run
 # Every session runs with a policy (--settings) that denies community skills which ask,
 # plan, publish or merge, turns hooks off, and tells gstack nobody is there to answer.
 # Its own commits contain only the files it changed, never anything else you staged.
@@ -102,6 +102,9 @@ runner_commit() { # runner_commit "<message>" <paths…> — commits only these 
   gitc commit -q -m "$msg" -- "$@" || echo "⚠ runner could not commit ($msg); the next session will"
 }
 
+# Refuse incompatible distribution before locks, settings, commits or bin writes.
+[[ $FRESH -eq 1 ]] || "$HERE/upgrade-gate.sh" --check || exit 1
+
 GITDIR="$(cd "$(git rev-parse --git-dir)" && pwd)"
 LOCK="$GITDIR/finish-line.lock"
 if ! mkdir "$LOCK" 2>/dev/null; then
@@ -135,6 +138,9 @@ if git rev-parse -q --verify refs/heads/finish-line >/dev/null && [[ "$(git symb
   fi
   echo "• switched to the finish-line branch"
 fi
+
+# The finish-line branch may have a different gate from the initial checkout.
+[[ $FRESH -eq 1 ]] || "$HERE/upgrade-gate.sh" --check || exit 1
 
 # Start from a clean tree: the run reverts by commit, so stash anything local first.
 if dirty; then stash_local; fi
@@ -257,26 +263,6 @@ $(cat "$PROTOCOL")"
   fi
 }
 
-# The skill was upgraded since the freeze: refresh the vendored scripts and move FREEZE
-# past that commit, logged as a runner amendment (sessions can never log one themselves).
-upgrade_bin() {
-  [[ -f .finish/FREEZE && -d .finish/bin ]] || return 0
-  local s stale=0 lock fb
-  for s in lib.sh ledger.sh tamper.sh; do cmp -s "$HERE/$s" ".finish/bin/$s" || stale=1; done
-  [[ $stale -eq 1 ]] || return 0
-  # Only re-anchor a clean state, so nothing flagged can slip into the new baseline.
-  "$HERE/tamper.sh" >/dev/null 2>&1 || { echo "⚠ skill scripts are newer than .finish/bin, but tamper.sh isn't clean; not refreshing yet"; return 0; }
-  for s in lib.sh ledger.sh tamper.sh; do cp "$HERE/$s" ".finish/bin/$s"; chmod 755 ".finish/bin/$s"; done
-  runner_commit "chore(finish): runner refreshes vendored scripts from the skill" .finish/bin || return 0
-  fb="$(read_or .finish/FREEZE none)"; lock="$(read_or .finish/LEDGER.lock none)"
-  git rev-parse HEAD > .finish/FREEZE
-  jq -cn --arg n "$(printf '%03d' $(( $(amd_count) + 1 )))" --arg at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg l "$lock" --arg fb "$fb" --arg fa "$(cat .finish/FREEZE)" \
-    '{n: $n, at: $at, kind: "upgrade", class: "runner", reason: "skill scripts refreshed by the runner", lock_before: $l, lock_after: $l,
-      freeze_before: $fb, freeze_after: $fa, request: null, review: null}' >> .finish/amendments.jsonl
-  runner_commit "chore(finish): runner re-anchors the freeze after the script refresh" .finish/FREEZE .finish/amendments.jsonl
-  echo "• refreshed .finish/bin from the skill and re-anchored the freeze"
-}
-
 # Older products: migrate statuses, refresh an unmodified verifier, add the no-questions settings.
 upgrade_project() {
   local out cur inst
@@ -327,8 +313,8 @@ open_round_if_idle() {
 
 between_sessions() {
   local out st scope
+  "$HERE/upgrade-gate.sh" --check || exit 1
   upgrade_project
-  upgrade_bin
   if [[ -f .finish/ledger.json && -f .finish/owner.json ]]; then
     out="$("$HERE/ledger.sh" owner-check 2>&1)"
     echo "• $out"

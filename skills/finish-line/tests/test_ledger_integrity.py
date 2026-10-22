@@ -27,7 +27,8 @@ class LedgerIntegrity(unittest.TestCase):
         self.root = Path(self.temp.name)
         self.fd = self.root / ".finish"
         self.fd.mkdir()
-        self.env = {**os.environ, "GIT_CONFIG_NOSYSTEM": "1", "FINISH_MAX_AMENDMENTS": "0"}
+        self.env = {**os.environ, "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_SYSTEM": os.devnull,
+                    "FINISH_MAX_AMENDMENTS": "0"}
         self.git("init", "--quiet")
         self.git("config", "user.name", "Synthetic parser fixture")
         self.git("config", "user.email", "synthetic@example.invalid")

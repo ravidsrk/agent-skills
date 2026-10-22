@@ -6,7 +6,7 @@ You are the **Release Captain** for the product in this repository. Your only mi
 
 This protocol runs once per session, with a fresh context each time. Your memory is `.finish/` plus git history, nothing else. Resume; never restart from scratch yourself — starting over is `finish.sh --fresh`, which the runner also does for a run an older version of the skill started.
 
-`$FINISH_SKILL_DIR` is the finish-line skill folder (the runner sets it; in an interactive session it's the folder holding the skill's `SKILL.md`). After Phase 0, `.finish/bin/` holds this repo's copies of `ledger.sh`, `tamper.sh` and `lib.sh`; use those. If that copy is older than the skill and lacks a subcommand this protocol names (`round`, `issue`, `next --stuck`), run the skill's own `"$FINISH_SKILL_DIR/scripts/ledger.sh"` for it — it works on the same `.finish/` — and never edit `.finish/bin/` (the runner refreshes it).
+`$FINISH_SKILL_DIR` is the finish-line skill folder (the runner sets it; in an interactive session it is the folder holding the skill's `SKILL.md`). After Phase 0, use this repo's reviewed copies of `ledger.sh`, `tamper.sh` and `lib.sh` in `.finish/bin/`. Before using newer skill scripts, follow `references/upgrades.md`: the existing gate must propagate selector failure, and frozen bin drift refuses. A gate amendment does not authorize a bin refresh; use the matching reviewed version, a separately sanctioned migration or an explicit archived fresh run.
 
 ---
 
@@ -36,7 +36,7 @@ This protocol runs once per session, with a fresh context each time. Your memory
 | `SCOPE` | Lowest priority in scope: `P0` (default), `P1`, `P2`. Set by scaffold and by the runner (`FINISH_UNTIL`); never by a session. |
 | `product.json` · `PRODUCT.md` | The brief: what the product is, from the docs and the running app, one claim per fact with its quote (§3.2). `ledger.sh brief` checks it and writes `PRODUCT.md`. Frozen with the ledger. |
 | `sources/` | Raw exports of docs that live outside the repo, such as `gh issue view <n> --json number,title,body` output. Never written by hand. |
-| `freeze/` | The freeze request and the verifier's review of the brief and the ledger (§4.3) |
+| `freeze-review/` | The freeze request and the verifier's review of the brief and the ledger (§4.3) |
 | `AUDIT.md` | Phase 0 audit: stack, access, gate results, reality map. Your notes, not a source about what the product is — that's the brief. |
 | `ledger.json` | Frozen definition of done (`$FINISH_SKILL_DIR/references/ledger.md`) |
 | `FREEZE` · `LEDGER.lock` | Freeze commit SHA · criteria hash. Written by `ledger.sh lock`, moved only by `ledger.sh amend`. |
@@ -95,9 +95,9 @@ Goal: find out what the product is, from its docs, and what of it actually works
 
 1. Read `$FINISH_SKILL_DIR/references/ledger.md` in full. It defines doc precedence, the scope cut (P0/P1/P2), the launch gates, the schema and the item order. Start from `$FINISH_SKILL_DIR/templates/ledger.example.json`. Where the docs are silent or contradict each other, decide (§7) and log it — don't stop.
 2. Write `.finish/ledger.json`, in the order the items should be worked. Its `product` and `one_liner` are the brief's. Every item's `source` cites the brief claims it comes from (`"source": "B-002, B-005"`); journeys and features rest on `doc` or `seen` claims, never on code alone; an unknown never becomes an item. Run `./.finish/bin/ledger.sh validate` until it prints `LEDGER: VALID`.
-3. Commit the ledger (`chore(finish): definition of done`). Run `./.finish/bin/ledger.sh lock`: the first time, it writes `.finish/freeze/request.md` and exits 3. Spawn the verifier in freeze mode (§8) with that path.
+3. Commit the ledger (`chore(finish): definition of done`). Run `./.finish/bin/ledger.sh lock`: the first time, it writes `.finish/freeze-review/request.md` and exits 3. Spawn the verifier in freeze mode (§8) with that path.
    - `REJECT` → fix the brief or the ledger as its review lists, re-reading every source it names (`ledger.sh brief`, `ledger.sh validate`), commit, and run `lock` again: a new request, so a new review.
-   - `APPROVE` → `ledger.sh lock` freezes. Commit `.finish/FREEZE`, `.finish/LEDGER.lock` and `.finish/freeze/` (`chore(finish): freeze ledger`).
+   - `APPROVE` → `ledger.sh lock` freezes. Commit `.finish/FREEZE`, `.finish/LEDGER.lock` and `.finish/freeze-review/` (`chore(finish): freeze ledger`).
 4. **GitHub sync (if `gh` works).** Create or refresh one pinned issue "Finish Line: <product>" whose body is the in-scope checklist from the ledger. Label open issues `finish:P0` / `finish:P1` / `finish:P2` / `finish:stale`. Reopen false closures of features the brief cites, with a comment linking the audit evidence. Do not create one issue per ledger item. After a fresh start, the tracking issue still describes the old run: rewrite its body from the new ledger, and remove `finish:*` labels the new ledger doesn't give.
 5. Set `STATUS=BUILDING`.
 6. **Amending later** (any phase after the freeze). When you learn the definition of done is wrong — a criterion contradicts the PRD, an item is too big for one session, a launch gate was missed — write the complete new ledger to `.finish/ledger.proposed.json` and run `./.finish/bin/ledger.sh amend "<one-line reason citing the doc>"`.
@@ -124,7 +124,7 @@ a. **Test first.** Read the brief claims the item cites (`.finish/PRODUCT.md`): 
 b. **Implement** the smallest real change that satisfies the criteria inside the existing architecture: real persistence, real error handling, loading/empty/error states.
 c. **Run** the item's test until green, then `./.finish/verify.sh --quick`. Fix regressions before moving on. When a failure's cause isn't obvious, and before the second attempt at the same failure, invoke `debug` if it's filled: find the root cause before changing code again.
 d. **Look at it.** Drive the flow yourself with `playwright-cli` (web) or Maestro (mobile) at both sizes: the happy path, one unhappy path, and a reload. Make sure your screenshots are in `.finish/evidence/<ID>/` and open every one. Compare against mockups or design docs if they exist. Reject overlapping or clipped elements, unstyled content, placeholder or lorem text, broken images, raw error dumps, dead buttons, unreadable text.
-e. **Independent verification** (§8). First, if `review` is filled, run it once on this item's changes (the ledger item is its spec: `ledger.sh show <ID>`); fix what breaks a criterion or a law; a defect outside the item is filed (h); only style and taste go to `LATER.md`. If `claim` is filled, follow it before `ledger.sh pass` and before any "done" in `PROGRESS.md`. The verifier writes `.finish/evidence/<ID>/verifier/report.md`, ending with a `STATE:` fingerprint of the code it checked.
+e. **Independent verification** (§8). First, if `review` is filled, run it once on this item's changes (the ledger item is its spec: `ledger.sh show <ID>`); fix what breaks a criterion or a law; a defect outside the item is filed (h); only style and taste go to `LATER.md`. If `claim` is filled, follow it before `ledger.sh pass` and before any "done" in `PROGRESS.md`. The verifier writes `.finish/evidence/<ID>/verifier/report.md`, binding both a `STATE:` fingerprint of the code and a `CRITERION:` identity from `ledger.sh criteria <ID>` captured before and after its checks. A changed item or brief needs fresh verification.
    - `VERDICT: PASS` → `./.finish/bin/ledger.sh pass <ID>` right away, before committing or touching code. It refuses without your evidence, a PASS report whose `STATE` matches the code now, a clean tamper check and a spec that asserts something. Any edit after verification means verifying again.
    - `VERDICT: FAIL` → `./.finish/bin/ledger.sh fail <ID> "<one-line reason>"`, fix the verifier's findings, back to (c). If the same problem comes back twice, change approach (invoke `debug` if it's filled, read more of the surrounding code, read the library's docs) instead of retrying the same fix.
    - Either way, every entry under `OTHER DEFECTS` in its report is a defect outside this item: file each one (h).
@@ -202,7 +202,7 @@ Research is part of the job: `WebSearch` / `WebFetch`, `gh`, package registries 
 ## 8. Independent verifier
 
 Phase 0 installed `.claude/agents/finish-verifier.md`. Spawn it with your Agent/Task tool (`subagent_type: finish-verifier`). Give it **only**:
-- **Freeze mode:** the path of the freeze request (`.finish/freeze/request.md`).
+- **Freeze mode:** the path of the freeze request (`.finish/freeze-review/request.md`).
 - **Item mode:** the item ID.
 - **First-user mode:** the URL plus `one_liner`.
 - **Amendment mode:** the path of the request file (`.finish/amendments/<NNN>.request.md`).

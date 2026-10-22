@@ -15,9 +15,10 @@
 #   ledger.sh next --stuck          the stuck item with the fewest research rounds (exit 1 if none)
 #   ledger.sh open                  every in-scope item that isn't passing, with its status and rounds
 #   ledger.sh show <ID>             print one item
-#   ledger.sh specs [--passing] [--method M]   existing spec paths for in-scope items
+#   ledger.sh specs [--passing] [--method M]   selected spec paths; missing/unreadable specs fail
 #   ledger.sh pass <ID>             mark passing (guarded)
 #   ledger.sh state                 fingerprint of the code under test (the verifier records it)
+#   ledger.sh criteria <ID>         immutable item + brief identity (the verifier records it)
 #   ledger.sh run-commands [--passing]  run in-scope verify.command items (used by verify.sh)
 #   ledger.sh fail <ID> "<why>"     attempts += 1; pauses as stuck at 3 (never abandoned)
 #   ledger.sh stuck <ID> "<why>"    pause now
@@ -43,7 +44,7 @@
 #   ledger.sh brief                 check .finish/product.json — every claim's source exists and every
 #                                   quote is really in it — and write .finish/PRODUCT.md (exit 1 on errors)
 #   ledger.sh lock                  first freeze: needs a valid brief and the verifier's APPROVE (freeze
-#                                   mode) for exactly this brief and ledger — writes .finish/freeze/request.md
+#                                   mode) for exactly this brief and ledger — writes .finish/freeze-review/request.md
 #                                   and exits 3 until then; then writes .finish/FREEZE + .finish/LEDGER.lock
 #   ledger.sh freeze-check          the first freeze was approved for the brief and ledger it froze (runner)
 #   ledger.sh amend "<why>"         change the definition of done from .finish/ledger.proposed.json
@@ -211,7 +212,7 @@ cmd_open() {
 
 cmd_specs() {
   need_ledger
-  local scope only_passing=0 method=""
+  local scope only_passing=0 method="" selected records rec id spec
   scope="$(fl_scope_n "$FD")"
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -221,18 +222,37 @@ cmd_specs() {
     esac
     shift
   done
-  jq -r --argjson scope "$scope" --argjson p "$only_passing" --arg m "$method" "
+  selected="$(jq -c --argjson scope "$scope" --argjson p "$only_passing" --arg m "$method" "[
     .items[] | select($in_scope)
     | select(\$p == 0 or .status == \"passing\")
     | select(\$m == \"\" or .verify.method == \$m)
-    | .verify.spec // empty" "$LEDGER" | while IFS= read -r spec; do
-    if [[ -n "$spec" && -e "$spec" ]]; then printf '%s\n' "$spec"; fi
-  done
-  return 0
+    | select(.verify.method != \"command\") | {id, spec: .verify.spec}]" "$LEDGER")" \
+    || fl_die "specs: could not select ledger items"
+  records="$(jq -c '.[]' <<< "$selected")" || fl_die "specs: invalid selection"
+  # Validate the whole selection before printing any path: an invalid item must never look empty.
+  while IFS= read -r rec; do
+    [[ -n "$rec" ]] || continue
+    id="$(jq -r '.id' <<< "$rec")"
+    spec="$(jq -er '.spec | select(type == "string" and length > 0)' <<< "$rec")" \
+      || fl_die "specs: $id has no spec path"
+    [[ "$spec" != *$'\n'* && "$spec" != *$'\r'* && -f "$spec" && -r "$spec" ]] \
+      || fl_die "specs: $id spec is missing, unreadable or not a regular file: $spec"
+  done <<< "$records"
+  [[ -n "$records" ]] || return 0
+  jq -r '.[].spec' <<< "$selected"
+}
+
+cmd_criteria() { # immutable identity of exactly this item and its supporting brief
+  need_ledger; need_item "${1:-}"
+  local brief=""
+  if [[ -f "$BRIEF" ]]; then brief="$(fl_sha < "$BRIEF")" || fl_die "could not hash brief"; fi
+  jq -cS --arg id "$1" --arg brief "$brief" \
+    '{product, one_liner, brief: $brief, item: (.items[] | select(.id == $id) | del(.status, .attempts, .evidence, .notes))}' \
+    "$LEDGER" | fl_sha
 }
 
 cmd_pass() {
-  local id="$1" method spec dir report imgs files want n
+  local id="$1" method spec dir report imgs files want n identity
   need_ledger; need_item "$id"
   [[ "$(item_field "$id" status)" == "failing" ]] || fl_die "$id is $(item_field "$id" status); only failing items can pass (stuck items: ledger.sh round $id)"
   method="$(item_verify "$id" method)"
@@ -252,6 +272,11 @@ cmd_pass() {
   want="$(sed -n 's/^STATE: *\([0-9a-f][0-9a-f]*\).*/\1/p' "$report" | head -1)"
   [[ -n "$want" ]] || fl_die "verifier report has no STATE line — the verifier must end by recording ./.finish/bin/ledger.sh state"
   [[ "$want" == "$(fl_code_state)" ]] || fl_die "the code changed after the verifier checked it (STATE mismatch) — re-verify, then pass before committing"
+  [[ "$(grep -c '^CRITERION:' "$report")" == 1 ]] \
+    || fl_die "verifier report needs exactly one CRITERION line — re-verify the current item"
+  identity="$(cmd_criteria "$id")" || fl_die "could not compute item criteria identity"
+  grep -qxF "CRITERION: $identity" "$report" \
+    || fl_die "CRITERION mismatch — the item or brief changed after verification; re-verify"
 
   if [[ -n "$spec" ]]; then
     [[ -f "$spec" ]] || fl_die "spec $spec does not exist"
@@ -427,27 +452,44 @@ committed() { # <path>: tracked and unchanged since HEAD
 
 cmd_lock() {
   need_ledger
-  [[ "${1:-}" == "--apply" ]] && shift   # same as lock: it freezes once the review approves
-  local refreeze=0 rc
-  [[ "${1:-}" == "--refreeze" ]] && refreeze=1
-  if [[ -f "$FD/FREEZE" && $refreeze -eq 0 ]]; then
+  [[ "${1:-}" == "--apply" ]] && shift   # compatibility alias; never bypasses review
+  [[ $# -eq 0 ]] || fl_die "lock: unsupported argument $1; changes require ledger.sh amend"
+  local rc head hash marker_tmp lock_tmp
+  if [[ -e "$FD/FREEZE" || -L "$FD/FREEZE" ]]; then
+    [[ -f "$FD/FREEZE" && ! -L "$FD/FREEZE" ]] \
+      || fl_die "FREEZE is occupied by a non-regular path (possibly legacy freeze/ on a case-insensitive volume); preserve it and resolve the review directory before locking"
     fl_die "ledger already frozen at $(cat "$FD/FREEZE"). Change the definition of done with: ledger.sh amend \"<why>\""
   fi
-  if [[ ! -f "$FD/FREEZE" ]]; then   # the first freeze: the brief comes first, and the verifier approves both
-    [[ -f "$BRIEF" ]] || fl_die "no product brief — write .finish/product.json from the docs (protocol §3.2) before the ledger can freeze"
-    cmd_brief >/dev/null || { cmd_brief; fl_die "the brief doesn't check out — fix .finish/product.json"; }
-  fi
+  [[ ! -e "$FD/LEDGER.lock" && ! -L "$FD/LEDGER.lock" ]] \
+    || fl_die "LEDGER.lock exists without FREEZE; preserve and resolve the incomplete freeze before locking"
+  [[ ! -e "$FD/freeze" && ! -L "$FD/freeze" ]] \
+    || fl_die "legacy freeze/ exists; preserve it and explicitly migrate the review to freeze-review/ before a new freeze"
+  [[ -f "$BRIEF" ]] || fl_die "no product brief — write .finish/product.json from the docs before freezing"
+  cmd_brief >/dev/null || fl_die "the brief does not check out or PRODUCT.md could not be written"
   cmd_validate >/dev/null || { cmd_validate; fl_die "ledger invalid"; }
-  committed .finish/ledger.json || fl_die "commit .finish/ledger.json first; FREEZE must point at the commit that contains it"
-  if [[ ! -f "$FD/FREEZE" ]]; then
-    committed .finish/product.json || fl_die "commit .finish/product.json (and .finish/PRODUCT.md) first; FREEZE must point at the commit that contains the brief"
-    freeze_request; rc=$?
-    [[ $rc -eq 0 ]] || return "$rc"
+  committed .finish/ledger.json || fl_die "commit .finish/ledger.json first; FREEZE must point at its commit"
+  committed .finish/product.json || fl_die "commit .finish/product.json first; FREEZE must point at its commit"
+  freeze_request; rc=$?
+  [[ $rc -eq 0 ]] || return "$rc"
+  head="$(git rev-parse HEAD)" || fl_die "could not read freeze commit"
+  hash="$(fl_criteria_hash "$LEDGER")" || fl_die "could not hash frozen criteria"
+  [[ "$head" =~ ^[0-9a-f]{40,64}$ && "$hash" =~ ^[0-9a-f]{64}$ ]] || fl_die "invalid freeze identities"
+  marker_tmp="$(mktemp "$FD/.freeze-marker.XXXXXX")" || fl_die "could not stage FREEZE"
+  lock_tmp="$(mktemp "$FD/.criteria-lock.XXXXXX")" || { rm -f "$marker_tmp"; fl_die "could not stage LEDGER.lock"; }
+  if ! printf '%s\n' "$head" > "$marker_tmp" || ! printf '%s\n' "$hash" > "$lock_tmp"; then
+    rm -f "$marker_tmp" "$lock_tmp"; fl_die "could not write staged freeze markers"
   fi
-  git rev-parse HEAD > "$FD/FREEZE"
-  fl_criteria_hash "$LEDGER" > "$FD/LEDGER.lock"
-  echo "frozen at $(cat "$FD/FREEZE") · criteria $(cat "$FD/LEDGER.lock")"
-  echo "now: git add .finish/FREEZE .finish/LEDGER.lock .finish/freeze && git commit -m \"chore(finish): freeze ledger\""
+  if ! mv "$lock_tmp" "$FD/LEDGER.lock"; then
+    rm -f "$marker_tmp" "$lock_tmp"; fl_die "could not install LEDGER.lock"
+  fi
+  if ! mv "$marker_tmp" "$FD/FREEZE"; then
+    rm -f "$marker_tmp" "$FD/LEDGER.lock"; fl_die "could not install FREEZE"
+  fi
+  [[ -f "$FD/FREEZE" && ! -L "$FD/FREEZE" && -f "$FD/LEDGER.lock" && ! -L "$FD/LEDGER.lock" \
+      && "$(cat "$FD/FREEZE")" == "$head" && "$(cat "$FD/LEDGER.lock")" == "$hash" ]] \
+    || fl_die "freeze marker installation did not produce the expected regular files"
+  echo "frozen at $head · criteria $hash"
+  echo "now: git add .finish/FREEZE .finish/LEDGER.lock .finish/freeze-review && git commit -m \"chore(finish): freeze ledger\""
 }
 
 cmd_check() {
@@ -607,48 +649,71 @@ brief_md() { # .finish/PRODUCT.md: the brief, readable — what the run thinks t
 # Everything after the freeze is built on the brief and the ledger, so the first freeze needs
 # the verifier's APPROVE (freeze mode) for exactly this brief and this ledger.
 
-FREEZE_DIR="$FD/freeze"
+FREEZE_DIR="$FD/freeze-review"
 
-freeze_request() { # write .finish/freeze/request.md; 0 when the verifier approved exactly it, 3 when it waits
-  local req="$FREEZE_DIR/request.md" rev="$FREEZE_DIR/review.md" tmp
-  mkdir -p "$FREEZE_DIR"
-  tmp="$(mktemp)"
-  {
-    echo "# Freeze request — $(jq -r .product "$LEDGER")"
-    echo
-    echo "BRIEF: $(fl_sha < "$BRIEF")"
-    echo "LEDGER: $(fl_criteria_hash "$LEDGER")"
-    echo
-    echo "Everything the run builds rests on .finish/product.json and .finish/ledger.json. Check both against the docs."
-    echo
-    echo "## Brief check"; echo '```'; cmd_brief 2>&1; echo '```'
-    echo
-    echo "## Items"
-    jq -r '.items[] | "- \(.id) (\(.priority) \(.type)) — \(.title) — source: \(.source // "")"' "$LEDGER"
-  } > "$tmp"
-  if cmp -s "$tmp" "$req"; then rm -f "$tmp"; else mv "$tmp" "$req"; rm -f "$rev"; fi
-  if [[ -f "$rev" ]] && grep -Eq "^REQUEST: *$(fl_sha < "$req")" "$rev"; then
-    grep -Eq '^VERDICT: *APPROVE' "$rev" && return 0
-    fl_die "the verifier rejected the brief or the ledger: fix what .finish/freeze/review.md lists (re-read the sources it names), commit, then ledger.sh lock again"
+freeze_request() { # 0: exact review approved; 3: review needed; any write failure refuses
+  local req="$FREEZE_DIR/request.md" rev="$FREEZE_DIR/review.md" tmp checked brief_hash ledger_hash
+  [[ ! -L "$FREEZE_DIR" ]] || fl_die "freeze-review must not be a symlink"
+  mkdir -p "$FREEZE_DIR" || fl_die "could not create freeze-review directory"
+  [[ -d "$FREEZE_DIR" ]] || fl_die "freeze-review is not a directory"
+  [[ ! -L "$req" && ! -L "$rev" ]] || fl_die "freeze review files must not be symlinks"
+  [[ ! -e "$req" || -f "$req" ]] && [[ ! -e "$rev" || -f "$rev" ]] \
+    || fl_die "freeze request and review must be regular files when present"
+  tmp="$(mktemp "$FREEZE_DIR/.request.XXXXXX")" || fl_die "could not stage freeze request"
+  checked="$(mktemp "$FREEZE_DIR/.brief-check.XXXXXX")" || { rm -f "$tmp"; fl_die "could not stage brief check"; }
+  if ! cmd_brief > "$checked" 2>&1; then
+    rm -f "$tmp" "$checked"; fl_die "brief check failed while preparing freeze request"
   fi
-  echo "freezing needs the verifier's approval of the brief and the ledger. Spawn finish-verifier in freeze mode with: .finish/freeze/request.md"
-  echo "then: ledger.sh lock   (REJECT → fix what its review lists, commit, lock again)"
+  brief_hash="$(fl_sha < "$BRIEF")" && ledger_hash="$(fl_criteria_hash "$LEDGER")" \
+    || { rm -f "$tmp" "$checked"; fl_die "could not hash freeze request inputs"; }
+  if ! jq -nr --slurpfile ledger "$LEDGER" --rawfile checked "$checked" \
+      --arg brief "$brief_hash" --arg criteria "$ledger_hash" '
+    "# Freeze request — \($ledger[0].product)", "", "BRIEF: \($brief)", "LEDGER: \($criteria)", "",
+    "Everything the run builds rests on .finish/product.json and .finish/ledger.json. Check both against the docs.", "",
+    "## Brief check", "```", ($checked | rtrimstr("\n")), "```", "", "## Items",
+    ($ledger[0].items[] | "- \(.id) (\(.priority) \(.type)) — \(.title) — source: \(.source // "")")' > "$tmp"; then
+    rm -f "$tmp" "$checked"; fl_die "could not write freeze request"
+  fi
+  rm -f "$checked" || { rm -f "$tmp"; fl_die "could not remove staged brief check"; }
+  if cmp -s "$tmp" "$req"; then
+    rm -f "$tmp" || fl_die "could not remove staged freeze request"
+  else
+    mv "$tmp" "$req" || { rm -f "$tmp"; fl_die "could not install freeze request"; }
+    rm -f "$rev" || fl_die "could not invalidate the previous freeze review"
+  fi
+  if [[ -f "$rev" ]] && grep -qxF "REQUEST: $(fl_sha < "$req")" "$rev"; then
+    grep -Eq '^VERDICT: *APPROVE *$' "$rev" && return 0
+    fl_die "the verifier rejected the brief or ledger; fix freeze-review/review.md findings, commit and request a new review"
+  fi
+  echo "freezing needs verifier approval: .finish/freeze-review/request.md"
+  echo "then: ledger.sh lock (REJECT → fix its findings, commit and lock again)"
   return 3
 }
 
-cmd_freeze_check() { # the first freeze carries an APPROVE for the brief and ledger it froze
-  [[ -f "$FD/FREEZE" ]] || { echo "not frozen yet"; return 0; }
-  local req="$FREEZE_DIR/request.md" rev="$FREEZE_DIR/review.md" f0 tmp l
-  [[ -f "$req" && -f "$rev" ]] || { echo "no freeze request and review in .finish/freeze/"; return 1; }
-  if ! grep -Eq "^REQUEST: *$(fl_sha < "$req")" "$rev" || ! grep -Eq '^VERDICT: *APPROVE' "$rev"; then
-    echo "the freeze review doesn't approve this request"; return 1
+cmd_freeze_check() { # legacy case-sensitive review directories are read-only inputs
+  if [[ ! -e "$FD/FREEZE" && ! -L "$FD/FREEZE" ]]; then echo "not frozen yet"; return 0; fi
+  [[ -f "$FD/FREEZE" && ! -L "$FD/FREEZE" ]] || { echo "FREEZE is not a regular marker"; return 1; }
+  local review_dir="$FREEZE_DIR" req rev f0 tmp l
+  if [[ -d "$FD/freeze" ]]; then
+    [[ ! "$FD/freeze" -ef "$FD/FREEZE" && ! -e "$FREEZE_DIR" && ! -L "$FD/freeze" ]] \
+      || { echo "ambiguous legacy/current freeze reviews; explicit migration required"; return 1; }
+    review_dir="$FD/freeze"
+  fi
+  [[ ! -L "$review_dir" ]] || { echo "freeze review directory must not be a symlink"; return 1; }
+  req="$review_dir/request.md"; rev="$review_dir/review.md"
+  [[ -f "$req" && -f "$rev" && ! -L "$req" && ! -L "$rev" ]] || { echo "no regular freeze request and review"; return 1; }
+  if ! grep -qxF "REQUEST: $(fl_sha < "$req")" "$rev" || ! grep -Eq '^VERDICT: *APPROVE *$' "$rev"; then
+    echo "the freeze review does not approve this request"; return 1
   fi
   f0="$(jq -rs '.[0].freeze_before // empty' "$FD/amendments.jsonl" 2>/dev/null)"
   [[ -n "$f0" ]] || f0="$(tr -d '[:space:]' < "$FD/FREEZE")"
-  git cat-file -e "$f0:.finish/product.json" 2>/dev/null || { echo "the freeze commit has no .finish/product.json"; return 1; }
-  grep -qxF "BRIEF: $(git show "$f0:.finish/product.json" | fl_sha)" "$req" || { echo "the brief at the freeze isn't the one reviewed"; return 1; }
-  tmp="$(mktemp)"; git show "$f0:.finish/ledger.json" > "$tmp" 2>/dev/null; l="$(fl_criteria_hash "$tmp" 2>/dev/null)"; rm -f "$tmp"
-  grep -qxF "LEDGER: $l" "$req" || { echo "the ledger at the freeze isn't the one reviewed"; return 1; }
+  git cat-file -e "$f0:.finish/product.json" 2>/dev/null || { echo "freeze commit has no product.json"; return 1; }
+  grep -qxF "BRIEF: $(git show "$f0:.finish/product.json" | fl_sha)" "$req" || { echo "brief at freeze differs from reviewed brief"; return 1; }
+  tmp="$(mktemp)" || return 1
+  if ! git show "$f0:.finish/ledger.json" > "$tmp" 2>/dev/null; then rm -f "$tmp"; return 1; fi
+  l="$(fl_criteria_hash "$tmp")" || { rm -f "$tmp"; return 1; }
+  rm -f "$tmp" || return 1
+  grep -qxF "LEDGER: $l" "$req" || { echo "ledger at freeze differs from reviewed ledger"; return 1; }
   echo "FREEZE REVIEW: OK"
 }
 
@@ -1121,6 +1186,7 @@ case "$sub" in
   issue) cmd_issue "$@" ;;
   hash) need_ledger; fl_criteria_hash "$LEDGER" ;;
   state) fl_code_state ;;
+  criteria) cmd_criteria "${1:-}" ;;
   run-commands) cmd_run_commands "${1:-}" ;;
   check) cmd_check ;;
   brief) cmd_brief ;;

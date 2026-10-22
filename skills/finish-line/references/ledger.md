@@ -115,7 +115,7 @@ IDs: `G-###` gates, `J-###` journeys, `F-###` features, `I-###` defects found du
 
 Spec paths must sit under a `finish/` directory: that's what makes them protected by `tamper.sh`. A full worked example: `templates/ledger.example.json`.
 
-The criteria hash covers everything except `status`, `attempts`, `evidence` and `notes` — so after the freeze even a title or spec path changes only through an amendment (§8).
+The criteria hash covers everything except `status`, `attempts`, `evidence` and `notes` — so after the freeze even a title or spec path changes only through an amendment (§8). `ledger.sh criteria <ID>` separately fingerprints the immutable item (including its ID, source, criteria and verify configuration), product/promise and exact supporting brief. An item-mode PASS report must contain exactly one matching `CRITERION: <hash>` as well as its code `STATE:`; older reports without this identity require fresh verification. Mutable status/attempt/evidence/note updates do not change it.
 
 ## 7. Freeze
 
@@ -123,12 +123,14 @@ The criteria hash covers everything except `status`, `attempts`, `evidence` and 
 ./.finish/bin/ledger.sh brief             # until BRIEF: VALID (the brief was committed in Phase 0)
 ./.finish/bin/ledger.sh validate          # until LEDGER: VALID
 git add .finish/ledger.json .finish/product.json .finish/PRODUCT.md && git commit -m "chore(finish): definition of done"
-./.finish/bin/ledger.sh lock              # first time: writes .finish/freeze/request.md and exits 3
-#   finish-verifier, freeze mode, with .finish/freeze/request.md → .finish/freeze/review.md
+./.finish/bin/ledger.sh lock              # first time: writes .finish/freeze-review/request.md and exits 3
+#   finish-verifier, freeze mode, with .finish/freeze-review/request.md → .finish/freeze-review/review.md
 #   REJECT: fix what it lists, commit, lock again (a new request needs a new review)
 ./.finish/bin/ledger.sh lock              # after APPROVE: writes FREEZE (this commit) + LEDGER.lock
-git add .finish/FREEZE .finish/LEDGER.lock .finish/freeze && git commit -m "chore(finish): freeze ledger"
+git add .finish/FREEZE .finish/LEDGER.lock .finish/freeze-review && git commit -m "chore(finish): freeze ledger"
 ```
+
+New freeze reviews use `freeze-review/`, which cannot collide with the `FREEZE` marker on case-insensitive filesystems. `lock` refuses occupied/symlink marker paths, orphan locks and legacy review paths before a new freeze; it never deletes or migrates them automatically. Existing valid case-sensitive legacy `freeze/` reviews may be checked read-only when no current review directory exists. Ambiguous states require an explicitly reviewed migration preserving the original request/review bytes. Failed request or marker writes/installations return nonzero and never print a frozen success.
 
 The verifier reads the docs itself first, then checks every claim against its source, the brief against the docs (nothing missing, no guess where they're silent), and every item against the claims it cites. Without its `APPROVE` for exactly this brief and ledger, `lock` doesn't freeze, and the runner reverts a session that freezes any other way.
 
@@ -163,15 +165,6 @@ git add .finish && git commit -m "chore(finish): file I-001 — signup button hi
 
 It's an addition, so it applies at once (no review). Defaults: priority = the current scope (`P0`), platform `web`, spec `e2e/finish/I-###.spec.ts`; the platform decides how it's verified — `--platform android|ios` for a Maestro flow, `--platform api` with `--spec <tests/finish/…>` for an API test (whatever its file name), `--command "<cmd>"` for a command check; `--method` overrides. The criterion states the correct behaviour, so the test fails until the defect is fixed. A defect is never deferred to `LATER.md`; only ideas and features the docs don't ask for are.
 
-## 9. Owner override (optional)
+## 9. No public refreeze bypass
 
-The owner can still edit the ledger directly at any time; nothing in the run waits for it:
-
-```bash
-$EDITOR .finish/ledger.json
-git add .finish/ledger.json && git commit -m "chore(finish): revise definition of done"
-.finish/bin/ledger.sh lock --refreeze
-git add .finish/FREEZE .finish/LEDGER.lock && git commit -m "chore(finish): re-freeze ledger"
-```
-
-Run it between runs, not while `finish.sh` is running: a session that changes the lock without a logged amendment is reverted.
+`lock` freezes a new reviewed definition once; `lock --refreeze` is unsupported. A changed frozen definition, including an owner-requested change, must use the amendment/rebaseline procedure in §8 with its request-bound review and cap. There are no internal callers of the removed flag. Editing the definition and calling lock again cannot replace review or rewrite freeze markers.

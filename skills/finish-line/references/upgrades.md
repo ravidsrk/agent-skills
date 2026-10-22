@@ -5,7 +5,13 @@ Stop all runners and interactive sessions before preparing an upgrade. A new
 ignored that failure, received no paths and could print `GATE: PASS` while
 skipping both the missing spec and existing selected specs. Updating bin alone
 is unsafe. Scaffold and runner now check compatibility before distributing or
-using the new scripts.
+using the new scripts. The runner first selects the existing `finish-line` branch
+through its normal checkout path, preserving conflicting local entry-branch edits
+in its ordinary stash when required. It then checks that selected run before
+bootstrap, migration or script writes. A stale gate/bin on the starting branch
+does not veto a compatible target run; an incompatible target still refuses
+without rewriting its gate, bin or freeze markers. The transient runner lock and
+normal checkout/stash happen before this check.
 
 ## Before the freeze
 

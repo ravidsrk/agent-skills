@@ -306,6 +306,95 @@ class GateUpgrade(unittest.TestCase):
         self.assertIn("OK", result.stderr)
         self.assertIn("commit", cfg.read_text())
 
+    def protected_run_bytes(self):
+        paths = ["verify.sh", "FREEZE", "LEDGER.lock", "RUN", "SCOPE", "ledger.json",
+                 "bin/lib.sh", "bin/ledger.sh", "bin/tamper.sh"]
+        return {path: ((self.fd / path).read_bytes(), (self.fd / path).stat().st_mode)
+                for path in paths if (self.fd / path).is_file()}
+
+    def make_run_branch(self, *, compatible=True, stale_bin=False):
+        self.run_command("git", "checkout", "-qb", "finish-line", check=True)
+        if compatible:
+            self.write(".finish/verify.sh", self.gate.replace(OLD, NEW))
+        if stale_bin:
+            self.write(".finish/bin/lib.sh", "synthetic stale target-bin sentinel\n")
+        # Git records only the executable bit; use its canonical checkout mode.
+        # The separate migration test still proves preservation of arbitrary0751.
+        (self.fd / "verify.sh").chmod(0o755)
+        self.frozen()
+        # Avoid unrelated bootstrap commits in the native startup controls.
+        ignore = (self.root / ".gitignore").read_text()
+        self.write(".gitignore", ignore + ".env*.local\n.finish/ledger.proposed.json\n.gstack/\n")
+        self.commit()
+        return self.protected_run_bytes(), self.fingerprint()
+
+    def make_entry_branch(self, *, stale_gate=False, stale_bin=False):
+        self.run_command("git", "checkout", "-qb", "synthetic-entry", check=True)
+        if stale_gate:
+            self.write(".finish/verify.sh", self.gate)
+        if stale_bin:
+            self.write(".finish/bin/lib.sh", "synthetic stale entry-bin sentinel\n")
+        if stale_gate or stale_bin:
+            self.commit()
+
+    def test_runner_startup_switches_stale_entry_gate_to_valid_run_branch(self):
+        protected, _ = self.make_run_branch()
+        self.make_entry_branch(stale_gate=True)
+        result = self.run_command("bash", str(SKILL / "scripts/finish.sh"))
+        self.assertEqual(result.returncode, 3, result.stdout + result.stderr)
+        self.assertIn("switched to the finish-line branch", result.stdout)
+        self.assertIn("Session cap MAX_SESSIONS=0", result.stdout)
+        self.assertEqual(self.run_command("git", "branch", "--show-current").stdout.strip(), "finish-line")
+        self.assertEqual(self.protected_run_bytes(), protected)
+        self.assertFalse((self.root / ".git/finish-line.lock").exists())
+
+    def test_runner_startup_switches_stale_entry_bin_to_valid_run_branch(self):
+        protected, _ = self.make_run_branch()
+        self.make_entry_branch(stale_bin=True)
+        result = self.run_command("bash", str(SKILL / "scripts/finish.sh"))
+        self.assertEqual(result.returncode, 3, result.stdout + result.stderr)
+        self.assertIn("switched to the finish-line branch", result.stdout)
+        self.assertEqual(self.protected_run_bytes(), protected)
+
+    def test_runner_startup_checks_invalid_target_gate_after_valid_entry(self):
+        protected, all_files = self.make_run_branch(compatible=False)
+        self.make_entry_branch()
+        self.write(".finish/verify.sh", self.gate.replace(OLD, NEW))
+        self.commit()
+        result = self.run_command("bash", str(SKILL / "scripts/finish.sh"))
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("switched to the finish-line branch", result.stdout)
+        self.assertIn("legacy gate ignores selector failure", result.stderr)
+        self.assertNotIn("Session cap", result.stdout)
+        self.assertEqual(self.protected_run_bytes(), protected)
+        self.assertEqual(self.fingerprint(), all_files)
+        self.assertFalse((self.root / ".git/finish-line.lock").exists())
+
+    def test_runner_startup_keeps_frozen_target_bin_drift_refusal_after_switch(self):
+        protected, all_files = self.make_run_branch(stale_bin=True)
+        self.make_entry_branch()
+        self.copy_bin()
+        self.commit()
+        result = self.run_command("bash", str(SKILL / "scripts/finish.sh"))
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("switched to the finish-line branch", result.stdout)
+        self.assertIn("frozen bin drift", result.stderr)
+        self.assertEqual(self.protected_run_bytes(), protected)
+        self.assertEqual(self.fingerprint(), all_files)
+
+    def test_runner_startup_stashes_conflicting_entry_edit_before_target_check(self):
+        protected, _ = self.make_run_branch()
+        self.make_entry_branch(stale_gate=True)
+        self.write(".finish/verify.sh", self.gate + "# synthetic local edit must survive in stash\n")
+        result = self.run_command("bash", str(SKILL / "scripts/finish.sh"))
+        self.assertEqual(result.returncode, 3, result.stdout + result.stderr)
+        self.assertIn("stashed uncommitted changes", result.stdout)
+        self.assertIn("switched to the finish-line branch", result.stdout)
+        self.assertEqual(self.protected_run_bytes(), protected)
+        stash = self.run_command("git", "stash", "show", "-p", "stash@{0}")
+        self.assertEqual(stash.returncode, 0, stash.stderr)
+        self.assertIn("synthetic local edit must survive in stash", stash.stdout)
+
     def test_current_gate_and_matching_frozen_bin_pass_read_only_check(self):
         self.write(".finish/verify.sh", self.gate.replace(OLD, NEW))
         self.frozen()

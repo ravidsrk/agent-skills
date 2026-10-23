@@ -46,16 +46,18 @@ jobs:
           APP_URL: http://localhost:3000
           CI: true
 
-      - name: Upload diffs
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: visual-diffs
-          path: |
-            test-results/
-            playwright-report/
-          retention-days: 7
+- name: Upload diffs
+  if: failure()
+  uses: actions/upload-artifact@v4
+  with:
+    name: visual-diffs
+    path: |
+      test-results/
+      playwright-report/
+    retention-days: 7
 ```
+
+🔴 Failure artifacts can contain unmasked DOM and screenshots. If the app renders sensitive data, use fictional fixtures and keep `screenshot: "off"` / `trace: "off"` (the scaffold defaults), or sanitize the artifact directory before upload.
 
 # Pin the environment
 

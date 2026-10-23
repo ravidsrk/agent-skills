@@ -142,10 +142,20 @@ def strip_inline_comment(value):
         return value
     if value[0] in "\"'":
         end = find_closing_quote(value, value[0])
-        return value[: end + 1] if end != -1 else value
+        if end == -1:
+            return value
+        tail = value[end + 1 :]
+        if tail.strip() and not tail.lstrip().startswith("#"):
+            return value
+        return value[: end + 1]
     if value[0] == "[":
         end = find_closing_bracket(value)
-        return value[: end + 1] if end != -1 else value
+        if end == -1:
+            return value
+        tail = value[end + 1 :]
+        if tail.strip() and not tail.lstrip().startswith("#"):
+            return value
+        return value[: end + 1]
     index = value.find(" #")
     return value[:index].rstrip() if index != -1 else value
 
@@ -175,8 +185,13 @@ def parse_frontmatter(text: str):
                 data[key] = ""
             elif value.startswith("["):
                 bracket_end = find_closing_bracket(value)
+                tail = value[bracket_end + 1 :].strip() if bracket_end != -1 else ""
                 if bracket_end == -1:
                     parse_error = parse_error or f"unterminated array in '{key}'"
+                    data[key] = value
+                    current = key
+                elif tail and not tail.startswith("#"):
+                    parse_error = parse_error or f"trailing text after array in '{key}'"
                     data[key] = value
                     current = key
                 else:
@@ -185,9 +200,13 @@ def parse_frontmatter(text: str):
                     current = None
             elif value and value[0] in "\"'":
                 quote_end = find_closing_quote(value, value[0])
+                tail = value[quote_end + 1 :].strip() if quote_end != -1 else ""
                 if quote_end == -1:
                     parse_error = parse_error or f"unterminated quote in '{key}'"
-                    data[key] = value[1:]
+                    data[key] = value
+                elif tail and not tail.startswith("#"):
+                    parse_error = parse_error or f"trailing text after quoted value in '{key}'"
+                    data[key] = value
                 else:
                     inner = value[1:quote_end]
                     if value[0] == '"':
@@ -291,14 +310,13 @@ def resolve_target(raw, page, root, slugs, titles, aliases):
     basename_matches = [slug for slug in slugs if slug.rsplit("/", 1)[-1].lower() == target.lower()]
     if len(basename_matches) == 1:
         return basename_matches[0]
-    if "/" in raw:
-        try:
-            candidate = (page.parent / raw.split("#", 1)[0]).resolve()
-            candidate_slug = rel_slug(candidate, root.resolve())
-            if candidate_slug in slugs:
-                return candidate_slug
-        except (ValueError, OSError):
-            pass
+    try:
+        candidate = (page.parent / raw.split("#", 1)[0].split("?", 1)[0]).resolve()
+        candidate_slug = rel_slug(candidate, root.resolve())
+        if candidate_slug in slugs:
+            return candidate_slug
+    except (ValueError, OSError):
+        pass
     return None
 
 

@@ -71,8 +71,8 @@ export default defineConfig({
     baseURL: process.env.APP_URL ?? "${url}",
     colorScheme: "light",
     deviceScaleFactor: 1,
-    trace: "retain-on-failure",
-    screenshot: "only-on-failure",
+    trace: "off",
+    screenshot: "off",
   },
   projects: [
     { name: "desktop", use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } } },

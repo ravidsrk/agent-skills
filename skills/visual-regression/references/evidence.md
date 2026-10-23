@@ -115,6 +115,8 @@ await expect(page).toHaveScreenshot("account.png", {
 });
 ```
 
+🔴 **Masks only apply to the screenshot assertion.** Playwright failure artifacts (`screenshot: "only-on-failure"`) and traces can capture the same page without masks. For pages with sensitive data, use fictional fixtures and keep `screenshot: "off"` / `trace: "off"` (the scaffold defaults), or capture evidence explicitly with the masks applied.
+
 # Retention
 
 - CI artifacts: 7–14 days.

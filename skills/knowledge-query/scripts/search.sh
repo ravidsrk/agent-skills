@@ -63,9 +63,20 @@ fi
 
 if [ -n "$type" ]; then
   files=()
+  type_tmp=$(mktemp)
+  set +e
+  rg -l --color never "^type:[[:space:]]*[\"']?${type}[\"']?[[:space:]]*$" "$root" --glob '*.md' --glob '*.mdx' > "$type_tmp"
+  rc=$?
+  set -e
+  if [ "$rc" -gt 1 ]; then
+    echo "search failed: rg exited $rc" >&2
+    rm -f "$type_tmp"
+    exit "$rc"
+  fi
   while IFS= read -r f; do
     [ -n "$f" ] && files+=("$f")
-  done < <(rg -l --color never "^type:[[:space:]]*[\"']?${type}[\"']?[[:space:]]*$" "$root" --glob '*.md' --glob '*.mdx' || true)
+  done < "$type_tmp"
+  rm -f "$type_tmp"
 
   if [ "${#files[@]}" -eq 0 ]; then
     if [ "$json" -eq 1 ]; then
@@ -82,21 +93,39 @@ else
   glob_args=(--glob '*.md' --glob '*.mdx')
 fi
 
+out=$(mktemp)
+err="${out}.err"
+trap 'rm -f "$out" "$err"' EXIT
+
+set +e
 if [ "$json" -eq 1 ]; then
   if [ "$files_only" -eq 1 ]; then
-    output=$(rg --color never --files-with-matches "${glob_args[@]}" -- "$query" "${search_paths[@]}" || true)
-    printf '%s\n' "$output" | jq -R -s --argjson limit "$limit" \
-      'split("\n") | map(select(length > 0)) | .[:$limit] | map({file: .})'
+    rg --color never --smart-case --files-with-matches "${glob_args[@]}" -- "$query" "${search_paths[@]}" > "$out" 2> "$err"
   else
-    rg --color never --json "${glob_args[@]}" -- "$query" "${search_paths[@]}" 2>/dev/null \
-      | jq -c 'select(.type == "match") | {file: .data.path.text, line: .data.line_number, text: (.data.lines.text | rtrimstr("\n"))}' \
-      | awk -v limit="$limit" 'NR <= limit' || true
+    rg --color never --smart-case --json "${glob_args[@]}" -- "$query" "${search_paths[@]}" > "$out" 2> "$err"
   fi
 else
   if [ "$files_only" -eq 1 ]; then
-    output=$(rg --color never --files-with-matches "${glob_args[@]}" -- "$query" "${search_paths[@]}" || true)
+    rg --color never --smart-case --files-with-matches --with-filename "${glob_args[@]}" -- "$query" "${search_paths[@]}" > "$out" 2> "$err"
   else
-    output=$(rg --color never --line-number --no-heading --smart-case "${glob_args[@]}" -- "$query" "${search_paths[@]}" || true)
+    rg --color never --smart-case --line-number --no-heading --with-filename "${glob_args[@]}" -- "$query" "${search_paths[@]}" > "$out" 2> "$err"
   fi
-  printf '%s\n' "$output" | awk -v limit="$limit" 'NF && NR <= limit'
+fi
+rc=$?
+set -e
+
+if [ "$rc" -gt 1 ]; then
+  cat "$err" >&2
+  exit "$rc"
+fi
+
+if [ "$json" -eq 1 ]; then
+  if [ "$files_only" -eq 1 ]; then
+    jq -R -s --argjson limit "$limit" 'split("\n") | map(select(length > 0)) | .[:$limit] | map({file: .})' < "$out"
+  else
+    jq -c 'select(.type == "match") | {file: .data.path.text, line: .data.line_number, text: (.data.lines.text | rtrimstr("\n"))}' < "$out" \
+      | awk -v limit="$limit" 'NR <= limit'
+  fi
+else
+  awk -v limit="$limit" 'NF && NR <= limit' < "$out"
 fi

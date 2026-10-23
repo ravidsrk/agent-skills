@@ -109,18 +109,35 @@ fi
 
 [ -s "$body" ] || die "body is empty after removing frontmatter"
 
-hash=$($hash_cmd "$body" | awk '{print $1}')
-hash8=${hash:0:8}
-today=$(date -u +%Y-%m-%d)
-now=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-
 [ -n "$title" ] || title="$old_title"
 if [ -z "$title" ]; then
   title=$(awk 'NF { sub(/^#+[[:space:]]*/, ""); print; exit }' "$body" | cut -c1-80)
 fi
 [ -n "$title" ] || title="Untitled capture"
 [ -n "$type" ] || type="note"
-[ "$type_set" -eq 0 ] && [ -n "$old_type" ] && type="$old_type"
+if [ "$type_set" -eq 0 ] && [ -n "$old_type" ]; then
+  type="$old_type"
+fi
+
+# Canonical body: keep an existing H1, otherwise add one. Hash and write the
+# same bytes so capturing a saved page again dedupes instead of duplicating.
+canonical=$(mktemp "${TMPDIR:-/tmp}/kb-canonical.XXXXXX")
+trap 'rm -f "$tmp" "$body" "$canonical"' EXIT
+
+if grep -qE '^[[:space:]]*# ' "$body"; then
+  cat "$body" > "$canonical"
+else
+  printf '# %s\n\n' "$title" > "$canonical"
+  cat "$body" >> "$canonical"
+fi
+if [ -n "$(tail -c 1 "$canonical")" ]; then
+  printf '\n' >> "$canonical"
+fi
+
+hash=$($hash_cmd "$canonical" | awk '{print $1}')
+hash8=${hash:0:8}
+today=$(date -u +%Y-%m-%d)
+now=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
 # Validate and normalize an explicit slug.
 if [ -z "$slug" ]; then
@@ -142,7 +159,9 @@ if [ -n "$existing" ]; then
   existing_slug=$(awk -F': ' '/^slug:[[:space:]]*/ {gsub(/^slug:[[:space:]]*/,""); gsub(/"/,""); print; exit}' "$existing")
   [ -n "$existing_slug" ] || existing_slug="${existing#$root/}"; existing_slug="${existing_slug%.md}"
   if [ "$json" -eq 1 ]; then
-    printf '{"status":"deduped","slug":"%s","path":"%s","content_hash":"%s"}\n' "$existing_slug" "$existing" "$hash"
+    command -v jq >/dev/null 2>&1 || die "jq is required for --json"
+    jq -n --arg slug "$existing_slug" --arg path "$existing" --arg hash "$hash" \
+      '{status:"deduped", slug:$slug, path:$path, content_hash:$hash}'
   elif [ "$quiet" -eq 1 ]; then
     printf '%s\n' "$existing_slug"
   else
@@ -151,20 +170,21 @@ if [ -n "$existing" ]; then
   exit 0
 fi
 
+# Claim the destination atomically. A concurrent capture with the same slug
+# sees the placeholder and moves to the next suffix instead of overwriting.
+mkdir -p "$(dirname "$root/$slug.md")"
+base="$slug"
 target="$root/$slug.md"
-if [ -e "$target" ]; then
-  n=2
-  while [ -e "$root/$slug-$n.md" ]; do n=$((n+1)); done
-  slug="$slug-$n"
+n=2
+while ! (set -C; : > "$target") 2>/dev/null; do
+  slug="${base}-${n}"
   target="$root/$slug.md"
-fi
-
-mkdir -p "$(dirname "$target")"
+  n=$((n+1))
+  [ "$n" -le 1000 ] || die "could not claim a slug for $base"
+done
 
 yaml_escape() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
-json_escape() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
 
-out=$(mktemp "$(dirname "$target")/.capture.XXXXXX")
 {
   printf '%s\n' '---'
   printf 'title: "%s"\n' "$(yaml_escape "$title")"
@@ -177,16 +197,13 @@ out=$(mktemp "$(dirname "$target")/.capture.XXXXXX")
   fi
   printf 'content_hash: "%s"\n' "$hash"
   printf '%s\n' '---'
-  printf '\n# %s\n\n' "$title"
-  cat "$body"
-  # Ensure a trailing newline.
-  [ -z "$(tail -c 1 "$body")" ] || printf '\n'
-} > "$out"
-mv "$out" "$target"
+  cat "$canonical"
+} > "$target"
 
 if [ "$json" -eq 1 ]; then
-  printf '{"status":"created","slug":"%s","path":"%s","content_hash":"%s","title":"%s"}\n' \
-    "$(json_escape "$slug")" "$(json_escape "$target")" "$hash" "$(json_escape "$title")"
+  command -v jq >/dev/null 2>&1 || die "jq is required for --json"
+  jq -n --arg slug "$slug" --arg path "$target" --arg hash "$hash" --arg title "$title" \
+    '{status:"created", slug:$slug, path:$path, content_hash:$hash, title:$title}'
 elif [ "$quiet" -eq 1 ]; then
   printf '%s\n' "$slug"
 else

@@ -1,5 +1,9 @@
 # knowledge-capture
 
+<p align="center">
+  <img src="assets/banner.png" alt="knowledge-capture — one-command capture into a markdown knowledge base" width="100%">
+</p>
+
 One command to save a thought, article, meeting, or voice note into a markdown knowledge base — with stable frontmatter, a content-hash slug, dedupe, and backlinks.
 
 ## What it does
@@ -30,7 +34,7 @@ mkdir -p "$KB_ROOT/inbox"
 chmod +x scripts/capture.sh
 ```
 
-No package install required. `shasum` or `sha256sum` must be available.
+No package install required. `shasum` or `sha256sum` must be available. `jq` is optional, but required for `--json` receipts.
 
 Optional gbrain:
 

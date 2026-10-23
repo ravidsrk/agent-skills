@@ -1,5 +1,9 @@
 # knowledge-maintenance
 
+<p align="center">
+  <img src="assets/banner.png" alt="knowledge-maintenance — audit and repair a markdown knowledge base" width="100%">
+</p>
+
 Audit and repair a markdown knowledge base: frontmatter, links, orphans, stale pages, duplicates, and taxonomy drift.
 
 ## What it does
@@ -58,7 +62,10 @@ Findings: 31 (4 errors, 27 warnings)
 | Code | Severity | Count |
 |---|---|---:|
 | broken_wikilink | error | 3 |
+| broken_asset | error | 1 |
 | missing_frontmatter | error | 1 |
+| frontmatter_parse_error | error | 0 |
+| missing_required_field | error | 2 |
 | empty_frontmatter | error | 0 |
 | missing_type | warn | 2 |
 | orphan_page | warn | 12 |

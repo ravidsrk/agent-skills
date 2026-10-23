@@ -30,6 +30,26 @@ Each dimension has a detection method, a threshold, and a repair action. Fix err
 
 **Repair:** choose a type from `taxonomy.md`. Do not invent a type for a single page; use `note` plus a tag.
 
+# frontmatter_parse_error
+
+**Severity:** error
+
+**Detect:** the block has an unterminated quote or array, or a line that is neither a key nor an indented continuation.
+
+**Repair:** quote the value correctly, close the array, or indent the continuation. Re-run the audit on the single file.
+
+**Do not:** delete the block to make the error disappear; the page loses its identity.
+
+# missing_required_field
+
+**Severity:** error
+
+**Detect:** `slug`, `captured_at`, or `content_hash` is missing or empty.
+
+**Repair:** derive the slug from the path, set `captured_at` from the page's first commit or capture receipt, and compute `content_hash` from the canonical body.
+
+**Do not:** copy another page's hash.
+
 # missing_title
 
 **Severity:** error
@@ -57,6 +77,16 @@ Each dimension has a detection method, a threshold, and a repair action. Fix err
 **Repair:** update the link to the new slug, create the missing page, or remove the link if the target is obsolete.
 
 **Do not:** delete the source page to silence the warning.
+
+# broken_asset
+
+**Severity:** error
+
+**Detect:** a local image, PDF, video, or other non-Markdown file link points to a path that does not exist.
+
+**Repair:** restore the file, fix the relative path, or remove the link.
+
+**Do not:** convert an asset link into a page link to silence the check.
 
 # invalid_date
 

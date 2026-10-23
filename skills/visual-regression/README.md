@@ -1,5 +1,9 @@
 # visual-regression
 
+<p align="center">
+  <img src="assets/banner.png" alt="visual-regression — screenshot baselines and UI verification" width="100%">
+</p>
+
 Catch unintended UI changes with screenshot baselines, perceptual diffs, and CI gates.
 
 ## What it does

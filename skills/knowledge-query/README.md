@@ -1,5 +1,9 @@
 # knowledge-query
 
+<p align="center">
+  <img src="assets/banner.png" alt="knowledge-query — grounded answers with citations and gap flags" width="100%">
+</p>
+
 Answer questions from a markdown knowledge base with grounded citations, explicit gaps, and conflict handling.
 
 ## What it does

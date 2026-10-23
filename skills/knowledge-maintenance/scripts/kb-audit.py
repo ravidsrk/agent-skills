@@ -26,9 +26,12 @@ FENCE_RE = re.compile(r"```.*?```", re.DOTALL)
 SEVERITY = {
     "missing_frontmatter": "error",
     "empty_frontmatter": "error",
+    "frontmatter_parse_error": "error",
+    "missing_required_field": "error",
     "missing_title": "error",
     "slug_mismatch": "error",
     "broken_wikilink": "error",
+    "broken_asset": "error",
     "missing_type": "warn",
     "invalid_date": "warn",
     "stale_page": "warn",
@@ -41,9 +44,12 @@ SEVERITY = {
 NEXT_ACTIONS = {
     "missing_frontmatter": "Add a valid frontmatter block (see references/frontmatter-schema.md).",
     "empty_frontmatter": "Fill the empty frontmatter from the page content.",
+    "frontmatter_parse_error": "Fix the malformed YAML line named in the finding.",
+    "missing_required_field": "Add the missing required field (title, type, slug, captured_at, content_hash).",
     "missing_title": "Add a frontmatter title or an H1.",
     "slug_mismatch": "Set the frontmatter slug to the path-derived slug, or update links before renaming.",
     "broken_wikilink": "Fix the target, create the missing page, or remove the link.",
+    "broken_asset": "Restore the file, fix the relative path, or remove the link.",
     "missing_type": "Add a type from references/taxonomy.md.",
     "invalid_date": "Use a UTC date (`YYYY-MM-DD` or ISO-8601 with Z).",
     "stale_page": "Read the page and its timeline; rewrite, archive, or confirm it is historical.",
@@ -76,16 +82,17 @@ def parse_args() -> argparse.Namespace:
 def parse_frontmatter(text: str):
     lines = text.splitlines()
     if not lines or lines[0].strip() != "---":
-        return None, text, "missing_open", 0
+        return None, text, "missing_open", 0, None
     end = None
     for i in range(1, len(lines)):
         if lines[i].strip() == "---":
             end = i
             break
     if end is None:
-        return None, text, "missing_close", 0
+        return None, text, "missing_close", 0, None
     data = {}
     current = None
+    parse_error = None
     for raw in lines[1:end]:
         if not raw.strip() or raw.lstrip().startswith("#"):
             continue
@@ -95,17 +102,39 @@ def parse_frontmatter(text: str):
             if value in (">", "|", ">-", "|-"):
                 current = key
                 data[key] = ""
+            elif value.startswith("[") and not value.endswith("]"):
+                parse_error = parse_error or f"unterminated array in '{key}'"
+                data[key] = value
+                current = key
             elif value.startswith("[") and value.endswith("]"):
                 data[key] = [item.strip().strip("'\"") for item in value[1:-1].split(",") if item.strip()]
                 current = None
+            elif value and value[0] in "\"'":
+                if len(value) < 2 or value[-1] != value[0]:
+                    parse_error = parse_error or f"unterminated quote in '{key}'"
+                    data[key] = value[1:]
+                else:
+                    data[key] = value[1:-1]
+                current = key
             else:
-                data[key] = value.strip("'\"")
+                data[key] = value
                 current = key
         elif current and (raw.startswith("  ") or raw.startswith("\t")):
-            data[current] = (str(data.get(current, "")) + " " + raw.strip()).strip()
+            stripped = raw.strip()
+            if stripped.startswith("- "):
+                if not isinstance(data.get(current), list):
+                    data[current] = []
+                data[current].append(stripped[2:].strip().strip("'\""))
+            else:
+                data[current] = (str(data.get(current, "")) + " " + stripped).strip()
+        else:
+            parse_error = parse_error or f"unrecognized line: {raw[:60]}"
+    body = "\n".join(lines[end + 1 :])
+    if parse_error:
+        return data, body, "parse_error", end + 1, parse_error
     if not data:
-        return data, "\n".join(lines[end + 1 :]), "empty", end + 1
-    return data, "\n".join(lines[end + 1 :]), "ok", end + 1
+        return data, body, "empty", end + 1, None
+    return data, body, "ok", end + 1, None
 
 
 def parse_date(value):
@@ -140,34 +169,57 @@ def rel_slug(path: Path, root: Path) -> str:
     return rel
 
 
-def resolve_target(raw, page, root, slugs, titles):
-    target = raw.strip()
-    if not target or target.startswith(("#", "http://", "https://", "mailto:", "tel:")):
+def is_asset_target(raw):
+    clean = raw.split("#", 1)[0].split("?", 1)[0]
+    ext = os.path.splitext(clean)[1].lower()
+    return bool(ext) and ext not in (".md", ".mdx")
+
+
+def resolve_asset(raw, page, root):
+    clean = raw.split("#", 1)[0].split("?", 1)[0]
+    if not clean:
         return True
+    candidate = (root / clean.lstrip("/")) if clean.startswith("/") else (page.parent / clean)
+    try:
+        return candidate.resolve().exists()
+    except OSError:
+        return False
+
+
+def resolve_target(raw, page, root, slugs, titles, aliases):
+    target = raw.strip()
+    if not target or target.startswith(("#", "http://", "https://", "mailto:", "tel:", "//", "data:")):
+        return None
     target = target.split("#", 1)[0].split("?", 1)[0]
     if not target:
-        return True
+        return None
     target = target.replace("\\", "/")
     for suffix in (".mdx", ".md"):
         if target.endswith(suffix):
             target = target[: -len(suffix)]
             break
     target = target.lstrip("./").strip("/")
+    if target in aliases:
+        return aliases[target]
+    if target.lower() in aliases:
+        return aliases[target.lower()]
     if target in slugs:
-        return True
-    if target.lower() in titles:
-        return True
-    if "/" not in target and target.lower() in {slug.rsplit("/", 1)[-1].lower() for slug in slugs}:
-        return True
+        return target
+    normalized = normalize_title(target)
+    if normalized in titles:
+        return titles[normalized]
+    basename_matches = [slug for slug in slugs if slug.rsplit("/", 1)[-1].lower() == target.lower()]
+    if len(basename_matches) == 1:
+        return basename_matches[0]
     if "/" in raw:
         try:
             candidate = (page.parent / raw.split("#", 1)[0]).resolve()
             candidate_slug = rel_slug(candidate, root.resolve())
             if candidate_slug in slugs:
-                return True
+                return candidate_slug
         except (ValueError, OSError):
             pass
-    return False
+    return None
 
 
 def audit(root: Path, stale_days: int, max_lines: int) -> dict:
@@ -181,6 +233,7 @@ def audit(root: Path, stale_days: int, max_lines: int) -> dict:
     findings = []
     slugs = {rel_slug(path, root) for path in pages}
     titles = {}
+    aliases = {}
     inbound = Counter()
     records = []
 
@@ -193,11 +246,22 @@ def audit(root: Path, stale_days: int, max_lines: int) -> dict:
                 {"code": "read_error", "severity": "error", "path": rel, "detail": str(exc)}
             )
             continue
-        frontmatter, body, status, body_start = parse_frontmatter(text)
+        frontmatter, body, status, body_start, parse_error = parse_frontmatter(text)
         title = extract_title(frontmatter, body)
         slug = rel_slug(path, root)
         if title:
-            titles.setdefault(normalize_title(title), rel)
+            titles.setdefault(normalize_title(title), slug)
+        if frontmatter:
+            alias_values = frontmatter.get("aliases")
+            if isinstance(alias_values, str):
+                alias_values = [alias_values]
+            elif not isinstance(alias_values, list):
+                alias_values = []
+            for alias in alias_values:
+                alias_key = str(alias).strip().strip("/")
+                if alias_key:
+                    aliases[alias_key] = slug
+                    aliases[alias_key.lower()] = slug
         records.append(
             {
                 "path": path,
@@ -218,10 +282,17 @@ def audit(root: Path, stale_days: int, max_lines: int) -> dict:
             findings.append({"code": "missing_frontmatter", "severity": "error", "path": rel, "detail": "no closing --- before the first heading"})
         elif status == "empty":
             findings.append({"code": "empty_frontmatter", "severity": "error", "path": rel, "detail": "frontmatter block is empty"})
+        elif status == "parse_error":
+            findings.append({"code": "frontmatter_parse_error", "severity": "error", "path": rel, "detail": parse_error or "malformed frontmatter"})
 
         if not title:
             findings.append({"code": "missing_title", "severity": "error", "path": rel, "detail": "no frontmatter title or H1"})
-        if frontmatter is not None and status == "ok" and not str(frontmatter.get("type", "")).strip():
+        if frontmatter is not None and status in ("ok", "parse_error"):
+            for field in ("slug", "captured_at", "content_hash"):
+                value = frontmatter.get(field)
+                if value is None or (isinstance(value, str) and not value.strip()):
+                    findings.append({"code": "missing_required_field", "severity": "error", "path": rel, "detail": f"missing required field '{field}'"})
+        if frontmatter is not None and status in ("ok", "parse_error") and not str(frontmatter.get("type", "")).strip():
             findings.append({"code": "missing_type", "severity": "warn", "path": rel, "detail": "frontmatter has no type"})
         if frontmatter is not None and isinstance(frontmatter.get("slug"), str):
             declared = frontmatter["slug"].strip().strip("/")
@@ -240,9 +311,10 @@ def audit(root: Path, stale_days: int, max_lines: int) -> dict:
                 else:
                     dates.append(parsed)
         if dates:
+            archived = rel.startswith("archive/") or str((frontmatter or {}).get("status", "")).lower() in ("archived", "archive")
             newest = max(dates)
             cutoff = datetime.now(timezone.utc).date() - timedelta(days=stale_days)
-            if newest < cutoff:
+            if not archived and newest < cutoff:
                 findings.append({"code": "stale_page", "severity": "warn", "path": rel, "detail": f"newest date {newest.isoformat()} is older than {stale_days} days"})
 
         if len(text.splitlines()) > max_lines:
@@ -253,10 +325,25 @@ def audit(root: Path, stale_days: int, max_lines: int) -> dict:
         for regex in (WIKILINK_RE, MDLINK_RE):
             for match in regex.finditer(body):
                 target = match.group(1)
-                if regex is MDLINK_RE and target.startswith(("http://", "https://", "mailto:", "tel:")):
+                line = record["body_start"] + body[: match.start()].count("\n") + 1
+                if regex is MDLINK_RE:
+                    if target.startswith(("http://", "https://", "mailto:", "tel:", "//", "data:")):
+                        continue
+                    if is_asset_target(target):
+                        if not resolve_asset(target, record["path"], root):
+                            findings.append(
+                                {
+                                    "code": "broken_asset",
+                                    "severity": "error",
+                                    "path": record["rel"],
+                                    "detail": f"line {line}: asset '{target}' does not exist",
+                                }
+                            )
+                        continue
+                if not target.strip() or target.startswith("#"):
                     continue
-                if not resolve_target(target, record["path"], root, slugs, titles):
-                    line = record["body_start"] + body[: match.start()].count("\n") + 1
+                resolved = resolve_target(target, record["path"], root, slugs, titles, aliases)
+                if resolved is None:
                     findings.append(
                         {
                             "code": "broken_wikilink",
@@ -265,13 +352,8 @@ def audit(root: Path, stale_days: int, max_lines: int) -> dict:
                             "detail": f"line {line}: target '{target}' does not resolve",
                         }
                     )
-                else:
-                    resolved = target.split("#", 1)[0].split("?", 1)[0].replace("\\", "/").lstrip("./").strip("/")
-                    for suffix in (".mdx", ".md"):
-                        if resolved.endswith(suffix):
-                            resolved = resolved[: -len(suffix)]
-                    if resolved in slugs and resolved != record["slug"]:
-                        inbound[resolved] += 1
+                elif resolved != record["slug"]:
+                    inbound[resolved] += 1
 
     if len(records) >= 3:
         for record in records:

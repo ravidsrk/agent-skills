@@ -70,9 +70,14 @@ command -v jq >/dev/null 2>&1 || { echo "jq is required" >&2; exit 2; }
 if [ "$fix" -eq 1 ]; then
   command -v curl >/dev/null 2>&1 || { echo "curl is required" >&2; exit 2; }
   body=$(jq -n --arg url "$url" '{url:$url}')
-  curl -sS -X POST "$api_url/api/fix-prompt" \
+  response=$(curl -sS -X POST "$api_url/api/fix-prompt" \
     -H 'Content-Type: application/json' \
-    -d "$body"
+    -d "$body") || { echo "request failed" >&2; exit 1; }
+  if printf '%s' "$response" | jq -e 'type == "object" and ((.success == false) or (.error != null))' >/dev/null 2>&1; then
+    printf '%s\n' "$response" | jq -r '"Error: " + ((.error // "unknown")|tostring) + (if .message then " — " + .message else "" end)' >&2
+    exit 1
+  fi
+  printf '%s\n' "$response"
   exit 0
 fi
 
@@ -81,18 +86,18 @@ command -v curl >/dev/null 2>&1 || { echo "curl is required" >&2; exit 2; }
 if [ "$aeo" -eq 1 ] && [ "$design" -eq 0 ]; then
   response=$(curl -sS -X POST "$api_url/api/aeo" \
     -H 'Content-Type: application/json' \
-    -d "$aeo_body")
+    -d "$aeo_body") || { echo "request failed" >&2; exit 1; }
 else
   axes='["design","copy"]'
   body=$(jq -n --arg url "$url" --argjson axes "$axes" --argjson designMd "$([ "$design" -eq 1 ] && echo true || echo false)" \
     '{url:$url, axes:$axes, designMd:$designMd}')
   response=$(curl -sS -X POST "$api_url/api/scan" \
     -H 'Content-Type: application/json' \
-    -d "$body")
+    -d "$body") || { echo "request failed" >&2; exit 1; }
   if [ "$aeo" -eq 1 ]; then
     aeo_response=$(curl -sS -X POST "$api_url/api/aeo" \
       -H 'Content-Type: application/json' \
-      -d "$aeo_body")
+      -d "$aeo_body") || { echo "AEO request failed" >&2; exit 1; }
     if printf '%s' "$aeo_response" | jq -e '.score != null' >/dev/null 2>&1; then
       response=$(jq -n --argjson scan "$response" --argjson aeo "$aeo_response" '$scan + {aeo:$aeo}')
     else
@@ -100,6 +105,16 @@ else
     fi
   fi
 fi
+
+if ! printf '%s' "$response" | jq -e . >/dev/null 2>&1; then
+  echo "Error: scan returned a non-JSON response" >&2
+  printf '%s\n' "$response" | head -c 500 >&2
+  echo >&2
+  exit 1
+fi
+
+error_text=$(printf '%s' "$response" | jq -r 'if (.success == false) or (.error != null) then ((.error // "unknown")|tostring) + (if .message then ": " + .message else "" end) else empty end')
+aeo_error_text=$(printf '%s' "$response" | jq -r '.aeoError.error // empty' 2>/dev/null || true)
 
 if [ "$json" -eq 1 ]; then
   printf '%s\n' "$response" | jq .
@@ -114,6 +129,7 @@ else
       ($d.axes.system // $d.system) as $system |
       ($d.axes.aeo // $d.aeo // (if $d.axis == "aeo" then $d else null end)) as $aeo |
       ($d.axes.craft // $d.craft) as $craft |
+      (($design.patterns // []) + ($copy.patterns // []) | map(select(.triggered))) as $triggered |
       [
         ($d.url // empty),
         (if $design then "Design: " + (($design.tier // "?")|tostring) + " (" + (($design.score // "?")|tostring) + ", grade " + (($design.grade // "?")|tostring) + ")" else empty end),
@@ -122,7 +138,18 @@ else
         (if $aeo then "AEO: " + (($aeo.tier // "?")|tostring) + " (" + (($aeo.score // "?")|tostring) + ")" else empty end),
         (if $d.aeoError then "AEO error: " + (($d.aeoError.error // "unknown")|tostring) else empty end),
         (if $craft then "Craft floor: " + (($craft.score // "?")|tostring) else empty end),
-        ($d.verdict // empty)
+        ($d.verdict // empty),
+        (if ($triggered|length) > 0 then "Triggered patterns:" else empty end),
+        ($triggered[] | "  - " + (.id // "?") + " (weight " + ((.weight // 0)|tostring) + "): " + (.label // .short // ""))
       ] | .[]
     end'
+fi
+
+if [ -n "$error_text" ]; then
+  echo "Error: $error_text" >&2
+  exit 1
+fi
+if [ -n "$aeo_error_text" ]; then
+  echo "AEO error: $aeo_error_text" >&2
+  exit 1
 fi

@@ -100,6 +100,8 @@ git worktree add .visual-baselines visual-baselines
 BASELINE_DIR=.visual-baselines npx playwright test tests/visual
 ```
 
+The supplied Playwright config reads `BASELINE_DIR` through `snapshotPathTemplate` (see `references/setup.md` and `scripts/scaffold.sh`), so the checkout is used instead of the default snapshot directory.
+
 This keeps screenshots out of the main history while preserving reviewability. Frontguard does this automatically with its `frontguard-baselines` branch.
 
 ## Option C — artifact store

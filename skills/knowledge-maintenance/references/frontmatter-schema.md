@@ -35,6 +35,7 @@ A page without these is a capture failure, not a stylistic choice.
 | `MISSING_OPEN` | file does not start with `---` | no |
 | `MISSING_CLOSE` | no closing `---` before the first heading | yes |
 | `YAML_PARSE` | the block does not parse | sometimes |
+| `MISSING_REQUIRED_FIELD` | `slug`, `captured_at`, or `content_hash` is missing | no |
 | `SLUG_MISMATCH` | `slug` differs from the path | yes |
 | `NULL_BYTES` | binary corruption | yes |
 | `NESTED_QUOTES` | `title: "outer "inner" outer"` | yes |

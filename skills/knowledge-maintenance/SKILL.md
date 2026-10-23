@@ -82,10 +82,14 @@ The audit is read-only. It reports:
 |---|---|---|
 | `missing_frontmatter` | error | No opening/closing `---` block |
 | `empty_frontmatter` | error | Opening and closing present but nothing between |
+| `frontmatter_parse_error` | error | Malformed YAML (unterminated quote/array, unknown line) |
+| `missing_required_field` | error | `slug`, `captured_at`, or `content_hash` is missing |
 | `missing_title` | error | No frontmatter title or H1 |
 | `missing_type` | warn | Frontmatter has no `type` |
 | `slug_mismatch` | error | Frontmatter `slug` differs from the path |
 | `broken_wikilink` | error | `[[target]]` resolves to no page |
+| `broken_asset` | error | A local image/PDF/file link does not exist |
+| `read_error` | error | The page could not be read (permissions/encoding) |
 | `invalid_date` | warn | `updated_at` / `captured_at` is not parseable |
 | `stale_page` | warn | Older than `--stale-days` (default 90) |
 | `orphan_page` | warn | No inbound links |

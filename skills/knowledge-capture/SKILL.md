@@ -7,7 +7,7 @@ description: >-
   phrasing. Use when the user says "capture this", "save to my brain", "remember
   this", "ingest this article/meeting/voice note", or "drop this in my inbox".
 license: MIT
-compatibility: Requires bash and shasum or sha256sum. Optional gbrain CLI for semantic ingestion and enrichment.
+compatibility: Requires bash and shasum or sha256sum. Optional jq for --json receipts; optional gbrain CLI for semantic ingestion and enrichment.
 metadata:
   version: "0.1.0"
   author: "@ravidsrk"

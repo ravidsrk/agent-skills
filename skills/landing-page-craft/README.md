@@ -1,5 +1,9 @@
 # landing-page-craft
 
+<p align="center">
+  <img src="assets/banner.png" alt="landing-page-craft — design, copy, and AEO audit" width="100%">
+</p>
+
 Audit a landing page for AI-slop design patterns, synthetic copy, design-system drift, and answer-engine readiness — then fix it in impact order.
 
 ## What it does
@@ -64,10 +68,16 @@ curl -s -X POST https://slop-detect.com/api/scan \
   -d '{"url":"https://example.com","axes":["design","copy"],"designMd":true}' | jq .
 ```
 
+## Exit codes
+
+- `0` — scan completed
+- `1` — API/scan error (rate limit, unreachable URL, non-JSON response)
+- `2` — usage error
+
 ## Output
 
 - One-line verdict with tier and letter grade
-- Triggered patterns with weight and literal evidence
+- Triggered pattern IDs, weights, and labels (raw `--json` includes literal evidence)
 - Design, copy, system, AEO, and craft-floor readouts
 - The single highest-impact fix
 - A prioritized fix order

@@ -23,6 +23,9 @@ const baseURL = process.env.APP_URL ?? "http://localhost:3000";
 
 export default defineConfig({
   testDir: "./tests/visual",
+  snapshotPathTemplate:
+    (process.env.BASELINE_DIR ?? "tests/visual/__screenshots__") +
+    "/{projectName}/{testFilePath}/{arg}{ext}",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,

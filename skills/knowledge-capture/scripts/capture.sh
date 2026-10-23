@@ -181,6 +181,11 @@ n=2
 created=0
 while [ "$n" -le 1000 ]; do
   target="$root/$slug.md"
+  if [ -e "$target" ] || [ -L "$target" ]; then
+    slug="${base}-${n}"
+    n=$((n+1))
+    continue
+  fi
   mkdir -p "$(dirname "$target")"
   out=$(mktemp "$(dirname "$target")/.capture.XXXXXX")
   {
@@ -198,13 +203,17 @@ while [ "$n" -le 1000 ]; do
     cat "$canonical"
   } > "$out"
 
-  if ln "$out" "$target" 2>/dev/null; then
+  if ln "$out" "$target" 2>/dev/null && [ -f "$target" ] && [ ! -d "$target" ]; then
     rm -f "$out"
     created=1
     break
   fi
+  # A directory target makes ln place the note inside it; remove that link.
+  if [ -d "$target" ]; then
+    rm -f "$target/$(basename "$out")" 2>/dev/null || true
+  fi
   rm -f "$out"
-  if [ -e "$target" ]; then
+  if [ -e "$target" ] || [ -L "$target" ]; then
     slug="${base}-${n}"
     n=$((n+1))
     continue

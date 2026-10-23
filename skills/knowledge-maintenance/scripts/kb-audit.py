@@ -79,11 +79,27 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def find_closing_quote(value, quote):
+    index = 1
+    while index < len(value):
+        char = value[index]
+        if quote == '"' and char == "\\" and index + 1 < len(value):
+            index += 2
+            continue
+        if char == quote:
+            if quote == "'" and index + 1 < len(value) and value[index + 1] == "'":
+                index += 2
+                continue
+            return index
+        index += 1
+    return -1
+
+
 def strip_inline_comment(value):
     if not value:
         return value
     if value[0] in "\"'":
-        end = value.find(value[0], 1)
+        end = find_closing_quote(value, value[0])
         return value[: end + 1] if end != -1 else value
     if value[0] == "[":
         end = value.find("]")
@@ -123,11 +139,17 @@ def parse_frontmatter(text: str):
                 data[key] = [item.strip().strip("'\"") for item in value[1:-1].split(",") if item.strip()]
                 current = None
             elif value and value[0] in "\"'":
-                if len(value) < 2 or value[-1] != value[0]:
+                end = find_closing_quote(value, value[0])
+                if end == -1:
                     parse_error = parse_error or f"unterminated quote in '{key}'"
                     data[key] = value[1:]
                 else:
-                    data[key] = value[1:-1]
+                    inner = value[1:end]
+                    if value[0] == '"':
+                        inner = inner.replace('\\"', '"')
+                    else:
+                        inner = inner.replace("''", "'").replace("\\'", "'")
+                    data[key] = inner
                 current = key
             else:
                 data[key] = value

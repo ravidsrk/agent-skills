@@ -28,6 +28,11 @@ When working in this repo:
 | "Research X" / "deep dive on Y" / "what's the discourse on Z" | [`deep-research`](skills/deep-research/SKILL.md) |
 | "Finish this product" / "take it to launch" / "do it autonomously, don't ask me" / "verify what actually works" / "the AI says it's done but it isn't" / "keep fixing until every issue is resolved" / "it misunderstood the product, start the review over" | [`finish-line`](skills/finish-line/SKILL.md) |
 | "Generate a viral poster" / "terminal aesthetic infographic" / "agent stack visualization" | [`terminal-poster`](skills/terminal-poster/SKILL.md) |
+| "Visual regression" / "screenshot diff" / "did this CSS break anything?" / "verify the UI change" | [`visual-regression`](skills/visual-regression/SKILL.md) |
+| "Capture this" / "save to my brain" / "ingest this article" / "remember this" | [`knowledge-capture`](skills/knowledge-capture/SKILL.md) |
+| "What do we know about X?" / "search my notes" / "who is X?" / "give me a briefing" | [`knowledge-query`](skills/knowledge-query/SKILL.md) |
+| "Audit my notes" / "find broken links" / "what's stale?" / "clean up my knowledge base" | [`knowledge-maintenance`](skills/knowledge-maintenance/SKILL.md) |
+| "Audit my landing page" / "does this look AI-generated?" / "slop score" / "can ChatGPT cite my site?" | [`landing-page-craft`](skills/landing-page-craft/SKILL.md) |
 
 # Execution Model
 

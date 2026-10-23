@@ -122,7 +122,7 @@ fi
 # Canonical body: keep an existing H1, otherwise add one. Hash and write the
 # same bytes so capturing a saved page again dedupes instead of duplicating.
 canonical=$(mktemp "${TMPDIR:-/tmp}/kb-canonical.XXXXXX")
-trap 'rm -f "$tmp" "$body" "$canonical"' EXIT
+trap 'rm -f "$tmp" "$body" "$canonical" "${out:-}"' EXIT
 
 if grep -qE '^[[:space:]]*# ' "$body"; then
   cat "$body" > "$canonical"
@@ -170,35 +170,48 @@ if [ -n "$existing" ]; then
   exit 0
 fi
 
-# Claim the destination atomically. A concurrent capture with the same slug
-# sees the placeholder and moves to the next suffix instead of overwriting.
-mkdir -p "$(dirname "$root/$slug.md")"
-base="$slug"
-target="$root/$slug.md"
-n=2
-while ! (set -C; : > "$target") 2>/dev/null; do
-  slug="${base}-${n}"
-  target="$root/$slug.md"
-  n=$((n+1))
-  [ "$n" -le 1000 ] || die "could not claim a slug for $base"
-done
-
+# Build the complete page in a temp file, then hard-link it into place.
+# The link is atomic and fails if the destination exists, so a concurrent
+# capture picks the next suffix and an interrupted write never leaves a
+# partial page at the final path.
 yaml_escape() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
 
-{
-  printf '%s\n' '---'
-  printf 'title: "%s"\n' "$(yaml_escape "$title")"
-  printf 'type: "%s"\n' "$(yaml_escape "$type")"
-  printf 'slug: "%s"\n' "$(yaml_escape "$slug")"
-  printf 'captured_at: "%s"\n' "$now"
-  printf 'captured_via: "capture.sh"\n'
-  if [ -n "$source" ]; then
-    printf 'source: "%s"\n' "$(yaml_escape "$source")"
+base="$slug"
+n=2
+created=0
+while [ "$n" -le 1000 ]; do
+  target="$root/$slug.md"
+  mkdir -p "$(dirname "$target")"
+  out=$(mktemp "$(dirname "$target")/.capture.XXXXXX")
+  {
+    printf '%s\n' '---'
+    printf 'title: "%s"\n' "$(yaml_escape "$title")"
+    printf 'type: "%s"\n' "$(yaml_escape "$type")"
+    printf 'slug: "%s"\n' "$(yaml_escape "$slug")"
+    printf 'captured_at: "%s"\n' "$now"
+    printf 'captured_via: "capture.sh"\n'
+    if [ -n "$source" ]; then
+      printf 'source: "%s"\n' "$(yaml_escape "$source")"
+    fi
+    printf 'content_hash: "%s"\n' "$hash"
+    printf '%s\n' '---'
+    cat "$canonical"
+  } > "$out"
+
+  if ln "$out" "$target" 2>/dev/null; then
+    rm -f "$out"
+    created=1
+    break
   fi
-  printf 'content_hash: "%s"\n' "$hash"
-  printf '%s\n' '---'
-  cat "$canonical"
-} > "$target"
+  rm -f "$out"
+  if [ -e "$target" ]; then
+    slug="${base}-${n}"
+    n=$((n+1))
+    continue
+  fi
+  die "could not create $target"
+done
+[ "$created" -eq 1 ] || die "could not claim a slug for $base"
 
 if [ "$json" -eq 1 ]; then
   command -v jq >/dev/null 2>&1 || die "jq is required for --json"

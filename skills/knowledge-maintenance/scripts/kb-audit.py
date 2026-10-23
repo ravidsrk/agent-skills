@@ -79,6 +79,19 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def strip_inline_comment(value):
+    if not value:
+        return value
+    if value[0] in "\"'":
+        end = value.find(value[0], 1)
+        return value[: end + 1] if end != -1 else value
+    if value[0] == "[":
+        end = value.find("]")
+        return value[: end + 1] if end != -1 else value
+    index = value.find(" #")
+    return value[:index].rstrip() if index != -1 else value
+
+
 def parse_frontmatter(text: str):
     lines = text.splitlines()
     if not lines or lines[0].strip() != "---":
@@ -98,7 +111,7 @@ def parse_frontmatter(text: str):
             continue
         m = re.match(r"^([A-Za-z0-9_-]+):\s*(.*)$", raw)
         if m:
-            key, value = m.group(1), m.group(2).strip()
+            key, value = m.group(1), strip_inline_comment(m.group(2).strip())
             if value in (">", "|", ">-", "|-"):
                 current = key
                 data[key] = ""
@@ -124,7 +137,7 @@ def parse_frontmatter(text: str):
             if stripped.startswith("- "):
                 if not isinstance(data.get(current), list):
                     data[current] = []
-                data[current].append(stripped[2:].strip().strip("'\""))
+                data[current].append(strip_inline_comment(stripped[2:].strip()).strip("'\""))
             else:
                 data[current] = (str(data.get(current, "")) + " " + stripped).strip()
         else:
@@ -199,12 +212,12 @@ def resolve_target(raw, page, root, slugs, titles, aliases):
             target = target[: -len(suffix)]
             break
     target = target.lstrip("./").strip("/")
+    if target in slugs:
+        return target
     if target in aliases:
         return aliases[target]
     if target.lower() in aliases:
         return aliases[target.lower()]
-    if target in slugs:
-        return target
     normalized = normalize_title(target)
     if normalized in titles:
         return titles[normalized]

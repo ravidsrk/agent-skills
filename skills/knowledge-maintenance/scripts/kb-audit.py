@@ -139,12 +139,12 @@ def parse_frontmatter(text: str):
                 data[key] = [item.strip().strip("'\"") for item in value[1:-1].split(",") if item.strip()]
                 current = None
             elif value and value[0] in "\"'":
-                end = find_closing_quote(value, value[0])
-                if end == -1:
+                quote_end = find_closing_quote(value, value[0])
+                if quote_end == -1:
                     parse_error = parse_error or f"unterminated quote in '{key}'"
                     data[key] = value[1:]
                 else:
-                    inner = value[1:end]
+                    inner = value[1:quote_end]
                     if value[0] == '"':
                         inner = inner.replace('\\"', '"')
                     else:

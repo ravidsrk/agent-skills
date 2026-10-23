@@ -17,7 +17,9 @@ done
 
 # Verify
 ls ~/.claude/skills/
-# cloudflare-dns  namecheap-dns  fly-to-aws-migration  deep-research  finish-line  terminal-poster
+# cloudflare-dns  namecheap-dns  fly-to-aws-migration  deep-research  finish-line
+# visual-regression  knowledge-capture  knowledge-query  knowledge-maintenance
+# landing-page-craft  terminal-poster
 ```
 
 🟢 **Why this approach:** edits to your clone instantly reflect in Claude Code. Skills update via `git pull`. No reinstall step.
@@ -98,9 +100,9 @@ If you used Path 1 (symlinks), updates are instant. Path 2 requires re-copying.
 # Remove individual skill
 rm ~/.claude/skills/cloudflare-dns
 
-# Remove all six skills from THIS pack (never rm -rf the whole
+# Remove all eleven skills from THIS pack (never rm -rf the whole
 # ~/.claude/skills/ — other packs' skills live there too)
-for name in cloudflare-dns namecheap-dns fly-to-aws-migration deep-research finish-line terminal-poster; do
+for name in cloudflare-dns namecheap-dns fly-to-aws-migration deep-research finish-line terminal-poster visual-regression landing-page-craft knowledge-capture knowledge-query knowledge-maintenance; do
   rm -f "$HOME/.claude/skills/$name"
 done
 ```

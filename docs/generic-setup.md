@@ -80,10 +80,18 @@ You have multiple skills available. Pick the matching one based on the user's re
 - cloudflare-dns: Cloudflare DNS migration + management
 - namecheap-dns: Namecheap DNS records via XML API
 - fly-to-aws-migration: Fly.io to AWS migration playbook
+- deep-research: parallel multi-source research
+- finish-line: drive a product to verified launch
+- visual-regression: screenshot baselines + UI verification
+- knowledge-capture: capture into a markdown knowledge base
+- knowledge-query: grounded answers with citations
+- knowledge-maintenance: audit and repair a knowledge base
+- landing-page-craft: landing-page slop + AEO audit
+- terminal-poster: retro-cyberpunk image posters
 
 ---
 EOF
-  for s in cloudflare-dns namecheap-dns fly-to-aws-migration; do
+  for s in cloudflare-dns namecheap-dns fly-to-aws-migration deep-research finish-line visual-regression knowledge-capture knowledge-query knowledge-maintenance landing-page-craft terminal-poster; do
     echo ""
     echo "# === Skill: $s ==="
     echo ""

@@ -22,7 +22,7 @@
 
 # What's inside
 
-6 capability skills, organized by what they do — not by SDLC phase. These are **discrete capabilities** an agent reaches for when the task fits, not lifecycle steps that fire in sequence.
+11 capability skills, organized by what they do — not by SDLC phase. These are **discrete capabilities** an agent reaches for when the task fits, not lifecycle steps that fire in sequence.
 
 Looking for the autonomous Orca fleets that used to live here (spec-to-ship, clean-sweep, and the rest)? They moved to their own repo, [**ravidsrk/orca-fleet**](https://github.com/ravidsrk/orca-fleet), rebuilt as ten outcome-named missions over a three-layer architecture. This repo is capability skills only.
 
@@ -45,6 +45,21 @@ Looking for the autonomous Orca fleets that used to live here (spec-to-ship, cle
 | Skill | What it does | Cost / latency |
 |---|---|---|
 | 🏁 **[finish-line](skills/finish-line/)** | Drives a half-built, AI-coded product to verified launch-readiness, fully autonomously — no questions mid-run. It learns what the product is only from its docs and the running app — every claim quotes its source, open questions stay open, an independent verifier approves it — and `--fresh` sets aside a run that misread it. Forensic audit of what really works, a hash-locked definition of done frozen from the product's docs, a one-item-at-a-time build loop with Playwright / Maestro screenshots, an independent verifier (which also approves scope changes in place of the owner), and tamper checks that catch skipped or weakened tests. Every defect it finds is resolved — an item that resists comes back in deeper research rounds until it passes, never handed back as engineering work. The runner reverts gamed sessions, rotates stalled items and re-checks owner actions by itself, ending at `LAUNCH_READY` or a short owner checklist. Optionally calls pinned community skills (superpowers, Addy Osmani's agent-skills, gstack, Matt Pocock's) at fixed steps, with their planning and shipping skills denied. | Agent compute only, capped by `MAX_SESSIONS` |
+| 🧪 **[visual-regression](skills/visual-regression/)** | Baselines, perceptual screenshot diffs, sensitive-DOM redaction, Playwright assertions, agent-driven triage, screenshot/video evidence, and a CI gate. Works with plain Playwright; Frontguard is optional. | Free + test runtime |
+
+# 🧠 Knowledge
+
+| Skill | What it does | Cost / latency |
+|---|---|---|
+| 📥 **[knowledge-capture](skills/knowledge-capture/)** | One-command capture into a markdown knowledge base — routing, stable frontmatter, content-hash dedupe, exact-phrasing preservation, backlinks. Optional gbrain backend. | Free |
+| 🔎 **[knowledge-query](skills/knowledge-query/)** | Grounded answers from a knowledge base with keyword, semantic, and graph search; source precedence; citations; gap flags; daily briefings; research synthesis. | Free |
+| 🧹 **[knowledge-maintenance](skills/knowledge-maintenance/)** | Audit and repair frontmatter, broken links, orphans, stale pages, duplicate titles, oversized pages, and taxonomy drift. Markdown + JSON reports, CI-friendly exit codes. | Free |
+
+# 🎯 Marketing
+
+| Skill | What it does | Cost / latency |
+|---|---|---|
+| 🪄 **[landing-page-craft](skills/landing-page-craft/)** | Audit a landing page across 45 design patterns, 26 copy patterns, DESIGN.md compliance, 16 AEO checks, and a craft floor — then fix in impact order. Backed by the versioned slop-detect engine. | Free (hosted, rate-limited) + ~5–8s/scan |
 
 # 🎨 Creative
 
@@ -67,7 +82,7 @@ cd agent-skills
 
 mkdir -p ~/.claude/skills
 # Safe default if you already have another deep-research:
-for name in cloudflare-dns namecheap-dns fly-to-aws-migration finish-line terminal-poster; do
+for name in cloudflare-dns namecheap-dns fly-to-aws-migration finish-line terminal-poster visual-regression landing-page-craft knowledge-capture knowledge-query knowledge-maintenance; do
   ln -sfn "$(pwd)/skills/$name" "$HOME/.claude/skills/$name"
 done
 # monid deep-research (overwrites any other skill at this path):
@@ -271,6 +286,11 @@ agent-skills/
     ├── fly-to-aws-migration/     ← 🌐 Fly → AWS playbook (7 phases)
     ├── deep-research/            ← 🔍 8-source parallel research
     ├── finish-line/              ← 🛠️ Half-built product → verified launch
+    ├── visual-regression/        ← 🧪 Screenshot baselines + UI verification
+    ├── knowledge-capture/        ← 🧠 Capture into a markdown knowledge base
+    ├── knowledge-query/          ← 🧠 Grounded answers with citations
+    ├── knowledge-maintenance/    ← 🧠 Audit and repair a knowledge base
+    ├── landing-page-craft/       ← 🎯 Landing-page slop + AEO audit
     └── terminal-poster/          ← 🎨 Retro-cyberpunk image posters
 ```
 
@@ -300,10 +320,15 @@ Output:
 ✅ deep-research
 ✅ finish-line
 ✅ fly-to-aws-migration
+✅ knowledge-capture
+✅ knowledge-maintenance
+✅ knowledge-query
+✅ landing-page-craft
 ✅ namecheap-dns
 ✅ terminal-poster
+✅ visual-regression
 
-🟢 All 6 skills valid against agentskills.io spec.
+🟢 All 11 skills valid against agentskills.io spec.
 ```
 
 The validator enforces the spec rules (frontmatter shape, name/directory matching, description length). Non-zero exit code if any skill fails — perfect for CI.
@@ -343,6 +368,9 @@ PRs welcome — new skills, fixes to existing ones, better docs. Quality bar:
 - 🎨 **`terminal-poster`** — visual pattern reverse-engineered from public posts by [@shannholmberg](https://x.com/shannholmberg) on X. The skill makes the look reproducible across topics; Shann designed the look itself.
 - 🏁 **`finish-line`** — built on Anthropic's published harness patterns for long-running agents (feature list with pass flags, progress file, browser-verified completion, a separate skeptical evaluator), hardened with mechanical guards against test gaming. Its optional companions — [obra/superpowers](https://github.com/obra/superpowers), [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills), [mattpocock/skills](https://github.com/mattpocock/skills), [garrytan/gstack](https://github.com/garrytan/gstack) — are installed from their own repos at pinned commits, never vendored.
 - 🔍 **`deep-research`** — originally inspired by [`mvanhorn/last30days-skill`](https://github.com/mvanhorn/last30days-skill). The 30-day default window came from that upstream; the 8-source fan-out and monid routing were rebuilt from scratch.
+- 🧪 **`visual-regression`** — workflow and reference material adapted from [Frontguard](https://github.com/ravidsrk/frontguard) (MIT). Evidence capture adapted from [background-agents](https://github.com/Open-Inspect/background-agents) (MIT, Copyright (c) 2024 Open-Inspect Contributors).
+- 🧠 **`knowledge-capture`, `knowledge-query`, `knowledge-maintenance`** — capture contract, query/citation rules, briefings, research synthesis, health checks, frontmatter validation, and taxonomy adapted from [gbrain](https://github.com/garrytan/gbrain) (MIT, Copyright (c) 2026 Garry Tan).
+- 🪄 **`landing-page-craft`** — rubric, pattern catalogue, AEO checks, and fix recipes adapted from [slop-detect](https://github.com/ravidsrk/slop-detect) (MIT).
 
 ---
 

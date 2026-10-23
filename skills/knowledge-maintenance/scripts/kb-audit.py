@@ -98,6 +98,7 @@ def find_closing_quote(value, quote):
 def find_closing_bracket(value):
     depth = 0
     quote = None
+    item_start = True
     index = 0
     while index < len(value):
         char = value[index]
@@ -110,16 +111,28 @@ def find_closing_bracket(value):
                     index += 2
                     continue
                 quote = None
+                item_start = False
             index += 1
             continue
         if char in "\"'":
-            quote = char
+            if item_start:
+                quote = char
+            else:
+                item_start = False
         elif char == "[":
             depth += 1
+            item_start = True
         elif char == "]":
             depth -= 1
             if depth == 0:
                 return index
+            item_start = False
+        elif char == ",":
+            item_start = True
+        elif char in " \t":
+            pass
+        else:
+            item_start = False
         index += 1
     return -1
 

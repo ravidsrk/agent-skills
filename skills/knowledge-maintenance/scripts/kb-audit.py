@@ -95,6 +95,35 @@ def find_closing_quote(value, quote):
     return -1
 
 
+def find_closing_bracket(value):
+    depth = 0
+    quote = None
+    index = 0
+    while index < len(value):
+        char = value[index]
+        if quote:
+            if quote == '"' and char == "\\" and index + 1 < len(value):
+                index += 2
+                continue
+            if char == quote:
+                if quote == "'" and index + 1 < len(value) and value[index + 1] == "'":
+                    index += 2
+                    continue
+                quote = None
+            index += 1
+            continue
+        if char in "\"'":
+            quote = char
+        elif char == "[":
+            depth += 1
+        elif char == "]":
+            depth -= 1
+            if depth == 0:
+                return index
+        index += 1
+    return -1
+
+
 def strip_inline_comment(value):
     if not value:
         return value
@@ -102,7 +131,7 @@ def strip_inline_comment(value):
         end = find_closing_quote(value, value[0])
         return value[: end + 1] if end != -1 else value
     if value[0] == "[":
-        end = value.find("]")
+        end = find_closing_bracket(value)
         return value[: end + 1] if end != -1 else value
     index = value.find(" #")
     return value[:index].rstrip() if index != -1 else value
@@ -131,13 +160,16 @@ def parse_frontmatter(text: str):
             if value in (">", "|", ">-", "|-"):
                 current = key
                 data[key] = ""
-            elif value.startswith("[") and not value.endswith("]"):
-                parse_error = parse_error or f"unterminated array in '{key}'"
-                data[key] = value
-                current = key
-            elif value.startswith("[") and value.endswith("]"):
-                data[key] = [item.strip().strip("'\"") for item in value[1:-1].split(",") if item.strip()]
-                current = None
+            elif value.startswith("["):
+                bracket_end = find_closing_bracket(value)
+                if bracket_end == -1:
+                    parse_error = parse_error or f"unterminated array in '{key}'"
+                    data[key] = value
+                    current = key
+                else:
+                    inner = value[1:bracket_end]
+                    data[key] = [item.strip().strip("'\"") for item in inner.split(",") if item.strip()]
+                    current = None
             elif value and value[0] in "\"'":
                 quote_end = find_closing_quote(value, value[0])
                 if quote_end == -1:

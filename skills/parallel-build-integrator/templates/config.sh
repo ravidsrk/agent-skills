@@ -34,6 +34,11 @@ TEST_ONE_CMD="pnpm exec vitest run {}"
 UNION_GLOBS="docs/adr/README.md packages/core/CONTRACTS.md"
 ROW_GLOBS="docs/plan/status.md"
 
+# Attribution: integrated commits are re-authored as the repo's `git config user.name/email` (the human owner)
+# and stripped of agent trailers. Set REAUTHOR=0 only if the project wants agent authorship kept.
+REAUTHOR=1
+# STRIP_TRAILERS_RE='^(Co-[Aa]uthored-[Bb]y:.*Claude|Claude-Session:|.*Generated with \[)'
+
 # Secret scan: extra allowed matches (an ERE matched against the whole added line).
 KEYSCAN_ALLOW='placeholder: .(sk-ant-|AIza)\.\.\.|xoxb-test-token|sk-ant-fake-'
 

@@ -18,6 +18,7 @@ branch="integ-$name"
 cd "$integ"
 git worktree add -q -b "$branch" "$side" HEAD
 cd "$side"
+base_sha=$(git rev-parse HEAD)
 if [ -n "${REGEN_CMD:-}" ]; then bash -c "$REGEN_CMD" >"$SCRATCH/integ-$name-regen.log" 2>&1 || true; fi
 
 commits=()
@@ -39,5 +40,11 @@ for c in "${commits[@]}"; do
 done
 
 no_markers || { echo "markers left in $side"; exit 1; }
+
+# Cherry-picks keep the owner agent's author and trailers: re-author each commit as the repository's configured user.
+if [ "${REAUTHOR:-1}" = 1 ] && [ "$(git rev-parse HEAD)" != "$base_sha" ]; then
+  GIT_SEQUENCE_EDITOR=true git -c core.hooksPath=/dev/null rebase -q --exec "bash '$SKILL_SCRIPTS/reauthor.sh'" "$base_sha"
+fi
+echo "authors: $(git log --format='%an <%ae>' "$base_sha"..HEAD | sort -u | tr '\n' ' ')"
 echo "integrated ${#commits[@]} commits on $branch ($(git rev-parse --short HEAD)) in $side"
 echo "next: run the gate in $side, then in $integ: git merge --ff-only $branch && git worktree remove --force $side && git branch -D $branch"

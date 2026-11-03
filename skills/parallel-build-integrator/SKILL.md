@@ -32,8 +32,9 @@ One agent can't build a 100-issue backlog in a day, but six owner agents can, pr
 # Setup
 
 1. Copy `templates/config.sh` to `.integrator/config.sh` in the project and fill in the project's real commands: lint, typecheck, drift checks, full test, fresh database, generated-file regeneration, and conflict-file globs. Every script here reads it.
-2. Pick a scratch directory outside the repo for the integration worktree, logs and the keys file (`$SCRATCH`).
-3. If the work needs live API keys, the user puts them in `$SCRATCH/app-keys.env` (mode 600) or in environment secrets. Never ask for them in chat. Loading them is covered in `references/live-verification.md`.
+2. **Commit as the user, never as the agent.** Ask once which name and email to use, then set `git config user.name` and `user.email` in the repo. Worktrees share the config. Use no AI co-author, agent-session or "Generated with" lines in commits or PR descriptions unless the user wants them. `integrate.sh` re-authors every integrated commit (`scripts/reauthor.sh`), because cherry-picks keep the owner agent's author. Rewriting history later means a force-push to main.
+3. Pick a scratch directory outside the repo for the integration worktree, logs and the keys file (`$SCRATCH`).
+4. If the work needs live API keys, the user puts them in `$SCRATCH/app-keys.env` (mode 600) or in environment secrets. Never ask for them in chat. Loading them is covered in `references/live-verification.md`.
 
 # The loop
 
@@ -116,6 +117,7 @@ Run live checks early. Fakes hide the bugs that matter: spend caps compared agai
 # Rules
 
 - **Only the integrator pushes, opens PRs and closes issues.** Owners commit in their worktrees.
+- **Every pushed commit is authored and committed as the user, with no agent trailers.** Before each push, check `git log --format='%an <%ae> | %cn <%ce>' <base>..HEAD`.
 - **Close an issue when its code is complete.** Its live checks move to a tracker issue grouped by resource (test org, datasets, third-party accounts). The backlog stays honest, and nothing is closed with buildable work left.
 - **Never** skip, disable or quarantine a test to get green. Never push an empty commit to re-run CI.
 - **Secrets live in a mode-600 file or environment secrets, never in chat, commits, logs or command lines.** `/proc/<pid>/cmdline` is world-readable; pass env through the environment.
@@ -125,6 +127,7 @@ Run live checks early. Fakes hide the bugs that matter: spend caps compared agai
 
 | Symptom | Cause | Fix |
 |---|---|---|
+| The user objects to the agent's name on hundreds of commits | Commits used the runtime's default identity and co-author trailers | Set the user's identity at the start; `integrate.sh` re-authors hand-backs. Fixing it afterwards needs a history rewrite and a force-push |
 | Lint "passed" locally, CI red | Only the last line of output was read | `gate.sh` keeps the full log; read it all |
 | Tests pass here, `EACCES` in CI | The container runs as root | `scripts/as-user.sh` for permission-sensitive tests |
 | DB-backed tests time out after a few hours | Every owner wrote to one shared dev DB | A fresh DB per full run (`FRESH_DB_CMD`) and one DB per owner |

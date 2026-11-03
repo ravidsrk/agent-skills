@@ -44,6 +44,8 @@ All twelve are cataloged in [README.md](README.md) and mapped to trigger intents
 - Each skill has its own `README.md` for human install + usage docs (separate from `SKILL.md` which is for agents)
 - Scripts go in `skills/<name>/scripts/`, references in `references/`, templates in `templates/`
 - Validate with `python3 scripts/validate-skills.py` before committing
+- Commit as the maintainer (`git config user.name "Ravindra Kumar"`, `git config user.email ravindrakumar8088@gmail.com`),
+  with no AI co-author, session or "Generated with" lines in commits or PR descriptions
 
 # Commands
 

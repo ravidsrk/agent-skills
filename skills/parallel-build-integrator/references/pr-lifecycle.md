@@ -28,9 +28,9 @@ Refs #C: <what's left, and who's on it>.
 
 Left for live or outside resources, tracked in #<tracker>:
 - #A: <the live check, and the resource it needs>.
-
-<attribution footer>
 ```
+
+Add no "Generated with" footer or AI attribution unless the user wants it.
 
 Write `Closes` lines at PR creation. Editing them after the merge closes nothing.
 

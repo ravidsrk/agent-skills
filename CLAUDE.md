@@ -5,7 +5,7 @@ Production-grade skills for AI agents — DNS migration, AWS migration, deep res
 # Project Structure
 
 ```
-skills/        → 11 capability skills (each with SKILL.md + README.md; scripts/ references/
+skills/        → 12 capability skills (each with SKILL.md + README.md; scripts/ references/
                  templates/ assets/ as needed)
 docs/          → Per-runtime setup guides + skill-anatomy spec
 scripts/       → Repo-level helpers (validate-skills.py) + banner/ (repo hero reproducer)
@@ -26,6 +26,7 @@ The autonomous Orca fleets (spec-to-ship, clean-sweep, and the rest) moved to th
 | `fly-to-aws-migration` | 🌐 Infrastructure | 7-phase Fly.io → AWS playbook with ≤9 min downtime |
 | `deep-research` | 🔍 Research | 8-source parallel evidence orchestrator (X, Reddit, HN, GitHub, Polymarket, YouTube, Exa) |
 | `finish-line` | 🛠️ Dev workflow | Drives a half-built product to verified launch, fully autonomously (frozen ledger, visual checks, verifier, tamper guards, self-recovering runner) |
+| `parallel-build-integrator` | 🛠️ Dev workflow | Backlog → parallel owner agents → one gated integration branch → merged PRs, issues closed |
 | `visual-regression` | 🛠️ Dev workflow | Screenshot baselines, perceptual diffs, redaction, Playwright assertions, CI gate |
 | `knowledge-capture` | 🧠 Knowledge | One-command capture into a markdown knowledge base |
 | `knowledge-query` | 🧠 Knowledge | Grounded answers with citations, gaps, and briefings |
@@ -33,7 +34,7 @@ The autonomous Orca fleets (spec-to-ship, clean-sweep, and the rest) moved to th
 | `landing-page-craft` | 🎯 Marketing | Landing-page slop, copy, DESIGN.md, and AEO audit |
 | `terminal-poster` | 🎨 Creative | Retro-cyberpunk image posters (5 reusable templates, Nano Banana Pro) |
 
-All eleven are cataloged in [README.md](README.md) and mapped to trigger intents in
+All twelve are cataloged in [README.md](README.md) and mapped to trigger intents in
 [AGENTS.md](AGENTS.md).
 
 # Conventions

@@ -22,7 +22,7 @@
 
 # What's inside
 
-11 capability skills, organized by what they do — not by SDLC phase. These are **discrete capabilities** an agent reaches for when the task fits, not lifecycle steps that fire in sequence.
+12 capability skills, organized by what they do — not by SDLC phase. These are **discrete capabilities** an agent reaches for when the task fits, not lifecycle steps that fire in sequence.
 
 Looking for the autonomous Orca fleets that used to live here (spec-to-ship, clean-sweep, and the rest)? They moved to their own repo, [**ravidsrk/orca-fleet**](https://github.com/ravidsrk/orca-fleet), rebuilt as ten outcome-named missions over a three-layer architecture. This repo is capability skills only.
 
@@ -45,6 +45,7 @@ Looking for the autonomous Orca fleets that used to live here (spec-to-ship, cle
 | Skill | What it does | Cost / latency |
 |---|---|---|
 | 🏁 **[finish-line](skills/finish-line/)** | Drives a half-built, AI-coded product to verified launch-readiness, fully autonomously — no questions mid-run. It learns what the product is only from its docs and the running app — every claim quotes its source, open questions stay open, an independent verifier approves it — and `--fresh` sets aside a run that misread it. Forensic audit of what really works, a hash-locked definition of done frozen from the product's docs, a one-item-at-a-time build loop with Playwright / Maestro screenshots, an independent verifier (which also approves scope changes in place of the owner), and tamper checks that catch skipped or weakened tests. Every defect it finds is resolved — an item that resists comes back in deeper research rounds until it passes, never handed back as engineering work. The runner reverts gamed sessions, rotates stalled items and re-checks owner actions by itself, ending at `LAUNCH_READY` or a short owner checklist. Optionally calls pinned community skills (superpowers, Addy Osmani's agent-skills, gstack, Matt Pocock's) at fixed steps, with their planning and shipping skills denied. | Agent compute only, capped by `MAX_SESSIONS` |
+| 🧩 **[parallel-build-integrator](skills/parallel-build-integrator/)** | Turns a big GitHub backlog into merged, green PRs: one owner agent per epic in parallel worktrees, one integrator that cherry-picks their work, resolves docs-table conflicts row by row, gates every push (full lint log, types, drift, full suite on a fresh DB, secret scan, non-root check), shepherds PRs through CI and review bots, and closes issues once their code is complete — with outside-resource checks moved to tracker issues and live runs capped and cleaned up. | Agent compute only |
 | 🧪 **[visual-regression](skills/visual-regression/)** | Baselines, perceptual screenshot diffs, sensitive-DOM redaction, Playwright assertions, agent-driven triage, screenshot/video evidence, and a CI gate. Works with plain Playwright; Frontguard is optional. | Free + test runtime |
 
 # 🧠 Knowledge
@@ -82,7 +83,7 @@ cd agent-skills
 
 mkdir -p ~/.claude/skills
 # Safe default if you already have another deep-research:
-for name in cloudflare-dns namecheap-dns fly-to-aws-migration finish-line terminal-poster visual-regression landing-page-craft knowledge-capture knowledge-query knowledge-maintenance; do
+for name in cloudflare-dns namecheap-dns fly-to-aws-migration finish-line parallel-build-integrator terminal-poster visual-regression landing-page-craft knowledge-capture knowledge-query knowledge-maintenance; do
   ln -sfn "$(pwd)/skills/$name" "$HOME/.claude/skills/$name"
 done
 # monid deep-research (overwrites any other skill at this path):
@@ -207,6 +208,8 @@ Skills auto-activate based on the `description` field in their `SKILL.md`. Just 
 >
 > 💬 *"Finish this product and take it to launch"* → activates `finish-line`
 >
+> 💬 *"Build the whole backlog with parallel agents and merge the PRs yourself"* → activates `parallel-build-integrator`
+>
 > 💬 *"Generate a terminal-style poster for our deployment pipeline"* → activates `terminal-poster`
 
 ---
@@ -286,6 +289,7 @@ agent-skills/
     ├── fly-to-aws-migration/     ← 🌐 Fly → AWS playbook (7 phases)
     ├── deep-research/            ← 🔍 8-source parallel research
     ├── finish-line/              ← 🛠️ Half-built product → verified launch
+    ├── parallel-build-integrator/ ← 🧩 Parallel agents → integrated, green PRs
     ├── visual-regression/        ← 🧪 Screenshot baselines + UI verification
     ├── knowledge-capture/        ← 🧠 Capture into a markdown knowledge base
     ├── knowledge-query/          ← 🧠 Grounded answers with citations
@@ -325,10 +329,11 @@ Output:
 ✅ knowledge-query
 ✅ landing-page-craft
 ✅ namecheap-dns
+✅ parallel-build-integrator
 ✅ terminal-poster
 ✅ visual-regression
 
-🟢 All 11 skills valid against agentskills.io spec.
+🟢 All 12 skills valid against agentskills.io spec.
 ```
 
 The validator enforces the spec rules (frontmatter shape, name/directory matching, description length). Non-zero exit code if any skill fails — perfect for CI.

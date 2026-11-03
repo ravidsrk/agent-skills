@@ -100,9 +100,9 @@ If you used Path 1 (symlinks), updates are instant. Path 2 requires re-copying.
 # Remove individual skill
 rm ~/.claude/skills/cloudflare-dns
 
-# Remove all eleven skills from THIS pack (never rm -rf the whole
+# Remove all twelve skills from THIS pack (never rm -rf the whole
 # ~/.claude/skills/ — other packs' skills live there too)
-for name in cloudflare-dns namecheap-dns fly-to-aws-migration deep-research finish-line terminal-poster visual-regression landing-page-craft knowledge-capture knowledge-query knowledge-maintenance; do
+for name in cloudflare-dns namecheap-dns fly-to-aws-migration deep-research finish-line parallel-build-integrator terminal-poster visual-regression landing-page-craft knowledge-capture knowledge-query knowledge-maintenance; do
   rm -f "$HOME/.claude/skills/$name"
 done
 ```

@@ -82,6 +82,7 @@ You have multiple skills available. Pick the matching one based on the user's re
 - fly-to-aws-migration: Fly.io to AWS migration playbook
 - deep-research: parallel multi-source research
 - finish-line: drive a product to verified launch
+- parallel-build-integrator: build a backlog with parallel owner agents, integrated through one gate into merged PRs
 - visual-regression: screenshot baselines + UI verification
 - knowledge-capture: capture into a markdown knowledge base
 - knowledge-query: grounded answers with citations
@@ -91,7 +92,7 @@ You have multiple skills available. Pick the matching one based on the user's re
 
 ---
 EOF
-  for s in cloudflare-dns namecheap-dns fly-to-aws-migration deep-research finish-line visual-regression knowledge-capture knowledge-query knowledge-maintenance landing-page-craft terminal-poster; do
+  for s in cloudflare-dns namecheap-dns fly-to-aws-migration deep-research finish-line parallel-build-integrator visual-regression knowledge-capture knowledge-query knowledge-maintenance landing-page-craft terminal-poster; do
     echo ""
     echo "# === Skill: $s ==="
     echo ""

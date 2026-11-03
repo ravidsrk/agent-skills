@@ -38,6 +38,8 @@ worktree, and hand back the commit SHAs. Do not push and do not open PRs; I inte
 - The tests of every package you touched pass on your database. Say which failures are pre-existing, and how you know.
 - Docs, ADRs and status rows are updated where behaviour changed.
 - `git diff --cached | <secret pattern>` is empty before each commit.
+- Commit as `<user name> <user email>` (`git config user.name/user.email`, set in this repo), with no co-author,
+  session or "Generated with" trailers.
 - This machine runs as root and CI doesn't, so don't rely on file-permission behaviour.
 
 ## Report back

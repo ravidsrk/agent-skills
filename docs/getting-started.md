@@ -2,7 +2,7 @@
 
 ## The skills
 
-Eleven capability skills — cloudflare-dns, namecheap-dns, fly-to-aws-migration, deep-research (monid), finish-line, visual-regression, knowledge-capture, knowledge-query, knowledge-maintenance, landing-page-craft, terminal-poster. Work on any harness; set the env vars listed in each README.
+Twelve capability skills — cloudflare-dns, namecheap-dns, fly-to-aws-migration, deep-research (monid), finish-line, parallel-build-integrator, visual-regression, knowledge-capture, knowledge-query, knowledge-maintenance, landing-page-craft, terminal-poster. Work on any harness; set the env vars listed in each README.
 
 The autonomous Orca fleets that used to live here moved to [ravidsrk/orca-fleet](https://github.com/ravidsrk/orca-fleet).
 
@@ -39,7 +39,7 @@ cd agent-skills
 ```bash
 ls skills/
 # cloudflare-dns  namecheap-dns  fly-to-aws-migration  deep-research  finish-line
-# visual-regression  knowledge-capture  knowledge-query  knowledge-maintenance
+# parallel-build-integrator  visual-regression  knowledge-capture  knowledge-query  knowledge-maintenance
 # landing-page-craft  terminal-poster
 ```
 
@@ -94,6 +94,7 @@ In your agent, ask something the skill should respond to:
 | `fly-to-aws-migration` | *"Migrate my Fly project to AWS"* |
 | `deep-research` | *"Do a deep dive on AI agent harness engineering"* |
 | `finish-line` | *"Finish this product and take it to launch"* |
+| `parallel-build-integrator` | *"Build the whole backlog with parallel agents and merge the PRs yourself"* |
 | `visual-regression` | *"Did this CSS change break the UI?"* |
 | `knowledge-capture` | *"Capture this thought"* |
 | `knowledge-query` | *"What do we know about pricing?"* |

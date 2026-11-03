@@ -27,6 +27,7 @@ When working in this repo:
 | "Migrate from Fly to AWS" / "leave Fly" / "ECS migration" / "AWS migration" | [`fly-to-aws-migration`](skills/fly-to-aws-migration/SKILL.md) |
 | "Research X" / "deep dive on Y" / "what's the discourse on Z" | [`deep-research`](skills/deep-research/SKILL.md) |
 | "Finish this product" / "take it to launch" / "do it autonomously, don't ask me" / "verify what actually works" / "the AI says it's done but it isn't" / "keep fixing until every issue is resolved" / "it misunderstood the product, start the review over" | [`finish-line`](skills/finish-line/SKILL.md) |
+| "Build everything end to end" / "run agents in parallel per epic" / "review and merge the PRs yourself" / "integrate the agents' work" / "close the completed issues" / "keep refreshing against main" | [`parallel-build-integrator`](skills/parallel-build-integrator/SKILL.md) |
 | "Generate a viral poster" / "terminal aesthetic infographic" / "agent stack visualization" | [`terminal-poster`](skills/terminal-poster/SKILL.md) |
 | "Visual regression" / "screenshot diff" / "did this CSS break anything?" / "verify the UI change" | [`visual-regression`](skills/visual-regression/SKILL.md) |
 | "Capture this" / "save to my brain" / "ingest this article" / "remember this" | [`knowledge-capture`](skills/knowledge-capture/SKILL.md) |

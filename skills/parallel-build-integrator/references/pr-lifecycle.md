@@ -30,7 +30,7 @@ Left for live or outside resources, tracked in #<tracker>:
 - #A: <the live check, and the resource it needs>.
 ```
 
-Add no "Generated with" footer or AI attribution unless the user wants it.
+Add no "Generated with" footer or AI attribution unless the user wants it. Some GitHub tools append a footer with a session link when they create a PR. Read the description back after creating it, and update it without the footer.
 
 Write `Closes` lines at PR creation. Editing them after the merge closes nothing.
 
@@ -62,3 +62,24 @@ for c in <your SHAs>; do git merge-base --is-ancestor "$c" origin/main || echo "
 5. **Reset the integration branch:** `git checkout -B <integ> origin/main`, then push as a fast-forward. Fast-forward the main checkout too.
 6. **Trackers:** tick the checkboxes the PR satisfied.
 7. **Check-ins:** delete stale ones (PR safety nets, "check main CI" reminders) once they're resolved.
+
+## Review-comment sweep
+
+Use this when review comments on merged PRs went unanswered: every finding gets an outcome, on the PR it came from.
+
+1. **Collect** every finding from each merged PR: review threads, review bodies and check-run annotations. Give each one an id (`B<batch>-<n>`) and record its thread id and comment id.
+2. **Classify each against current main**, with evidence (file:line, or a reproduction):
+   - still present;
+   - already fixed;
+   - does not reproduce;
+   - intended;
+   - advisory (coupling counts and impact notes, with no defect claimed).
+   Parallel read-only agents can each take a batch of PRs.
+3. **Fix the still-present ones by area.** Brief one owner per area (Step 2), with the decisions already made. Each owner writes a results file: `[{id, status: fixed|deferred, commit, note}]`. A deferred item needs a plan and a reason.
+4. **Integrate and gate** as usual. If another PR lands mid-sweep, resolve conflicts by keeping both sides' intent. Tell owners about shared numbering, such as migration numbers.
+5. **After the merge, post the outcomes:**
+   - **One comment per PR** with a table: id, file:line, finding and outcome. Advisory notes go in a collapsed `<details>`.
+   - **On each open thread,** reply with the same outcome, then resolve it.
+   - **Map owner SHAs to integrated SHAs** by commit subject, including SHAs cited inside notes; an owner's worktree SHA doesn't exist on GitHub after a cherry-pick.
+   - **Post sequentially** from one agent, logging each PR as it's done so a rerun resumes and doesn't duplicate. GitHub's secondary limit allows about 80 content-creating requests a minute.
+6. **File one tracking issue** for the deferred findings and the follow-ups owners found outside their paths.

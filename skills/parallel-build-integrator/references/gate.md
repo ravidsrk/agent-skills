@@ -30,6 +30,8 @@ A failure blocks the push until it is one of these:
 Agent containers often run as root, and CI runners don't. File-permission tests (mode `0500` files, unwritable homes, `0700` temp dirs) pass as root and fail in CI.
 - Run those tests through `scripts/as-user.sh <user> <test command>`.
 - When a test helper creates a directory that another user must traverse, give it the mode of `/tmp` (`1777`), not `0700`.
+- **Containers:** `docker cp` keeps the host files' owner. On a non-root runner, the copied checkout belongs to uid 1001 inside the container, and git as root there refuses it as "dubious ownership". As root on the host, the same files are root's and everything passes. After the copy, read the image user's `uid:gid`, then chown the workspace to it as root (`docker exec -u 0`).
+- **Reproduce a CI-only failure** by running the test as a non-root user in the `docker` group. Give that user writable test-runner cache directories, such as `node_modules/.vite*` with mode `1777`.
 
 ## A fresh database per full run
 

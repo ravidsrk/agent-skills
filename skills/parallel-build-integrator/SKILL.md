@@ -138,6 +138,10 @@ Run live checks early. Fakes hide the bugs that matter: spend caps compared agai
 | `Closes #N` didn't close | The PR body was edited after the merge | Close by hand with a comment, or use a follow-up PR |
 | A UI target measures 43 px, not 44 | The audit ran mid-animation under load | Wait for finite animations before measuring |
 | `ENOBUFS` reading a large file | A default 1 MiB exec buffer | Size the buffer to the file; refuse over the API limit |
+| Dozens of DB tests fail with a client validation error after integrating | A hand-back added a migration or an env var, and the generated client or env types are stale | Run `REGEN_CMD` before every full run; `gate.sh` does |
+| A Docker sandbox test passes here but fails in CI | `docker cp` kept the non-root runner's uid, and git in the container refused the checkout | Chown the workspace as root to the image user's uid (`references/gate.md`) |
+| A PR description ends with an AI footer the user didn't want | The GitHub tool appended it at creation | Read the description back and update it without the footer |
+| Review comments on merged PRs went unanswered | Bot findings were treated as noise | Run the review-comment sweep (`references/pr-lifecycle.md`) |
 | A spend cap never trips | The vendor's "dollars" field was a fee, not usage | Price the tokens yourself; verify the cap live |
 | The disk fills mid-day | Finished worktrees and leaked test temp dirs | Remove finished worktrees; point the test runner's `TMPDIR` at one per-run directory |
 | A force-push or billing change was refused | The runtime's safety check | Use fast-forward or a follow-up PR; ask the user for billing changes |

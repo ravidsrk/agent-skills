@@ -5,6 +5,7 @@
 # Trailers removed: lines matching STRIP_TRAILERS_RE (an ERE; default: AI co-author, agent session and
 # "Generated with" lines).
 set -euo pipefail
+case "${1:-}" in -h|--help) sed -n '2,${/^#/!q;s/^# \{0,1\}//p}' "$0"; exit 0;; esac
 
 name=$(git config user.name || true); email=$(git config user.email || true)
 if [ -z "$name" ] || [ -z "$email" ]; then

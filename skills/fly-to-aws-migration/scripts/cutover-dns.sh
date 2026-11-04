@@ -8,6 +8,7 @@
 #   ./cutover-dns.sh api.example.com myalb-1234.us-east-1.elb.amazonaws.com
 
 set -euo pipefail
+case "${1:-}" in -h|--help) sed -n '2,${/^#/!q;s/^# \{0,1\}//p}' "$0"; exit 0;; esac
 
 HOSTNAME="${1:?hostname required, e.g. api.example.com}"
 NEW_TARGET="${2:?new target DNS name required}"

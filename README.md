@@ -282,6 +282,7 @@ agent-skills/
 │   └── generic-setup.md
 ├── scripts/
 │   ├── banner/                   ← Repo hero banner prompt + reproducer
+│   ├── check-links.py            ← Checks every relative Markdown link
 │   └── validate-skills.py        ← Validates SKILL.md against the spec
 └── skills/
     ├── cloudflare-dns/           ← 🌐 DNS migration + zone hardening
@@ -311,7 +312,7 @@ Each skill folder contains:
 
 # Validation
 
-CI runs the validator on every push to `main` and on every pull request. Run it locally before committing:
+CI runs the validator on every push to `main` and on every pull request, then `scripts/check-links.py` (every relative Markdown link must resolve), pyflakes over every Python script, `bash -n` over every shell script, and the Finish Line unit tests. Run the validator locally before committing:
 
 ```bash
 python3 scripts/validate-skills.py

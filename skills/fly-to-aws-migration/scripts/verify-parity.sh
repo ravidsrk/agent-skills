@@ -11,6 +11,7 @@
 # endpoints-file: newline-separated list of paths to test (default: just /health)
 
 set -euo pipefail
+case "${1:-}" in -h|--help) sed -n '2,${/^#/!q;s/^# \{0,1\}//p}' "$0"; exit 0;; esac
 
 AWS_URL="${1:?AWS URL required}"
 FLY_URL="${2:?Fly URL required (for comparison)}"

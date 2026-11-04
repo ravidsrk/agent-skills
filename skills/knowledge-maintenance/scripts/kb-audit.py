@@ -13,7 +13,7 @@ import os
 import re
 import sys
 from collections import Counter, defaultdict
-from datetime import date, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 EXCLUDE_DIRS = {".git", "node_modules", ".obsidian", ".trash", "vendor", "dist", "build"}

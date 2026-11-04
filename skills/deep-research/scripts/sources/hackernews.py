@@ -20,7 +20,6 @@ import re
 import sys
 import time as _time
 import urllib.parse
-from typing import Optional
 
 from ._monid import fetch_json
 

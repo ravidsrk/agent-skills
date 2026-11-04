@@ -5,6 +5,7 @@
 #
 # Usage: merge_loop.sh
 set -uo pipefail
+case "${1:-}" in -h|--help) sed -n '2,${/^#/!q;s/^# \{0,1\}//p}' "$0"; exit 0;; esac
 . "$(dirname "$0")/lib.sh"
 load_config "$PWD" || exit 1
 

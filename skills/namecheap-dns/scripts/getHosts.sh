@@ -8,6 +8,7 @@
 # Env: NAMECHEAP_API_KEY, NAMECHEAP_API_USER
 # Optional: NAMECHEAP_CLIENT_IP, NAMECHEAP_API_BASE
 set -euo pipefail
+case "${1:-}" in -h|--help) sed -n '2,${/^#/!q;s/^# \{0,1\}//p}' "$0"; exit 0;; esac
 
 SLD="${1:?usage: getHosts.sh <sld> <tld> [--json]}"
 TLD="${2:?usage: getHosts.sh <sld> <tld> [--json]}"

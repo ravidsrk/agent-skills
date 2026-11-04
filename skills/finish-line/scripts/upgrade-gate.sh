@@ -13,6 +13,7 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source-path=SCRIPTDIR source=lib.sh
 . "$HERE/lib.sh"
 fl_need git awk cmp
+case "${1:-}" in -h|--help) echo "usage: upgrade-gate.sh --check|--propose|--apply"; exit 0;; esac
 [[ $# -eq 1 ]] || fl_die "usage: upgrade-gate.sh --check|--propose|--apply"
 mode="$1"
 case "$mode" in --check|--propose|--apply) ;; *) fl_die "unknown upgrade-gate.sh option: $mode" ;; esac

@@ -11,7 +11,6 @@ import json
 import os
 import subprocess
 import sys
-import time
 from typing import Optional
 
 
@@ -45,7 +44,7 @@ def _run_monid(provider: str, endpoint: str, body: dict, wait: int = 90) -> Opti
                 return None
             return json.loads(out[i:])
     except subprocess.TimeoutExpired:
-        sys.stderr.write(f"[reddit/monid] timeout\n")
+        sys.stderr.write("[reddit/monid] timeout\n")
         return None
     except Exception as e:
         sys.stderr.write(f"[reddit/monid] error: {e}\n")

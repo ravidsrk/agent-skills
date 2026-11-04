@@ -8,6 +8,7 @@
 #   https://www.cloudflare.com/ips-v6
 
 set -euo pipefail
+case "${1:-}" in -h|--help) sed -n '2,${/^#/!q;s/^# \{0,1\}//p}' "$0"; exit 0;; esac
 
 OUTPUT=".dns-state/_shared/cloudflare-ips.json"
 while [ $# -gt 0 ]; do

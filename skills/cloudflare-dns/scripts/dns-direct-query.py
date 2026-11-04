@@ -168,6 +168,9 @@ def query(ns_host: str, name: str, qtype: str = "A", timeout: float = 5.0):
 
 
 if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] in ("-h", "--help"):
+        print(__doc__.strip())
+        sys.exit(0)
     if len(sys.argv) < 3:
         print(__doc__, file=sys.stderr)
         sys.exit(1)

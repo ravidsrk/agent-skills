@@ -18,6 +18,7 @@
 #
 # Safety: this REPLACES every host record. Pass the FULL desired set.
 set -euo pipefail
+case "${1:-}" in -h|--help) sed -n '2,${/^#/!q;s/^# \{0,1\}//p}' "$0"; exit 0;; esac
 
 SLD="${1:?usage: setHosts.sh <sld> <tld> < records.json}"
 TLD="${2:?usage: setHosts.sh <sld> <tld> < records.json}"

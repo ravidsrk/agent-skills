@@ -18,6 +18,7 @@
 # psql/pg_dump toolchain the restore already needs, no in-container tricks.
 
 set -euo pipefail
+case "${1:-}" in -h|--help) sed -n '2,${/^#/!q;s/^# \{0,1\}//p}' "$0"; exit 0;; esac
 
 FLY_PG="${1:?fly pg app name required}"
 AURORA_SECRET="${2:?aurora secret name required}"

@@ -5,6 +5,7 @@
 # Usage: as-user.sh <user> <command> [args...]
 #   e.g. as-user.sh nobody pnpm exec vitest run apps/cli/src/sea-prelude.test.ts
 set -euo pipefail
+case "${1:-}" in -h|--help) sed -n '2,${/^#/!q;s/^# \{0,1\}//p}' "$0"; exit 0;; esac
 
 user="${1:?usage: as-user.sh <user> <command> [args...]}"; shift
 [ $# -gt 0 ] || { echo "no command" >&2; exit 2; }

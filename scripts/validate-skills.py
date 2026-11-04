@@ -69,7 +69,7 @@ def validate_skill(skill_dir):
     skill_md = skill_dir / "SKILL.md"
 
     if not skill_md.exists():
-        return [f"missing SKILL.md"]
+        return ["missing SKILL.md"]
 
     text = skill_md.read_text(encoding="utf-8")
     data, err = parse_frontmatter(text)
@@ -130,7 +130,7 @@ def main():
         print(f"🟢 All {total} skills valid against agentskills.io spec.")
         return 0
     else:
-        print(f"🔴 Validation failed.")
+        print("🔴 Validation failed.")
         return 1
 
 

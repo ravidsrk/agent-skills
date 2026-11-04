@@ -8,7 +8,7 @@ Production-grade skills for AI agents — DNS migration, AWS migration, deep res
 skills/        → 12 capability skills (each with SKILL.md + README.md; scripts/ references/
                  templates/ assets/ as needed)
 docs/          → Per-runtime setup guides + skill-anatomy spec
-scripts/       → Repo-level helpers (validate-skills.py) + banner/ (repo hero reproducer)
+scripts/       → Repo-level helpers (validate-skills.py, check-links.py) + banner/ (repo hero reproducer)
 assets/        → Banner image, screenshots
 .claude-plugin/plugin.json → Claude Code marketplace manifest
 LICENSE        → MIT
@@ -43,7 +43,7 @@ All twelve are cataloged in [README.md](README.md) and mapped to trigger intents
 - YAML frontmatter requires `name` + `description` (1-1024 chars, includes both *what* and *when*)
 - Each skill has its own `README.md` for human install + usage docs (separate from `SKILL.md` which is for agents)
 - Scripts go in `skills/<name>/scripts/`, references in `references/`, templates in `templates/`
-- Validate with `python3 scripts/validate-skills.py` before committing
+- Validate with `python3 scripts/validate-skills.py` and `python3 scripts/check-links.py` before committing
 - Commit as the maintainer (`git config user.name "Ravindra Kumar"`, `git config user.email ravindrakumar8088@gmail.com`),
   with no AI co-author, session or "Generated with" lines in commits or PR descriptions
 
@@ -52,6 +52,9 @@ All twelve are cataloged in [README.md](README.md) and mapped to trigger intents
 ```bash
 # Validate all skills
 python3 scripts/validate-skills.py
+
+# Check every relative Markdown link
+python3 scripts/check-links.py
 
 # Browse a skill
 cat skills/cloudflare-dns/SKILL.md

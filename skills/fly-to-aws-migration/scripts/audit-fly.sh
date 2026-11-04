@@ -5,6 +5,7 @@
 # Example: ./audit-fly.sh myproject/.migration/
 
 set -euo pipefail
+case "${1:-}" in -h|--help) sed -n '2,${/^#/!q;s/^# \{0,1\}//p}' "$0"; exit 0;; esac
 
 OUTPUT_DIR="${1:-.the skill/migration}"
 mkdir -p "$OUTPUT_DIR"

@@ -32,7 +32,6 @@ Read the .md first to triage; pull verbatim quotes/numbers from the .json.
 from __future__ import annotations
 import argparse
 import json
-import os
 import re
 import sys
 import time
@@ -149,14 +148,14 @@ def render_markdown(evidence: dict) -> str:
     results = evidence["results"]
     out = []
     out.append(f"# Research: {topic}")
-    out.append(f"")
+    out.append("")
     out.append(f"**Window:** {dw['from']} → {dw['to']} ({dw['days']} days)")
     out.append(f"**Generated:** {evidence['generated_at']}")
     out.append(f"**Sources:** {', '.join(f'{s}={c}' for s, c in counts.items() if c)}")
     if evidence.get("errors"):
         out.append(f"**⚠️ Errors:** {evidence['errors']}")
-    out.append(f"")
-    out.append(f"---")
+    out.append("")
+    out.append("---")
 
     # X posts (most useful for direct quoting)
     if results.get("x"):

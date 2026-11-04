@@ -13,6 +13,7 @@
 # Requires: flyctl, aws CLI, jq
 # Env: AWS_PROFILE / AWS credentials, FLY_API_TOKEN if needed by flyctl
 set -euo pipefail
+case "${1:-}" in -h|--help) sed -n '2,${/^#/!q;s/^# \{0,1\}//p}' "$0"; exit 0;; esac
 
 FLY_APP="${1:?usage: secrets-migrate.sh <fly-app> <aws-secret-prefix> [--dry-run]}"
 PREFIX="${2:?usage: secrets-migrate.sh <fly-app> <aws-secret-prefix> [--dry-run]}"
